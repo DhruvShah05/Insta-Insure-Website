@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Policies - Insta Insurance Consultancy Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .page-title {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+        
+        .page-subtitle {
+            color: var(--gray-600);
+            font-size: var(--font-size-lg);
+            margin: var(--spacing-1) 0 0 0;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .stat-item {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-4);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--warning);
+            margin: 0;
+        }
+        
+        .stat-label {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin: var(--spacing-1) 0 0 0;
+        }
+        
+        .customer-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-1);
+        }
+        
+        .customer-name {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+        
+        .customer-email {
+            font-size: var(--font-size-xs);
+            color: var(--gray-500);
+        }
+        
+        .amount-display {
+            font-weight: 600;
+            color: var(--success);
+            font-size: var(--font-size-sm);
+        }
+        
+        .date-display {
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-2);
+        }
+        
+        @media (min-width: 768px) {
+            .action-buttons {
+                flex-direction: row;
+                gap: var(--spacing-2);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-4);
+            }
+            
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">All Clients</a>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Pending Policies</h1>
+                <p class="page-subtitle">Track and manage pending policy applications</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    Add Pending Policy
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="stats-row">
+            <div class="stat-item">
+                <h3 class="stat-number">{{ pending_policies|length if pending_policies else 0 }}</h3>
+                <p class="stat-label">Pending Applications</p>
+            </div>
+            <div class="stat-item">
+                <h3 class="stat-number">0</h3>
+                <p class="stat-label">Completed This Month</p>
+            </div>
+            <div class="stat-item">
+                <h3 class="stat-number">0</h3>
+                <p class="stat-label">Average Processing Time</p>
+            </div>
+        </div>
+
+        <div class="table-container">
+            {% if pending_policies %}
+            <div class="mb-4">
+                <span class="text-muted">Showing {{ pending_policies|length }} pending applications</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Pending ID</th>
+                            <th>Customer</th>
+                            <th>Company</th>
+                            <th>Product</th>
+                            <th>Agent</th>
+                            <th>Net Premium</th>
+                            <th>Payment Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for policy in pending_policies %}
+                        <tr>
+                            <td><strong>#{{ policy.pending_id }}</strong></td>
+                            <td>
+                                <div class="customer-info">
+                                    <div class="customer-name">{{ policy.customer_name }}</div>
+                                    <div class="customer-email">{{ policy.customer_email }}</div>
+                                </div>
+                            </td>
+                            <td>{{ policy.insurance_company }}</td>
+                            <td>{{ policy.product_name or 'N/A' }}</td>
+                            <td>{{ policy.agent_name or 'N/A' }}</td>
+                            <td>
+                                {% if policy.net_premium %}
+                                <div class="amount-display">₹{{ '{:,.2f}'.format(policy.net_premium) }}</div>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="date-display">{{ policy.payment_date | indian_date }}</div>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('pending_policies.complete_pending', pending_id=policy.pending_id) }}"
+                                       class="btn btn-success btn-sm">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                        </svg>
+                                        Complete
+                                    </a>
+                                    <form action="{{ url_for('pending_policies.delete_pending', pending_id=policy.pending_id) }}"
+                                          method="POST" style="display: inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Are you sure you want to delete this pending policy?')">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <h5>No pending policies</h5>
+                <p>All policies have been processed. Great job!</p>
+                <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-primary mt-3">Add Pending Policy</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

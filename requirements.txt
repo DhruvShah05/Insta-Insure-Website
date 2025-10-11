@@ -1,0 +1,26 @@
+Flask
+Flask-Login
+Authlib
+supabase
+twilio
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+psycopg2-binary
+python-dotenv
+APScheduler
+requests
+
+# Excel Processing
+pandas
+openpyxl
+numpy
+
+# Environment & Configuration
+python-dotenv
+
+# Utilities
+requests
+urllib3
+

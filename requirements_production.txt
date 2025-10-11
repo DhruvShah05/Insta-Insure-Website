@@ -1,0 +1,58 @@
+# Core Flask Dependencies
+Flask
+Flask-Login
+Werkzeug
+
+# Authentication
+Authlib
+
+# Database
+supabase
+
+# Google Services
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+
+# Communication Services
+twilio
+
+# Email
+secure-smtplib
+
+# Excel Processing
+pandas
+openpyxl
+numpy
+
+# Environment & Configuration
+python-dotenv
+
+# Utilities
+requests
+urllib3
+
+# Production WSGI Server & Async Support
+gunicorn
+gevent
+eventlet
+
+# Caching & Session Management
+redis
+Flask-Session
+
+# Task Queue for Background Processing
+celery
+kombu
+
+# Monitoring & Logging
+psutil
+prometheus-client
+
+# Performance & Concurrency (concurrent.futures is built-in since Python 3.2)
+# concurrent-futures>=3.1.1  # Not needed for Python 3.2+
+# threading-utils>=0.3  # Optional dependency
+
+# Production Server (Alternative)
+waitress

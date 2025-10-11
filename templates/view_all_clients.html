@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Clients - Insta Insurance Consultancy Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        .client-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-6);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .client-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary-blue);
+        }
+        
+        .client-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, #4f46e5 100%);
+            color: var(--white);
+            padding: var(--spacing-6);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--spacing-4);
+        }
+        
+        .client-info h3 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+        }
+        
+        .client-id {
+            font-size: var(--font-size-sm);
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        .client-stats {
+            display: flex;
+            gap: var(--spacing-4);
+            font-size: var(--font-size-sm);
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-1);
+        }
+        
+        .expand-icon {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.2s ease;
+        }
+        
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .client-details {
+            padding: var(--spacing-6);
+            border-top: 1px solid var(--gray-100);
+            background: var(--gray-50);
+        }
+        
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+        
+        .contact-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--gray-500);
+        }
+        
+        .member-section {
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .member-header {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-4);
+            margin-bottom: var(--spacing-4);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        
+        .member-header:hover {
+            background: var(--secondary-blue);
+            border-color: var(--primary-blue);
+        }
+        
+        .member-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .policy-count {
+            background: var(--primary-blue);
+            color: var(--white);
+            padding: var(--spacing-1) var(--spacing-3);
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+        }
+        
+        .policies-list {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+        
+        .policy-item {
+            padding: var(--spacing-4);
+            border-bottom: 1px solid var(--gray-100);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: var(--spacing-4);
+            align-items: center;
+        }
+        
+        .policy-item:last-child {
+            border-bottom: none;
+        }
+        
+        .policy-item:hover {
+            background: var(--gray-50);
+        }
+        
+        .policy-company {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+        
+        .policy-product {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+        }
+        
+        .policy-expiry {
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+        
+        .policy-actions {
+            display: flex;
+            gap: var(--spacing-2);
+        }
+        
+        .search-section {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            margin-bottom: var(--spacing-6);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: var(--spacing-3);
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            color: var(--gray-400);
+        }
+        
+        .search-input {
+            padding-left: 3rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-base);
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .summary-card {
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-4);
+            text-align: center;
+        }
+        
+        .summary-number {
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+        
+        .summary-label {
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+            margin-top: var(--spacing-1);
+        }
+        
+        .export-btn {
+            background: rgba(255,255,255,0.2) !important;
+            color: white !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
+            padding: 6px 12px !important;
+            border-radius: 6px !important;
+            text-decoration: none !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+        
+        .export-btn:hover {
+            background: rgba(255,255,255,0.3) !important;
+            border-color: rgba(255,255,255,0.5) !important;
+            color: white !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+        }
+        
+        @media (max-width: 768px) {
+            .policy-item {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-2);
+            }
+            
+            .client-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-2);
+            }
+            
+            .client-stats {
+                align-self: stretch;
+                justify-content: space-between;
+            }
+            
+            .export-btn {
+                font-size: 11px !important;
+                padding: 4px 8px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
+                <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Pending Policies</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="page-header">
+            <h1>All Clients</h1>
+            <p>Manage your clients, members, and their policies</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <form method="GET" action="{{ url_for('existing_policies.list_all') }}">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input type="text" name="search" class="form-control search-input" 
+                           placeholder="Search clients, members, policies..." 
+                           value="{{ current_search }}">
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Search</button>
+                {% if current_search %}
+                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline mt-3">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-stats">
+            <div class="summary-card">
+                <div class="summary-number">{{ total_clients }}</div>
+                <div class="summary-label">Total Clients</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number">{{ clients|sum(attribute='member_count') }}</div>
+                <div class="summary-label">Total Members</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-number">{{ clients|sum(attribute='total_policies') }}</div>
+                <div class="summary-label">Total Policies</div>
+            </div>
+        </div>
+
+        <!-- Clients List -->
+        {% if clients %}
+            {% for client in clients %}
+            <div class="client-card">
+                <div class="client-header" onclick="toggleClient('client-{{ loop.index }}')">
+                    <div class="client-info">
+                        <h3>{{ client.name }} <span class="client-id">({{ client.client_id }})</span></h3>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="client-stats">
+                            <div class="stat-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                                {{ client.member_count }} Members
+                            </div>
+                            <div class="stat-item">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                </svg>
+                                {{ client.total_policies }} Policies
+                            </div>
+                        </div>
+                        {% if client.total_policies > 0 %}
+                        <a href="{{ url_for('client_export.export_client_data', client_id=client.client_id) }}" 
+                           class="export-btn"
+                           title="Export {{ client.client_id }} data to Excel"
+                           onclick="event.stopPropagation();">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            Export Data
+                        </a>
+                        {% endif %}
+                        <svg class="expand-icon" id="icon-client-{{ loop.index }}" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7.41 8.84L12 13.42l4.59-4.58L18 10.25l-6 6-6-6z"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="client-details" id="client-{{ loop.index }}" style="display: none;">
+                    <!-- Contact Information -->
+                    <div class="contact-info mb-4">
+                        {% if client.email %}
+                        <div class="contact-item">
+                            <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                            </svg>
+                            <strong>Email:</strong> {{ client.email }}
+                        </div>
+                        {% endif %}
+                        {% if client.phone %}
+                        <div class="contact-item">
+                            <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                            </svg>
+                            <strong>Phone:</strong> {{ client.phone }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% for member in client.members %}
+                    <div class="member-section">
+                        <div class="member-header" onclick="toggleMember('member-{{ client.client_id }}-{{ member.member_id }}')">
+                            <div class="member-name">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                                {{ member.member_name }}
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="policy-count">{{ member.policy_count }} Policies</span>
+                                <svg class="expand-icon" id="icon-member-{{ client.client_id }}-{{ member.member_id }}" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M7.41 8.84L12 13.42l4.59-4.58L18 10.25l-6 6-6-6z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <div class="policies-list" id="member-{{ client.client_id }}-{{ member.member_id }}" style="display: none;">
+                            {% if member.policies %}
+                                {% for policy in member.policies %}
+                                <div class="policy-item">
+                                    <div>
+                                        <div class="policy-company">{{ policy.insurance_company }}</div>
+                                        <div class="policy-product">{{ policy.product_name }}</div>
+                                        {% if policy.policy_number %}
+                                        <div class="policy-product">Policy #{{ policy.policy_number }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="policy-expiry">
+                                            <strong>Expiry:</strong> {{ policy.policy_to | indian_date if policy.policy_to else 'N/A' }}
+                                        </div>
+                                        {% if policy.net_premium %}
+                                        <div class="policy-product">Premium: ₹{{ policy.net_premium }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        {% if policy.payment_date %}
+                                        <span class="badge bg-success">Paid</span>
+                                        {% elif policy.net_premium and policy.drive_url %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="policy-actions">
+                                        {% if policy.drive_url %}
+                                        <a href="{{ policy.drive_url }}" target="_blank" class="btn btn-sm btn-outline" title="View Document">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                            </svg>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('existing_policies.view_policy', policy_id=policy.policy_id) }}" class="btn btn-sm btn-outline" title="View Details">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                            </svg>
+                                        </a>
+                                        <a href="{{ url_for('renewal.renewal_page', policy_id=policy.policy_id) }}" class="btn btn-sm btn-success" title="Renew Policy">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="policy-item">
+                                    <div class="text-muted">No policies found for this member</div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not client.members %}
+                    <div class="text-muted text-center py-4">
+                        No members found for this client
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+                <h5>No clients found</h5>
+                <p>{% if current_search %}No clients match your search criteria.{% else %}Start by adding your first client and policy.{% endif %}</p>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary mt-3">Add First Policy</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleClient(clientId) {
+            const element = document.getElementById(clientId);
+            const icon = document.getElementById('icon-' + clientId);
+            
+            // Check if element is hidden (either style.display is 'none' or empty/not set)
+            const isHidden = element.style.display === 'none' || 
+                           window.getComputedStyle(element).display === 'none';
+            
+            if (isHidden) {
+                element.style.display = 'block';
+                icon.classList.add('expanded');
+            } else {
+                element.style.display = 'none';
+                icon.classList.remove('expanded');
+            }
+        }
+        
+        function toggleMember(memberId) {
+            const element = document.getElementById(memberId);
+            const icon = document.getElementById('icon-' + memberId);
+            
+            // Check if element is hidden (either style.display is 'none' or empty/not set)
+            const isHidden = element.style.display === 'none' || 
+                           window.getComputedStyle(element).display === 'none';
+            
+            if (isHidden) {
+                element.style.display = 'block';
+                icon.classList.add('expanded');
+            } else {
+                element.style.display = 'none';
+                icon.classList.remove('expanded');
+            }
+        }
+    </script>
+</body>
+</html>

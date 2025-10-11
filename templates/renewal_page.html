@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renew Policy - Insta Insurance Consultancy Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .renewal-container {
+            max-width: 1000px;
+            margin: var(--spacing-10) auto;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .page-title {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .page-subtitle {
+            color: var(--gray-600);
+            font-size: var(--font-size-lg);
+        }
+        
+        .policy-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-8);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .policy-card h4 {
+            font-size: var(--font-size-2xl);
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: var(--spacing-6);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        
+        .policy-card h5 {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: var(--spacing-4);
+            padding-bottom: var(--spacing-2);
+            border-bottom: 2px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        
+        .section-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-blue);
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-3) 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        
+        .detail-value {
+            color: var(--gray-900);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+        }
+        
+        .contact-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--gray-500);
+        }
+        
+        .badge-renewed {
+            background: var(--success-light);
+            color: #065f46;
+            padding: var(--spacing-2) var(--spacing-4);
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: var(--font-size-sm);
+        }
+        
+        .badge-pending {
+            background: var(--warning-light);
+            color: #92400e;
+            padding: var(--spacing-2) var(--spacing-4);
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: var(--font-size-sm);
+        }
+        
+        .form-section {
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            margin-bottom: var(--spacing-6);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .form-section h5 {
+            color: var(--gray-900);
+            margin-bottom: var(--spacing-4);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        
+        .btn-renew {
+            background: var(--success);
+            border: none;
+            color: var(--white);
+            padding: var(--spacing-3) var(--spacing-6);
+            font-weight: 500;
+            border-radius: var(--radius-md);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-2);
+        }
+        
+        .btn-renew:hover {
+            background: #059669;
+            color: var(--white);
+        }
+        
+        .history-item {
+            background: var(--white);
+            padding: var(--spacing-4);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-3);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .history-label {
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-1);
+        }
+        
+        .history-value {
+            color: var(--gray-900);
+            font-size: var(--font-size-sm);
+        }
+        
+        .warning-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid var(--warning);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            margin: var(--spacing-6) 0;
+        }
+        
+        .warning-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--warning);
+        }
+        
+        .required-indicator {
+            color: var(--danger);
+        }
+        
+        .form-help {
+            font-size: var(--font-size-sm);
+            color: var(--gray-500);
+            margin-top: var(--spacing-1);
+        }
+        
+        @media (max-width: 768px) {
+            .renewal-container {
+                margin: var(--spacing-6) auto;
+                padding: var(--spacing-4);
+            }
+            
+            .policy-card {
+                padding: var(--spacing-6);
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">Back to Clients</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="renewal-container">
+        <div class="page-header">
+            <h1 class="page-title">Policy Renewal</h1>
+            <p class="page-subtitle">Update policy information and upload new documents</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Policy Information -->
+        <div class="policy-card">
+            <h4>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+                Current Policy Information
+            </h4>
+            
+            <div class="detail-row">
+                <span class="detail-label">Policy ID:</span>
+                <span class="detail-value">#{{ policy.policy_id }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Client Name:</span>
+                <span class="detail-value">{{ client.name }} ({{ client.client_id }})</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Member Name:</span>
+                <span class="detail-value">{{ member.member_name }}</span>
+            </div>
+            {% if client.email %}
+            <div class="detail-row">
+                <span class="detail-label">
+                    <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    Email:
+                </span>
+                <span class="detail-value">{{ client.email }}</span>
+            </div>
+            {% endif %}
+            {% if client.phone %}
+            <div class="detail-row">
+                <span class="detail-label">
+                    <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                    </svg>
+                    Phone:
+                </span>
+                <span class="detail-value">{{ client.phone }}</span>
+            </div>
+            {% endif %}
+            <div class="detail-row">
+                <span class="detail-label">Company Name:</span>
+                <span class="detail-value">{{ policy.insurance_company }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Policy Type:</span>
+                <span class="detail-value">{{ policy.product_name }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Current Expiry Date:</span>
+                <span class="detail-value">{{ policy.policy_to | indian_date }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Policy Number:</span>
+                <span class="detail-value">{{ policy.policy_number or 'N/A' }}</span>
+            </div>
+            {% if policy.last_reminder_sent %}
+            <div class="detail-row">
+                <span class="detail-label">Last Reminder Sent:</span>
+                <span class="detail-value">{{ policy.last_reminder_sent[:19] }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Renewal History -->
+        {% if history %}
+        <div class="policy-card">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Renewal History
+            </h5>
+            {% if history.last_renewed %}
+            <div class="history-item">
+                <div class="history-label">Last Renewed:</div>
+                <div class="history-value">{{ history.last_renewed[:19] }}</div>
+            </div>
+            {% endif %}
+            {% if history.last_reminder_sent %}
+            <div class="history-item">
+                <div class="history-label">Last Reminder Sent:</div>
+                <div class="history-value">{{ history.last_reminder_sent[:19] }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Edit Policy Details Section -->
+        <div class="policy-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4>
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                    Edit Policy Details
+                </h4>
+                <button type="button" class="btn btn-outline" id="toggleEditBtn" onclick="toggleEditMode()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                    Edit Details
+                </button>
+            </div>
+            
+            <div id="editDetailsSection" style="display: none;">
+                <p class="text-muted mb-4">Update policy information before renewal. Changes will be saved when you click "Save Changes".</p>
+                
+                <form id="policyDetailsForm">
+                    <input type="hidden" id="editPolicyId" value="{{ policy.policy_id }}">
+                    
+                    <!-- Basic Policy Information -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="editInsuranceCompany" class="form-label">Insurance Company</label>
+                            <input type="text" class="form-control" id="editInsuranceCompany" value="{{ policy.insurance_company or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editProductName" class="form-label">Product Type</label>
+                            <input type="text" class="form-control" id="editProductName" value="{{ policy.product_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editAgentName" class="form-label">Agent Name</label>
+                            <input type="text" class="form-control" id="editAgentName" value="{{ policy.agent_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editBusinessType" class="form-label">Business Type</label>
+                            <select class="form-control" id="editBusinessType">
+                                <option value="NEW" {{ 'selected' if policy.business_type == 'NEW' else '' }}>New</option>
+                                <option value="RENEWAL" {{ 'selected' if policy.business_type == 'RENEWAL' else '' }}>Renewal</option>
+                                <option value="ROLLOVER" {{ 'selected' if policy.business_type == 'ROLLOVER' else '' }}>Roll Over</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Premium and Financial Information -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="editSumInsured" class="form-label">Sum Insured</label>
+                            <input type="number" class="form-control" id="editSumInsured" value="{{ policy.sum_insured or '' }}" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editNetPremium" class="form-label">Net Premium</label>
+                            <input type="number" class="form-control" id="editNetPremium" value="{{ policy.net_premium or '' }}" step="0.01">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editGrossPremium" class="form-label">Gross Premium</label>
+                            <input type="number" class="form-control" id="editGrossPremium" value="{{ policy.gross_premium or '' }}" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <!-- Policy Dates -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="editPolicyFrom" class="form-label">Policy Start Date</label>
+                            <input type="text" class="form-control date-picker" id="editPolicyFrom" value="{{ policy.policy_from | indian_date if policy.policy_from else '' }}" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editPolicyTo" class="form-label">Policy End Date</label>
+                            <input type="text" class="form-control date-picker" id="editPolicyTo" value="{{ policy.policy_to | indian_date if policy.policy_to else '' }}" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editPaymentDate" class="form-label">Payment Date</label>
+                            <input type="text" class="form-control date-picker" id="editPaymentDate" value="{{ policy.payment_date | indian_date if policy.payment_date else '' }}" placeholder="DD/MM/YYYY">
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="editGroupName" class="form-label">Group Name</label>
+                            <input type="text" class="form-control" id="editGroupName" value="{{ policy.group_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editSubgroupName" class="form-label">Subgroup Name</label>
+                            <input type="text" class="form-control" id="editSubgroupName" value="{{ policy.subgroup_name or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label for="editRemarks" class="form-label">Remarks</label>
+                            <textarea class="form-control" id="editRemarks" rows="3">{{ policy.remarks or '' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Health Insurance Details -->
+                    {% if health_details or not health_details %}
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Health Insurance Details
+                        </h6>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="editHealthPlanType" class="form-label">Plan Type</label>
+                                <select class="form-control" id="editHealthPlanType">
+                                    <option value="">No Health Insurance</option>
+                                    <option value="FLOATER" {{ 'selected' if health_details and health_details.plan_type == 'FLOATER' else '' }}>Floater</option>
+                                    <option value="INDIVIDUAL" {{ 'selected' if health_details and health_details.plan_type == 'INDIVIDUAL' else '' }}>Individual</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div id="healthMembersSection">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label mb-0">Health Insured Members</label>
+                                <button type="button" class="btn btn-sm btn-outline" onclick="addHealthMember()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                                    </svg>
+                                    Add Member
+                                </button>
+                            </div>
+                            
+                            <div id="healthMembersList">
+                                {% if health_members %}
+                                    {% for member in health_members %}
+                                    <div class="health-member-item border rounded p-3 mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">Member {{ loop.index }}</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeHealthMember(this)">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Member Name</label>
+                                                <input type="text" class="form-control health-member-name" value="{{ member.member_name or '' }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Sum Insured</label>
+                                                <input type="number" class="form-control health-member-sum" value="{{ member.sum_insured or '' }}" step="0.01">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Bonus</label>
+                                                <input type="number" class="form-control health-member-bonus" value="{{ member.bonus or '' }}" step="0.01">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Factory Insurance Details -->
+                    {% if factory_details or not factory_details %}
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                                <path d="M12 3L2 12h3v8h14v-8h3L12 3zm0 2.69L18 11v7h-3v-6H9v6H6v-7l6-5.31z"/>
+                            </svg>
+                            Factory Insurance Details
+                        </h6>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="editFactoryBuilding" class="form-label">Building Coverage</label>
+                                <input type="number" class="form-control" id="editFactoryBuilding" value="{{ factory_details.building if factory_details else '' }}" step="0.01" placeholder="Enter building coverage amount">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editFactoryPlantMachinery" class="form-label">Plant & Machinery Coverage</label>
+                                <input type="number" class="form-control" id="editFactoryPlantMachinery" value="{{ factory_details.plant_machinery if factory_details else '' }}" step="0.01" placeholder="Enter plant & machinery coverage">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editFactoryFurnitureFittings" class="form-label">Furniture & Fittings Coverage</label>
+                                <input type="number" class="form-control" id="editFactoryFurnitureFittings" value="{{ factory_details.furniture_fittings if factory_details else '' }}" step="0.01" placeholder="Enter furniture & fittings coverage">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editFactoryStocks" class="form-label">Stocks Coverage</label>
+                                <input type="number" class="form-control" id="editFactoryStocks" value="{{ factory_details.stocks if factory_details else '' }}" step="0.01" placeholder="Enter stocks coverage">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="editFactoryElectrical" class="form-label">Electrical Installations Coverage</label>
+                                <input type="number" class="form-control" id="editFactoryElectrical" value="{{ factory_details.electrical_installations if factory_details else '' }}" step="0.01" placeholder="Enter electrical installations coverage">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="button" class="btn btn-success" onclick="saveDetailsChanges()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                            </svg>
+                            Save Changes
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="cancelEdit()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Renewal Form -->
+        <div class="form-section">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+                Upload Renewed Policy
+            </h5>
+            <p class="text-muted mb-4">Upload the new policy PDF document. This will replace the current policy document.</p>
+            
+            <form id="renewalForm" enctype="multipart/form-data">
+                <input type="hidden" id="policyId" name="policy_id" value="{{ policy.policy_id }}">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="renewedFile" class="form-label">New Policy PDF <span class="required-indicator">*</span></label>
+                        <input type="file" class="form-control" id="renewedFile" name="renewed_file" accept=".pdf" required>
+                        <div class="form-help">Upload the renewed policy document (PDF only, max 10MB)</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="newExpiryDate" class="form-label">New Expiry Date</label>
+                        <input type="text" class="form-control date-picker" id="newExpiryDate" name="new_expiry_date" placeholder="DD/MM/YYYY">
+                        <div class="form-help">Leave empty to keep current expiry date</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="newPolicyNumber" class="form-label">New Policy Number</label>
+                        <input type="text" class="form-control" id="newPolicyNumber" name="new_policy_number" placeholder="Enter new policy number">
+                        <div class="form-help">Leave empty to keep current policy number</div>
+                    </div>
+                </div>
+                
+                <div class="warning-section">
+                    <div class="d-flex align-items-start gap-3">
+                        <svg class="warning-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                        </svg>
+                        <div>
+                            <strong>Important:</strong> This action will permanently replace the current policy document. 
+                            The old document will be deleted from Google Drive and cannot be recovered.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-3 mt-4">
+                    <button type="button" class="btn btn-renew" onclick="renewPolicy()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        Renew Policy
+                    </button>
+                    <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize date pickers with DD/MM/YYYY format
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr('.date-picker', {
+                dateFormat: 'd/m/Y',
+                altInput: false,
+                allowInput: true,
+                locale: {
+                    firstDayOfWeek: 1
+                }
+            });
+        });
+    </script>
+    <script>
+        // Edit mode functions
+        function toggleEditMode() {
+            const editSection = document.getElementById('editDetailsSection');
+            const toggleBtn = document.getElementById('toggleEditBtn');
+            
+            if (editSection.style.display === 'none') {
+                editSection.style.display = 'block';
+                toggleBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                    Close Edit
+                `;
+            } else {
+                editSection.style.display = 'none';
+                toggleBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                    Edit Details
+                `;
+            }
+        }
+        
+        function cancelEdit() {
+            // Reset form to original values
+            document.getElementById('editInsuranceCompany').value = '{{ policy.insurance_company or "" }}';
+            document.getElementById('editProductName').value = '{{ policy.product_name or "" }}';
+            document.getElementById('editAgentName').value = '{{ policy.agent_name or "" }}';
+            document.getElementById('editBusinessType').value = '{{ policy.business_type or "" }}';
+            
+            // Close edit section
+            toggleEditMode();
+        }
+        
+        async function saveDetailsChanges() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            
+            try {
+                const data = {
+                    policy_id: document.getElementById('editPolicyId').value,
+                    insurance_company: document.getElementById('editInsuranceCompany').value,
+                    product_name: document.getElementById('editProductName').value,
+                    agent_name: document.getElementById('editAgentName').value,
+                    business_type: document.getElementById('editBusinessType').value,
+                    sum_insured: document.getElementById('editSumInsured').value,
+                    net_premium: document.getElementById('editNetPremium').value,
+                    gross_premium: document.getElementById('editGrossPremium').value,
+                    policy_from: document.getElementById('editPolicyFrom').value,
+                    policy_to: document.getElementById('editPolicyTo').value,
+                    payment_date: document.getElementById('editPaymentDate').value,
+                    group_name: document.getElementById('editGroupName').value,
+                    subgroup_name: document.getElementById('editSubgroupName').value,
+                    remarks: document.getElementById('editRemarks').value
+                };
+                
+                // Add health insurance data
+                const healthData = collectHealthData();
+                if (healthData) {
+                    data.health_details = healthData;
+                }
+                
+                // Add factory insurance data
+                const factoryData = collectFactoryData();
+                if (factoryData) {
+                    data.factory_details = factoryData;
+                }
+                
+                const response = await fetch('/api/update_policy_details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Policy details updated successfully!');
+                    // Reload page to show updated information
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to save changes. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        }
+        
+        // Health member management functions
+        function addHealthMember() {
+            const membersList = document.getElementById('healthMembersList');
+            const memberCount = membersList.children.length + 1;
+            
+            const memberDiv = document.createElement('div');
+            memberDiv.className = 'health-member-item border rounded p-3 mb-3';
+            memberDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Member ${memberCount}</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeHealthMember(this)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Member Name</label>
+                        <input type="text" class="form-control health-member-name" placeholder="Enter member name">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sum Insured</label>
+                        <input type="number" class="form-control health-member-sum" step="0.01" placeholder="Enter sum insured">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Bonus</label>
+                        <input type="number" class="form-control health-member-bonus" step="0.01" placeholder="Enter bonus">
+                    </div>
+                </div>
+            `;
+            
+            membersList.appendChild(memberDiv);
+        }
+        
+        function removeHealthMember(button) {
+            const memberItem = button.closest('.health-member-item');
+            memberItem.remove();
+            
+            // Update member numbers
+            const membersList = document.getElementById('healthMembersList');
+            const members = membersList.querySelectorAll('.health-member-item');
+            members.forEach((member, index) => {
+                const title = member.querySelector('h6');
+                title.textContent = `Member ${index + 1}`;
+            });
+        }
+        
+        // Collect health insurance data
+        function collectHealthData() {
+            const planType = document.getElementById('editHealthPlanType').value;
+            if (!planType) return null;
+            
+            const members = [];
+            const memberItems = document.querySelectorAll('.health-member-item');
+            
+            memberItems.forEach(item => {
+                const name = item.querySelector('.health-member-name').value;
+                const sumInsured = item.querySelector('.health-member-sum').value;
+                const bonus = item.querySelector('.health-member-bonus').value;
+                
+                if (name) {  // Only add if name is provided
+                    members.push({
+                        member_name: name,
+                        sum_insured: sumInsured,
+                        bonus: bonus
+                    });
+                }
+            });
+            
+            return {
+                plan_type: planType,
+                members: members
+            };
+        }
+        
+        // Collect factory insurance data
+        function collectFactoryData() {
+            const building = document.getElementById('editFactoryBuilding').value;
+            const plantMachinery = document.getElementById('editFactoryPlantMachinery').value;
+            const furnitureFittings = document.getElementById('editFactoryFurnitureFittings').value;
+            const stocks = document.getElementById('editFactoryStocks').value;
+            const electrical = document.getElementById('editFactoryElectrical').value;
+            
+            // Only return data if at least one field has a value
+            if (building || plantMachinery || furnitureFittings || stocks || electrical) {
+                return {
+                    building: building,
+                    plant_machinery: plantMachinery,
+                    furniture_fittings: furnitureFittings,
+                    stocks: stocks,
+                    electrical_installations: electrical
+                };
+            }
+            return null;
+        }
+    </script>
+    <script>
+        async function renewPolicy() {
+            const form = document.getElementById('renewalForm');
+            const formData = new FormData(form);
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            // Validate file
+            const fileInput = document.getElementById('renewedFile');
+            if (!fileInput.files[0]) {
+                alert('Please select a PDF file to upload');
+                return;
+            }
+            
+            if (!fileInput.files[0].name.toLowerCase().endsWith('.pdf')) {
+                alert('Please select a PDF file');
+                return;
+            }
+            
+            // Confirm action
+            if (!confirm('Are you sure you want to renew this policy? This will replace the current policy document permanently.')) {
+                return;
+            }
+            
+            // Disable button and show loading
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Renewing...';
+            
+            try {
+                const response = await fetch('/api/renew_policy', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Policy renewed successfully!\n\n' + result.message);
+                    // Reload the page to show updated information
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to renew policy. Please try again.');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Pending Policy - Insta Insurance Consultancy Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .navbar {
+            background: white !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 16px 0;
+        }
+        .navbar-brand {
+            color: #1a202c !important;
+            font-weight: 600;
+            font-size: 20px;
+        }
+        .btn-outline {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+            padding: 10px 24px;
+            font-weight: 500;
+            border-radius: 8px;
+        }
+        .form-container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .form-container h4 {
+            margin-bottom: 32px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a202c;
+        }
+        .info-section {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .info-section h5 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 16px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 500;
+            color: #718096;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1a202c;
+            font-size: 14px;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-control {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .btn-primary {
+            background: #10b981;
+            border: none;
+            padding: 12px 32px;
+            font-weight: 500;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .btn-primary:hover {
+            background: #059669;
+        }
+        .btn-secondary {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+            padding: 12px 32px;
+            font-weight: 500;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+        .whatsapp-section {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .whatsapp-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .whatsapp-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .whatsapp-checkbox label {
+            font-weight: 500;
+            color: #166534;
+            cursor: pointer;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Back to Pending Policies</a>
+        </div>
+    </nav>
+
+    <div class="form-container">
+        <h4>Complete Pending Policy</h4>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="info-section">
+            <h5>Pending Policy Details</h5>
+            <div class="info-row">
+                <span class="info-label">Pending ID:</span>
+                <span class="info-value">#{{ pending.pending_id }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Customer:</span>
+                <span class="info-value">{{ pending.customer_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ pending.customer_email or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Phone:</span>
+                <span class="info-value">{{ pending.customer_phone or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Company:</span>
+                <span class="info-value">{{ pending.insurance_company }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Product:</span>
+                <span class="info-value">{{ pending.product_name or 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Amount Paid:</span>
+                <span class="info-value">{{ 'Rs. {:,.2f}'.format(pending.amount_paid) if pending.amount_paid else 'N/A' }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Payment Date:</span>
+                <span class="info-value">{{ pending.date_of_payment | indian_date }}</span>
+            </div>
+            {% if pending.notes %}
+            <div class="info-row">
+                <span class="info-label">Notes:</span>
+                <span class="info-value">{{ pending.notes }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <form action="{{ url_for('pending_policies.complete_pending', pending_id=pending.pending_id) }}" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="policy_number" class="form-label">Policy Number (Optional)</label>
+                <input type="text" name="policy_number" id="policy_number" class="form-control" placeholder="Enter policy number">
+            </div>
+
+            <div class="mb-4">
+                <label for="policy_file" class="form-label">Upload Policy Document</label>
+                <input type="file" name="policy_file" id="policy_file" class="form-control" accept=".pdf,.doc,.docx" required>
+                <small class="text-muted">Accepted formats: PDF, DOC, DOCX (Max 10MB)</small>
+            </div>
+
+            <div class="whatsapp-section">
+                <div class="whatsapp-checkbox">
+                    <input type="checkbox" name="send_to_customer" id="send_to_customer" value="yes"
+                           {% if pending.customer_phone or pending.customer_email %}checked{% endif %}>
+                    <label for="send_to_customer">
+                         Send completed policy to customer via WhatsApp & Email
+                    </label>
+                </div>
+                <small class="text-muted d-block mt-2">
+                    {% if pending.customer_phone and pending.customer_email %}
+                        Will send via WhatsApp and Email
+                    {% elif pending.customer_phone %}
+                        Will send via WhatsApp only (no email available)
+                    {% elif pending.customer_email %}
+                        Will send via Email only (no phone available)
+                    {% else %}
+                        Customer has no contact information
+                    {% endif %}
+                </small>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Complete Policy</button>
+                <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

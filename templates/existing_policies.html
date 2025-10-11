@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Policies - Insta Insurance Consultancy Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .page-title {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+        
+        .page-subtitle {
+            color: var(--gray-600);
+            font-size: var(--font-size-lg);
+            margin: var(--spacing-1) 0 0 0;
+        }
+        
+        .filters-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .filters-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            margin-bottom: var(--spacing-4);
+        }
+        
+        .filters-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin: 0;
+        }
+        
+        .filter-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--primary-blue);
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: var(--spacing-3);
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--gray-400);
+        }
+        
+        .search-input {
+            padding-left: var(--spacing-10);
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+        
+        .stat-item {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-4);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: var(--font-size-2xl);
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin: 0;
+        }
+        
+        .stat-label {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin: var(--spacing-1) 0 0 0;
+        }
+        
+        .customer-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-1);
+        }
+        
+        .customer-name {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+        
+        .customer-contact {
+            font-size: var(--font-size-xs);
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-1);
+        }
+        
+        .contact-icon {
+            width: 12px;
+            height: 12px;
+        }
+        
+        .policy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-1);
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+        }
+        
+        .policy-badge.active {
+            background: var(--success-light);
+            color: #065f46;
+        }
+        
+        .policy-badge.expired {
+            background: var(--danger-light);
+            color: #991b1b;
+        }
+        
+        .policy-badge.expiring {
+            background: var(--warning-light);
+            color: #92400e;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-2);
+        }
+        
+        @media (min-width: 768px) {
+            .action-buttons {
+                flex-direction: row;
+                gap: var(--spacing-2);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-4);
+            }
+            
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Pending Policies</a>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">All Policies</h1>
+                <p class="page-subtitle">Manage and view all insurance policies</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    </svg>
+                    Add Policy
+                </a>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="stats-row">
+            <div class="stat-item">
+                <h3 class="stat-number">{{ policies|length if policies else 0 }}</h3>
+                <p class="stat-label">Total Policies</p>
+            </div>
+            <div class="stat-item">
+                <h3 class="stat-number">{{ policy_types|length if policy_types else 0 }}</h3>
+                <p class="stat-label">Policy Types</p>
+            </div>
+            <div class="stat-item">
+                <h3 class="stat-number">{{ companies|length if companies else 0 }}</h3>
+                <p class="stat-label">Insurance Companies</p>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-card">
+            <div class="filters-header">
+                <svg class="filter-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+                </svg>
+                <h5 class="filters-title">Search & Filter</h5>
+            </div>
+            <form method="GET" action="{{ url_for('existing_policies.list_all') }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="search-box">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                            <input type="text" name="search" class="form-control search-input" placeholder="Search by customer, company, policy number..." value="{{ current_search }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="policy_type" class="form-select">
+                            <option value="">All Policy Types</option>
+                            {% for ptype in policy_types %}
+                            <option value="{{ ptype }}" {% if ptype == current_policy_type %}selected{% endif %}>{{ ptype }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="company" class="form-select">
+                            <option value="">All Companies</option>
+                            {% for company in companies %}
+                            <option value="{{ company }}" {% if company == current_company %}selected{% endif %}>{{ company }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                            Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            {% if policies %}
+            <div class="mb-4">
+                <span class="text-muted">Showing {{ policies|length }} policies</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Policy ID</th>
+                            <th>Customer</th>
+                            <th>Company</th>
+                            <th>Product</th>
+                            <th>Policy Number</th>
+                            <th>Expiry Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for policy in policies %}
+                        <tr>
+                            <td><strong>#{{ policy.policy_id }}</strong></td>
+                            <td>
+                                <div class="customer-info">
+                                    <div class="customer-name">{{ policy.customer_name }}</div>
+                                    {% if policy.customer_phone %}
+                                    <div class="customer-contact">
+                                        <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                                        </svg>
+                                        {{ policy.customer_phone }}
+                                    </div>
+                                    {% endif %}
+                                    {% if policy.customer_email %}
+                                    <div class="customer-contact">
+                                        <svg class="contact-icon" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                        </svg>
+                                        {{ policy.customer_email }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ policy.insurance_company }}</td>
+                            <td>{{ policy.product_name }}</td>
+                            <td>{{ policy.policy_number or 'N/A' }}</td>
+                            <td>{{ policy.policy_to | indian_date }}</td>
+                            <td><span class="policy-badge active">Active</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    {% if policy.drive_url %}
+                                    <a href="{{ policy.drive_url }}" target="_blank" class="btn btn-sm btn-outline">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                                        </svg>
+                                        View Doc
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('existing_policies.view_policy', policy_id=policy.policy_id) }}" class="btn btn-sm btn-outline">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                            <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                        </svg>
+                                        Details
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h5>No policies found</h5>
+                <p>Try adjusting your filters or add a new policy</p>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary mt-3">Add New Policy</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Setup Required - Insurance Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='ico.png') }}">
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Logo" width="30" height="30" class="me-2">
+                Insurance Portal
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard.index') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">Excel Data Management</h2>
+                        <p class="text-muted mb-0">Setup required to enable Excel functionality</p>
+                    </div>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9,22 9,12 15,12 15,22"></polyline>
+                        </svg>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                                <path d="M12 9v4"></path>
+                                <path d="m12 17 .01 0"></path>
+                            </svg>
+                            Excel Dependencies Required
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><strong>Missing Dependencies</strong></h6>
+                            <p class="mb-0">The Excel feature requires additional Python packages to be installed. Please follow the setup instructions below.</p>
+                        </div>
+
+                        <h6 class="mt-4">Setup Instructions:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Step 1: Stop Application</h6>
+                                        <p class="card-text small">In your Command Prompt where the app is running:</p>
+                                        <code>Press Ctrl+C</code>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Step 2: Install Dependencies</h6>
+                                        <p class="card-text small">Run this command:</p>
+                                        <code>pip install pandas openpyxl numpy</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Step 3: Restart Application</h6>
+                                        <p class="card-text small">Start the app again:</p>
+                                        <code>deploy_windows.bat</code>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Step 4: Access Excel Feature</h6>
+                                        <p class="card-text small">Return to this page:</p>
+                                        <code>Click "Excel Data" on dashboard</code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-success mt-4">
+                            <h6><strong>What You'll Get:</strong></h6>
+                            <ul class="mb-0">
+                                <li><strong>Shared Excel File</strong> - Automatically created in Google Drive root</li>
+                                <li><strong>Direct Access</strong> - Open in Google Sheets or download locally</li>
+                                <li><strong>Real-time Updates</strong> - Refresh data with latest database info</li>
+                                <li><strong>Team Access</strong> - All users can view the same file</li>
+                            </ul>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button class="btn btn-primary" onclick="window.location.reload()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <polyline points="23,4 23,10 17,10"></polyline>
+                                    <polyline points="1,20 1,14 7,14"></polyline>
+                                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                </svg>
+                                Check Again (After Installing Dependencies)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command Reference -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">Quick Command Reference</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="bg-dark text-light p-3 rounded">
+                            <div class="mb-2"><span class="text-warning"># Stop the application</span></div>
+                            <div class="mb-2">Ctrl+C</div>
+                            <div class="mb-2"><span class="text-warning"># Install Excel dependencies</span></div>
+                            <div class="mb-2">pip install pandas openpyxl numpy</div>
+                            <div class="mb-2"><span class="text-warning"># Restart application</span></div>
+                            <div>deploy_windows.bat</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

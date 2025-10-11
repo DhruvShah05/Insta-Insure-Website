@@ -1,0 +1,242 @@
+2025-10-06 17:59:04,676 - INFO - ============================================================
+2025-10-06 17:59:04,676 - INFO - INSURANCE PORTAL - PRODUCTION DEPLOYMENT
+2025-10-06 17:59:04,676 - INFO - Deployment started at: 2025-10-06 17:59:04.676787
+2025-10-06 17:59:04,676 - INFO - ============================================================
+2025-10-06 17:59:04,676 - INFO - 
+--- Requirements Check ---
+2025-10-06 17:59:04,676 - INFO - Checking requirements...
+2025-10-06 17:59:04,800 - INFO - ✓ flask is installed
+2025-10-06 17:59:04,804 - INFO - ✓ flask-login is installed
+2025-10-06 17:59:04,972 - INFO - ✓ supabase is installed
+2025-10-06 17:59:04,973 - ERROR - ✗ python-dotenv is missing
+2025-10-06 17:59:04,973 - INFO - ✓ twilio is installed
+2025-10-06 17:59:05,234 - INFO - ✓ pandas is installed
+2025-10-06 17:59:05,285 - INFO - ✓ openpyxl is installed
+2025-10-06 17:59:05,285 - INFO - ✓ numpy is installed
+2025-10-06 17:59:05,285 - ERROR - ✗ google-api-python-client is missing
+2025-10-06 17:59:05,286 - ERROR - ✗ google-auth is missing
+2025-10-06 17:59:05,368 - INFO - ✓ google-auth-oauthlib is installed
+2025-10-06 17:59:05,384 - INFO - ✓ google-auth-httplib2 is installed
+2025-10-06 17:59:05,384 - ERROR - Missing packages: python-dotenv, google-api-python-client, google-auth
+2025-10-06 17:59:05,384 - INFO - Install missing packages with: pip install python-dotenv google-api-python-client google-auth
+2025-10-06 17:59:05,384 - ERROR - ❌ Requirements check failed. Deployment aborted.
+2025-10-06 17:59:17,620 - INFO - ============================================================
+2025-10-06 17:59:17,620 - INFO - INSURANCE PORTAL - PRODUCTION DEPLOYMENT
+2025-10-06 17:59:17,620 - INFO - Deployment started at: 2025-10-06 17:59:17.620962
+2025-10-06 17:59:17,620 - INFO - ============================================================
+2025-10-06 17:59:17,621 - INFO - 
+--- Requirements Check ---
+2025-10-06 17:59:17,621 - INFO - Checking requirements...
+2025-10-06 17:59:17,707 - INFO - ✓ flask is installed
+2025-10-06 17:59:17,710 - INFO - ✓ flask-login is installed
+2025-10-06 17:59:17,858 - INFO - ✓ supabase is installed
+2025-10-06 17:59:17,858 - ERROR - ✗ python-dotenv is missing
+2025-10-06 17:59:17,858 - INFO - ✓ twilio is installed
+2025-10-06 17:59:18,100 - INFO - ✓ pandas is installed
+2025-10-06 17:59:18,146 - INFO - ✓ openpyxl is installed
+2025-10-06 17:59:18,146 - INFO - ✓ numpy is installed
+2025-10-06 17:59:18,146 - ERROR - ✗ google-api-python-client is missing
+2025-10-06 17:59:18,146 - ERROR - ✗ google-auth is missing
+2025-10-06 17:59:18,218 - INFO - ✓ google-auth-oauthlib is installed
+2025-10-06 17:59:18,232 - INFO - ✓ google-auth-httplib2 is installed
+2025-10-06 17:59:18,232 - ERROR - Missing packages: python-dotenv, google-api-python-client, google-auth
+2025-10-06 17:59:18,232 - INFO - Install missing packages with: pip install python-dotenv google-api-python-client google-auth
+2025-10-06 17:59:18,232 - ERROR - ❌ Requirements check failed. Deployment aborted.
+2025-10-06 18:00:25,007 - INFO - ============================================================
+2025-10-06 18:00:25,008 - INFO - INSURANCE PORTAL - PRODUCTION DEPLOYMENT
+2025-10-06 18:00:25,008 - INFO - Deployment started at: 2025-10-06 18:00:25.008224
+2025-10-06 18:00:25,008 - INFO - ============================================================
+2025-10-06 18:00:25,008 - INFO - 
+--- Requirements Check ---
+2025-10-06 18:00:25,008 - INFO - Checking requirements...
+2025-10-06 18:00:25,008 - WARNING - Could not check all packages: No module named 'pkg_resources'
+2025-10-06 18:00:25,135 - INFO - ✓ flask is installed
+2025-10-06 18:00:25,138 - INFO - ✓ flask-login is installed
+2025-10-06 18:00:25,301 - INFO - ✓ supabase is installed
+2025-10-06 18:00:25,301 - ERROR - ✗ python-dotenv is missing
+2025-10-06 18:00:25,301 - INFO - ✓ twilio is installed
+2025-10-06 18:00:25,558 - INFO - ✓ pandas is installed
+2025-10-06 18:00:25,611 - INFO - ✓ openpyxl is installed
+2025-10-06 18:00:25,611 - INFO - ✓ numpy is installed
+2025-10-06 18:00:25,611 - ERROR - ✗ google-api-python-client is missing
+2025-10-06 18:00:25,611 - ERROR - ✗ google-auth is missing
+2025-10-06 18:00:25,687 - INFO - ✓ google-auth-oauthlib is installed
+2025-10-06 18:00:25,703 - INFO - ✓ google-auth-httplib2 is installed
+2025-10-06 18:00:25,703 - ERROR - Missing packages: python-dotenv, google-api-python-client, google-auth
+2025-10-06 18:00:25,703 - INFO - Install missing packages with: pip install python-dotenv google-api-python-client google-auth
+2025-10-06 18:00:25,703 - ERROR - ❌ Requirements check failed. Deployment aborted.
+2025-10-06 18:00:50,912 - INFO - ============================================================
+2025-10-06 18:00:50,912 - INFO - INSURANCE PORTAL - PRODUCTION DEPLOYMENT
+2025-10-06 18:00:50,912 - INFO - Deployment started at: 2025-10-06 18:00:50.912476
+2025-10-06 18:00:50,912 - INFO - ============================================================
+2025-10-06 18:00:50,912 - INFO - 
+--- Requirements Check ---
+2025-10-06 18:00:50,912 - INFO - Checking requirements...
+2025-10-06 18:00:50,912 - WARNING - Could not check all packages: No module named 'pkg_resources'
+2025-10-06 18:00:51,028 - INFO - ✓ flask is installed
+2025-10-06 18:00:51,031 - INFO - ✓ flask-login is installed
+2025-10-06 18:00:51,181 - INFO - ✓ supabase is installed
+2025-10-06 18:00:51,181 - ERROR - ✗ python-dotenv is missing
+2025-10-06 18:00:51,181 - INFO - ✓ twilio is installed
+2025-10-06 18:00:51,437 - INFO - ✓ pandas is installed
+2025-10-06 18:00:51,485 - INFO - ✓ openpyxl is installed
+2025-10-06 18:00:51,486 - INFO - ✓ numpy is installed
+2025-10-06 18:00:51,486 - ERROR - ✗ google-api-python-client is missing
+2025-10-06 18:00:51,486 - ERROR - ✗ google-auth is missing
+2025-10-06 18:00:51,561 - INFO - ✓ google-auth-oauthlib is installed
+2025-10-06 18:00:51,577 - INFO - ✓ google-auth-httplib2 is installed
+2025-10-06 18:00:51,577 - ERROR - Missing packages: python-dotenv, google-api-python-client, google-auth
+2025-10-06 18:00:51,577 - INFO - Install missing packages with: pip install python-dotenv google-api-python-client google-auth
+2025-10-06 18:00:51,577 - ERROR - ❌ Requirements check failed. Deployment aborted.
+2025-10-09 21:06:00,778 [INFO] 
+==================================================
+2025-10-09 21:06:00,781 [INFO] Step: Check Python version
+2025-10-09 21:06:00,781 [INFO] ==================================================
+2025-10-09 21:06:00,782 [INFO] Checking Python version...
+2025-10-09 21:06:00,803 [INFO] 
+==================================================
+2025-10-09 21:06:00,803 [INFO] Step: Create virtual environment
+2025-10-09 21:06:00,803 [INFO] ==================================================
+2025-10-09 21:06:00,804 [INFO] Setting up virtual environment...
+2025-10-09 21:06:00,817 [INFO] 
+==================================================
+2025-10-09 21:06:00,818 [INFO] Step: Install dependencies
+2025-10-09 21:06:00,818 [INFO] ==================================================
+2025-10-09 21:06:00,818 [INFO] Installing dependencies...
+2025-10-09 21:06:11,716 [INFO] 
+==================================================
+2025-10-09 21:06:11,717 [INFO] Step: Check environment variables
+2025-10-09 21:06:11,717 [INFO] ==================================================
+2025-10-09 21:06:11,718 [INFO] Checking environment variables...
+2025-10-09 21:06:11,733 [INFO] 
+==================================================
+2025-10-09 21:06:11,733 [INFO] Step: Create directories
+2025-10-09 21:06:11,734 [INFO] ==================================================
+2025-10-09 21:06:11,734 [INFO] Creating directories...
+2025-10-09 21:06:11,748 [INFO] 
+==================================================
+2025-10-09 21:06:11,748 [INFO] Step: Test database connection
+2025-10-09 21:06:11,749 [INFO] ==================================================
+2025-10-09 21:06:11,749 [INFO] Testing database connection...
+2025-10-09 21:06:31,142 [INFO] 
+==================================================
+2025-10-09 21:06:31,143 [INFO] Step: Test services
+2025-10-09 21:06:31,143 [INFO] ==================================================
+2025-10-09 21:06:31,143 [INFO] Testing services...
+2025-10-09 21:06:31,397 [INFO] Service test output:
+2025-10-09 21:06:31,397 [WARNING] Service test warnings:
+2025-10-09 21:06:31,399 [WARNING]   Redis not available, using in-memory cache
+2025-10-09 21:06:31,399 [WARNING]   Traceback (most recent call last):
+2025-10-09 21:06:31,399 [WARNING]     File "<string>", line 10, in <module>
+2025-10-09 21:06:31,400 [WARNING]       print("\u2705 Cache manager working")
+2025-10-09 21:06:31,400 [WARNING]       ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-10-09 21:06:31,400 [WARNING]     File "C:\Users\SAMEER SHAH\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+2025-10-09 21:06:31,400 [WARNING]       return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+2025-10-09 21:06:31,401 [WARNING]              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-10-09 21:06:31,401 [WARNING]   UnicodeEncodeError: 'charmap' codec can't encode character '\u2705' in position 0: character maps to <undefined>
+2025-10-09 21:06:31,402 [WARNING]   During handling of the above exception, another exception occurred:
+2025-10-09 21:06:31,402 [WARNING]   Traceback (most recent call last):
+2025-10-09 21:06:31,402 [WARNING]     File "<string>", line 14, in <module>
+2025-10-09 21:06:31,403 [WARNING]       print(f"\u274c Cache manager error: {e}")
+2025-10-09 21:06:31,403 [WARNING]       ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-10-09 21:06:31,403 [WARNING]     File "C:\Users\SAMEER SHAH\AppData\Local\Programs\Python\Python313\Lib\encodings\cp1252.py", line 19, in encode
+2025-10-09 21:06:31,403 [WARNING]       return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+2025-10-09 21:06:31,406 [WARNING]              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-10-09 21:06:31,406 [WARNING]   UnicodeEncodeError: 'charmap' codec can't encode character '\u274c' in position 0: character maps to <undefined>
+2025-10-09 21:06:31,410 [INFO] 
+==================================================
+2025-10-09 21:06:31,410 [INFO] Step: Create systemd service
+2025-10-09 21:06:31,411 [INFO] ==================================================
+2025-10-09 21:06:31,411 [INFO] Skipping systemd service creation on Windows
+2025-10-09 21:06:31,415 [INFO] 
+==================================================
+2025-10-09 21:06:31,415 [INFO] Step: Create nginx config
+2025-10-09 21:06:31,421 [INFO] ==================================================
+2025-10-09 21:06:31,421 [INFO] Creating nginx configuration...
+2025-10-09 21:06:31,427 [INFO] To install nginx configuration:
+2025-10-09 21:06:31,427 [INFO]   sudo cp C:\Users\SAMEER SHAH\Downloads\FinalWebsite-main\FinalWebsite-main\nginx.conf /etc/nginx/sites-available/insurance-portal
+2025-10-09 21:06:31,428 [INFO]   sudo ln -s /etc/nginx/sites-available/insurance-portal /etc/nginx/sites-enabled/
+2025-10-09 21:06:31,429 [INFO]   sudo nginx -t
+2025-10-09 21:06:31,429 [INFO]   sudo systemctl reload nginx
+2025-10-09 21:06:31,439 [INFO] 
+==================================================
+2025-10-09 21:06:31,439 [INFO] Step: Create startup script
+2025-10-09 21:06:31,440 [INFO] ==================================================
+2025-10-09 21:06:31,440 [INFO] Creating startup script...
+2025-10-09 21:06:31,455 [INFO] 
+============================================================
+2025-10-09 21:06:31,455 [INFO] DEPLOYMENT SUMMARY
+2025-10-09 21:06:31,456 [INFO] ============================================================
+2025-10-09 21:06:31,460 [ERROR]   - Install dependencies
+2025-10-09 21:06:31,461 [ERROR]   - Check environment variables
+2025-10-09 21:06:31,461 [ERROR]   - Test database connection
+2025-10-09 21:06:31,462 [ERROR] 
+Please fix the issues and run deployment again.
+2025-10-09 21:12:24,350 [INFO] Starting multi-user deployment for Windows...
+2025-10-09 21:12:24,350 [INFO] 
+==================================================
+2025-10-09 21:12:24,351 [INFO] Step: Check Python version
+2025-10-09 21:12:24,351 [INFO] ==================================================
+2025-10-09 21:12:24,352 [INFO] Checking Python version...
+2025-10-09 21:12:24,352 [INFO] [OK] Python 3.13.7
+2025-10-09 21:12:24,352 [INFO] [OK] Step completed: Check Python version
+2025-10-09 21:12:24,353 [INFO] 
+==================================================
+2025-10-09 21:12:24,353 [INFO] Step: Create virtual environment
+2025-10-09 21:12:24,353 [INFO] ==================================================
+2025-10-09 21:12:24,354 [INFO] Setting up virtual environment...
+2025-10-09 21:12:41,730 [INFO] [OK] Virtual environment created
+2025-10-09 21:12:41,732 [INFO] [OK] Step completed: Create virtual environment
+2025-10-09 21:12:41,732 [INFO] 
+==================================================
+2025-10-09 21:12:41,733 [INFO] Step: Install dependencies
+2025-10-09 21:12:41,734 [INFO] ==================================================
+2025-10-09 21:12:41,735 [INFO] Installing dependencies...
+2025-10-09 21:16:28,476 [INFO] [OK] Dependencies installed
+2025-10-09 21:16:28,477 [INFO] [OK] Step completed: Install dependencies
+2025-10-09 21:16:28,480 [INFO] 
+==================================================
+2025-10-09 21:16:28,482 [INFO] Step: Create directories
+2025-10-09 21:16:28,484 [INFO] ==================================================
+2025-10-09 21:16:28,485 [INFO] Creating directories...
+2025-10-09 21:16:28,488 [INFO] [OK] Directories created
+2025-10-09 21:16:28,492 [INFO] [OK] Step completed: Create directories
+2025-10-09 21:16:28,493 [INFO] 
+==================================================
+2025-10-09 21:16:28,495 [INFO] Step: Create .env template
+2025-10-09 21:16:28,495 [INFO] ==================================================
+2025-10-09 21:16:28,497 [INFO] Creating .env file template...
+2025-10-09 21:16:28,498 [INFO] [OK] .env file already exists
+2025-10-09 21:16:28,499 [INFO] [OK] Step completed: Create .env template
+2025-10-09 21:16:28,500 [INFO] 
+==================================================
+2025-10-09 21:16:28,501 [INFO] Step: Test basic imports
+2025-10-09 21:16:28,502 [INFO] ==================================================
+2025-10-09 21:16:28,503 [INFO] Testing basic imports...
+2025-10-09 21:16:37,798 [INFO] [OK] Basic imports test passed
+2025-10-09 21:16:37,799 [INFO]   [OK] Flask imported successfully
+2025-10-09 21:16:37,803 [INFO]   [OK] Supabase imported successfully
+2025-10-09 21:16:37,806 [INFO]   [OK] Twilio imported successfully
+2025-10-09 21:16:37,809 [INFO]   [OK] Cache manager imported successfully
+2025-10-09 21:16:37,811 [INFO]   [OK] Task queue imported successfully
+2025-10-09 21:16:37,812 [INFO]   [OK] Basic imports test completed
+2025-10-09 21:16:37,815 [INFO] [OK] Step completed: Test basic imports
+2025-10-09 21:16:37,817 [INFO] 
+==================================================
+2025-10-09 21:16:37,818 [INFO] Step: Create startup script
+2025-10-09 21:16:37,820 [INFO] ==================================================
+2025-10-09 21:16:37,822 [INFO] Creating startup script...
+2025-10-09 21:16:37,826 [INFO] [OK] Startup script created: C:\Users\SAMEER SHAH\Downloads\FinalWebsite-main\FinalWebsite-main\start_multiuser.bat
+2025-10-09 21:16:37,831 [INFO] [OK] Step completed: Create startup script
+2025-10-09 21:16:37,833 [INFO] 
+============================================================
+2025-10-09 21:16:37,841 [INFO] DEPLOYMENT SUMMARY
+2025-10-09 21:16:37,842 [INFO] ============================================================
+2025-10-09 21:16:37,844 [INFO] [OK] Deployment completed successfully!
+2025-10-09 21:16:37,845 [INFO] 
+Next steps:
+2025-10-09 21:16:37,846 [INFO] 1. Edit the .env file with your actual configuration values
+2025-10-09 21:16:37,847 [INFO] 2. Make sure you have your Google credentials.json file
+2025-10-09 21:16:37,849 [INFO] 3. Start the application: start_multiuser.bat
+2025-10-09 21:16:37,850 [INFO] 
+[OK] Your multi-user insurance portal is ready!

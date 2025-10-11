@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Management - Insurance Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='ico.png') }}">
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Logo" width="30" height="30" class="me-2">
+                Insurance Portal
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard.index') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">Excel Data Management</h2>
+                        <p class="text-muted mb-0">View and manage your insurance data in Excel format</p>
+                    </div>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9,22 9,12 15,12 15,22"></polyline>
+                        </svg>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alertContainer"></div>
+
+        <!-- Excel File Information -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                                <polyline points="14,2 14,8 20,8"></polyline>
+                                <path d="M12 18v-6"></path>
+                                <path d="m9 15 3 3 3-3"></path>
+                            </svg>
+                            Excel File Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if file_info %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>File Name:</strong> {{ file_info.name }}</p>
+                                <p><strong>Last Modified:</strong> 
+                                    <span id="lastModified">{{ file_info.modified_time }}</span>
+                                </p>
+                                {% if file_info.size %}
+                                <p><strong>File Size:</strong> {{ (file_info.size|int / 1024 / 1024)|round(2) }} MB</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Access:</strong> Available to all team members</p>
+                                <p><strong>Location:</strong> Google Drive Root Folder</p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Active & Shared</span></p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-muted">
+                            <p>Excel file information not available</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Cards -->
+        <div class="row">
+            <!-- Open Excel File -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="9" cy="9" r="2"></circle>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+                            </svg>
+                        </div>
+                        <h5 class="card-title">Open Excel File</h5>
+                        <p class="card-text text-muted">
+                            Open the shared Excel file in Google Sheets or download to edit in Excel
+                        </p>
+                        <div class="d-grid gap-2">
+                            {% if shareable_link %}
+                            <a href="{{ shareable_link }}" target="_blank" class="btn btn-success">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15,3 21,3 21,9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                Open in Google Sheets
+                            </a>
+                            {% else %}
+                            <button class="btn btn-success" disabled>Link not available</button>
+                            {% endif %}
+                            <button id="downloadBtn" class="btn btn-outline-success">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download Excel File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refresh Data -->
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23,4 23,10 17,10"></polyline>
+                                <polyline points="1,20 1,14 7,14"></polyline>
+                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                            </svg>
+                        </div>
+                        <h5 class="card-title">Refresh Data</h5>
+                        <p class="card-text text-muted">
+                            Update the Excel file with the latest data from the database
+                        </p>
+                        <div class="d-grid gap-2">
+                            <button id="refreshBtn" class="btn btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <polyline points="23,4 23,10 17,10"></polyline>
+                                    <polyline points="1,20 1,14 7,14"></polyline>
+                                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                </svg>
+                                Refresh Excel Data
+                            </button>
+                            <button id="exportBtn" class="btn btn-outline-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10,9 9,9 8,9"></polyline>
+                                </svg>
+                                Export to Drive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="l9 12 2 2 4-4"></path>
+                            </svg>
+                            How to Use Excel Data Management
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Viewing Data:</h6>
+                                <ul class="list-unstyled ms-3">
+                                    <li>• Click "Open in Google Sheets" to view online</li>
+                                    <li>• Download the Excel file to edit offline</li>
+                                    <li>• File contains 4 sheets: Clients, Members, Policies, Pending</li>
+                                    <li>• All team members have access to the shared file</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Updating Data:</h6>
+                                <ul class="list-unstyled ms-3">
+                                    <li>• Click "Refresh Excel Data" to get latest database info</li>
+                                    <li>• File is automatically updated in Google Drive</li>
+                                    <li>• Changes are reflected immediately for all users</li>
+                                    <li>• File location: Google Drive Root Folder</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="alert alert-warning mt-3">
+                            <strong>Important:</strong> This Excel file is for viewing and analysis only. 
+                            To make changes to the data, please use the Insurance Portal web interface.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 id="loadingText">Processing...</h5>
+                    <p class="text-muted mb-0">Please wait while we process your request</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show alert function
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Show loading modal
+        function showLoading(text = 'Processing...') {
+            document.getElementById('loadingText').textContent = text;
+            new bootstrap.Modal(document.getElementById('loadingModal')).show();
+        }
+
+        // Hide loading modal
+        function hideLoading() {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('loadingModal'));
+            if (modal) modal.hide();
+        }
+
+        // Refresh Excel data
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            showLoading('Refreshing Excel data...');
+            
+            fetch('/api/excel/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showAlert('Excel file refreshed successfully with latest data!', 'success');
+                    // Update last modified time if available
+                    if (data.file_info && data.file_info.modified_time) {
+                        document.getElementById('lastModified').textContent = data.file_info.modified_time;
+                    }
+                } else {
+                    showAlert('Failed to refresh Excel file: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showAlert('Error refreshing Excel file: ' + error.message, 'danger');
+            });
+        });
+
+        // Export to Drive
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            showLoading('Exporting to Google Drive...');
+            
+            fetch('/api/excel/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showAlert('Data exported to Google Drive successfully!', 'success');
+                } else {
+                    showAlert('Export failed: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showAlert('Export error: ' + error.message, 'danger');
+            });
+        });
+
+        // Download Excel file
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            showLoading('Downloading Excel file...');
+            
+            fetch('/api/excel/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showAlert('Excel file downloaded successfully!', 'success');
+                } else {
+                    showAlert('Download failed: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showAlert('Download error: ' + error.message, 'danger');
+            });
+        });
+
+        // Format date display
+        document.addEventListener('DOMContentLoaded', function() {
+            const lastModifiedElement = document.getElementById('lastModified');
+            if (lastModifiedElement && lastModifiedElement.textContent) {
+                try {
+                    const date = new Date(lastModifiedElement.textContent);
+                    lastModifiedElement.textContent = date.toLocaleString();
+                } catch (e) {
+                    // Keep original text if parsing fails
+                }
+            }
+        });
+    </script>
+</body>
+</html>
