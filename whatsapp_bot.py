@@ -8,7 +8,7 @@ import io
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from email_service import send_policy_email, send_renewal_reminder_email, get_customer_email
+from email_service import send_policy_email, send_renewal_reminder_email, get_customer_email, indian_date_filter
 from twilio.rest import Client as TwilioClient
 from twilio.twiml.messaging_response import MessagingResponse
 from urllib.parse import quote
@@ -35,8 +35,8 @@ VERIFY_TOKEN = os.getenv('VERIFY_TOKEN', 'your_webhook_verify_token')
 twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) else None
 
 # Content Template SIDs - APPROVED TEMPLATES
-POLICY_DOCUMENT_TEMPLATE_SID = "HX579397eb65d6445a39bb0947ba88363f"  # Policy Issues Template
-RENEWAL_REMINDER_TEMPLATE_SID = "HX264b1556a170e5a5f01e8030a50ab187"   # Reminder Template
+POLICY_DOCUMENT_TEMPLATE_SID = "HX09943977f51524767ed93c7cc670fb47"  # Policy Issued Template
+RENEWAL_REMINDER_TEMPLATE_SID = "HX6ac0316d76491e79d912f81072cf343c"   # Renewal Reminder Template
 
 # WhatsApp Media Configuration
 USE_CONTENT_TEMPLATES = os.getenv('USE_WHATSAPP_CONTENT_TEMPLATES', 'true').lower() == 'true'
@@ -163,8 +163,8 @@ def send_policy_document_whatsapp(phone, policy, customer_name):
             template_variables = {
                 "1": customer_name,
                 "2": policy.get('product_name', 'Insurance Policy'),
-                "3": policy.get('insurance_company', ''),
-                "4": policy.get('policy_number', 'N/A'),
+                "3": policy.get('policy_number', 'N/A'),
+                "4": policy.get('remarks', 'N/A'),
                 "5": coverage_start or 'N/A',
                 "6": expiry_date or 'N/A',
                 "7": media_path  # This will be used in template as: https://admin.instainsure.co.in/{{7}}
@@ -652,8 +652,18 @@ def send_policy_to_customer(phone, policy, send_email=True):
                 client, _ = get_customer_policies(phone)
                 customer_name = client['name'] if client else "Customer"
 
+                # Prepare policy data for the new template-based function
+                policy_data = {
+                    'client_name': customer_name,
+                    'policy_type': policy.get('product_name', 'Insurance'),
+                    'policy_no': policy.get('policy_number', 'N/A'),
+                    'asset': policy.get('remarks', 'N/A'),
+                    'start_date': indian_date_filter(policy.get('policy_from')),
+                    'expiry_date': indian_date_filter(policy.get('policy_to'))
+                }
+                
                 email_success, email_message = send_policy_email(
-                    customer_email, customer_name, policy, temp_file_path
+                    customer_email, policy_data, temp_file_path
                 )
             else:
                 email_message = "No email address found for customer"
@@ -704,9 +714,9 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
         # Prepare template variables for approved renewal template
         template_variables = {
             "1": customer_name,
-            "2": policy.get('product_name', 'Insurance Policy'),
-            "3": policy.get('insurance_company', ''),
-            "4": policy.get('policy_number', 'N/A'),
+            "2": policy.get('policy_number', 'N/A'),
+            "3": policy.get('remarks', 'N/A'),
+            "4": policy.get('insurance_company', ''),
             "5": expiry_date or 'N/A',
             "6": "Please contact us for renewal assistance.",  # Default message
             "7": "test-policy.pdf"  # Default media path for renewal reminders
@@ -768,8 +778,18 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
             if renewal_filename:
                 email_file_path = os.path.join(os.path.dirname(__file__), 'static', 'renewals', renewal_filename)
             
+            # Prepare renewal data for the new template-based function
+            renewal_data = {
+                'client_name': customer_name,
+                'policy_no': policy.get('policy_number', policy.get('policy_id', 'N/A')),
+                'asset': policy.get('remarks', 'N/A'),
+                'company': policy.get('insurance_company', 'N/A'),
+                'expiry_date': policy.get('policy_to', 'N/A'),
+                'payment_link': payment_link
+            }
+            
             email_success, email_message = send_renewal_reminder_email(
-                customer_email, customer_name, policy, email_file_path, payment_link
+                customer_email, renewal_data, email_file_path
             )
         else:
             email_message = "No email address found for customer"
@@ -808,8 +828,8 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
         return False, str(e)
 
 
-def handle_greeting(phone):
-    """Handle HI greeting - now with list picker functionality"""
+def handle_greeting(phone, page=0):
+    """Handle HI greeting - now with list picker functionality and pagination"""
     customer, policies = get_customer_policies(phone)
 
     if not customer:
@@ -823,18 +843,36 @@ def handle_greeting(phone):
     user_sessions[phone] = {
         'customer': customer,
         'policies': policies,
-        'state': 'policy_selection'
+        'state': 'policy_selection',
+        'current_page': page
     }
 
-    # Prepare list picker items
+    # Pagination settings
+    MAX_ITEMS_PER_PAGE = 8  # Leave room for navigation and "Send All" buttons
+    TITLE_CHAR_LIMIT = 24  # Twilio's actual limit is 24 characters
+    DESCRIPTION_CHAR_LIMIT = 72
+    
+    total_policies = len(policies)
+    total_pages = (total_policies + MAX_ITEMS_PER_PAGE - 1) // MAX_ITEMS_PER_PAGE
+    
+    # Calculate start and end indices for current page
+    start_idx = page * MAX_ITEMS_PER_PAGE
+    end_idx = min(start_idx + MAX_ITEMS_PER_PAGE, total_policies)
+    current_page_policies = policies[start_idx:end_idx]
+    
+    # Prepare list picker items for current page
     items = []
     
-    for i, policy in enumerate(policies):
+    for i, policy in enumerate(current_page_policies):
         # Use remarks if available, otherwise fallback to company-policy type
         if policy.get('remarks'):
             policy_title = policy['remarks']
         else:
             policy_title = f"{policy.get('insurance_company','')} - {policy.get('product_name','')}"
+
+        # Truncate title to character limit
+        if len(policy_title) > TITLE_CHAR_LIMIT:
+            policy_title = policy_title[:TITLE_CHAR_LIMIT-3] + "..."
 
         # Format expiry date for display
         expiry_display = ""
@@ -843,24 +881,37 @@ def handle_greeting(phone):
             if isinstance(expiry_date, str) and '-' in expiry_date:
                 parts = expiry_date.split('-')
                 if len(parts) == 3 and len(parts[0]) == 4:
-                    expiry_display = f" | Expires: {parts[2]}/{parts[1]}/{parts[0]}"
+                    expiry_display = f" | Exp: {parts[2]}/{parts[1]}/{parts[0]}"
+        
+        description = f"{policy.get('policy_number', 'Policy Document')}{expiry_display}"
+        if len(description) > DESCRIPTION_CHAR_LIMIT:
+            description = description[:DESCRIPTION_CHAR_LIMIT-3] + "..."
         
         items.append({
-            "item": policy_title[:50],  # Twilio has character limits
-            "description": f"{policy.get('policy_number', 'Policy Document')}{expiry_display}"[:72],
-            "id": str(i)
+            "item": policy_title,
+            "description": description,
+            "id": str(start_idx + i)  # Global index across all pages
         })
 
-    # Add "Send All Documents" option
+    # Add next page button if needed
+    if page < total_pages - 1:
+        items.append({
+            "item": "➡️ Next Page",
+            "description": f"Go to page {page+2}",
+            "id": f"next_{page+1}"
+        })
+
+    # Add "Send All Documents" option (always available)
     items.append({
         "item": "📄 Send All Documents",
-        "description": "Get all your policy documents at once",
+        "description": "Get all policy documents",
         "id": "all"
     })
 
     # Greeting message for list picker
+    page_info = f" (Page {page+1}/{total_pages})" if total_pages > 1 else ""
     greeting_msg = f"Hello {customer['name']}! 👋\n\n"
-    greeting_msg += f"Welcome to Insta Insurance Consultancy Portal. We found {len(policies)} insurance policy/policies for you.\n\n"
+    greeting_msg += f"Welcome to Insta Insurance Consultancy Portal. We found {total_policies} insurance policy/policies for you{page_info}.\n\n"
     greeting_msg += "📋 Please select which document you'd like to receive:"
 
     # Send list picker message
@@ -886,7 +937,7 @@ def handle_greeting(phone):
 
 
 def handle_policy_selection(phone, selection_id):
-    """Handle policy selection from list picker or text input"""
+    """Handle policy selection from list picker or text input with pagination support"""
     if phone not in user_sessions:
         send_whatsapp_message(phone, "❌ Your session has expired. Please reply with *HI* to start again.")
         return
@@ -896,6 +947,16 @@ def handle_policy_selection(phone, selection_id):
     customer = session['customer']
 
     print(f"Processing policy selection for {phone}: '{selection_id}'")
+
+    # Handle pagination navigation
+    if selection_id.startswith('next_'):
+        try:
+            next_page = int(selection_id.split('_')[1])
+            handle_greeting(phone, next_page)
+            return
+        except (ValueError, IndexError):
+            send_whatsapp_message(phone, "❌ Invalid navigation. Please reply with *HI* to start again.")
+            return
 
     # Handle "Send All Documents" selection
     if selection_id.lower() == 'all':
@@ -926,18 +987,25 @@ def handle_policy_selection(phone, selection_id):
         if 0 <= policy_index < len(policies):
             policy = policies[policy_index]
             policy_name = policy.get('remarks') or f"{policy.get('insurance_company', '')} - {policy.get('product_name', '')}"
-            send_whatsapp_message(phone, f"📤 Sending {policy_name} document...")
+            
+            # Truncate policy name for display if too long
+            if len(policy_name) > 50:
+                display_name = policy_name[:47] + "..."
+            else:
+                display_name = policy_name
+                
+            send_whatsapp_message(phone, f"📤 Sending {display_name} document...")
 
             success, msg = send_policy_to_customer(phone, policy)
 
             if success:
                 send_whatsapp_message(phone,
-                                      f"✅ {policy_name} document sent successfully!\n\n"
+                                      f"✅ {display_name} document sent successfully!\n\n"
                                       f"📧 Document has been sent via email and WhatsApp.\n\n"
                                       f"Thank you for using Insta Insurance Consultancy Portal.\n\n"
                                       f"Reply with *HI* anytime to access your documents again.")
             else:
-                send_whatsapp_message(phone, f"❌ Sorry, there was an error sending {policy_name}: {msg}\n\nPlease try again by replying with *HI*.")
+                send_whatsapp_message(phone, f"❌ Sorry, there was an error sending {display_name}: {msg}\n\nPlease try again by replying with *HI*.")
 
         else:
             send_whatsapp_message(phone, f"❌ Invalid selection '{selection_id}'. Please reply with *HI* to start again and select a valid option.")
@@ -948,9 +1016,10 @@ def handle_policy_selection(phone, selection_id):
         print(f"Error in handle_policy_selection: {e}")
         send_whatsapp_message(phone, "❌ An error occurred. Please reply with *HI* to start again.")
     finally:
-        # Clean up session
-        if phone in user_sessions:
-            del user_sessions[phone]
+        # Clean up session only for non-navigation actions
+        if not selection_id.startswith('next_'):
+            if phone in user_sessions:
+                del user_sessions[phone]
 
 
 def setup_whatsapp_webhook(app):

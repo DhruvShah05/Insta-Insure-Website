@@ -540,7 +540,7 @@ def complete_pending(pending_id):
                 if customer.get("email"):
                     try:
                         from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
-                        from email_service import send_policy_email
+                        from email_service import send_policy_email, indian_date_filter
 
                         # Download file temporarily for email
                         file_id = extract_file_id_from_url(inserted_policy.get('drive_url'))
@@ -550,10 +550,19 @@ def complete_pending(pending_id):
                             temp_file_path = download_file_from_drive(file_id, filename)
 
                             if temp_file_path:
+                                # Prepare policy data for the new template-based function
+                                policy_data = {
+                                    'client_name': customer["name"],
+                                    'policy_type': inserted_policy.get('product_name', 'Insurance'),
+                                    'policy_no': inserted_policy.get('policy_number', 'N/A'),
+                                    'asset': inserted_policy.get('remarks', 'N/A'),
+                                    'start_date': indian_date_filter(inserted_policy.get('policy_from')),
+                                    'expiry_date': indian_date_filter(inserted_policy.get('policy_to'))
+                                }
+                                
                                 email_success, email_msg = send_policy_email(
                                     customer["email"],
-                                    customer["name"],
-                                    inserted_policy,
+                                    policy_data,
                                     temp_file_path
                                 )
 

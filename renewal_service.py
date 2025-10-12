@@ -637,7 +637,18 @@ Insta Insurance Consultancy Portal"""
         
         # Send email with policy document attachment
         if temp_file_path:
-            result = send_policy_email(customer_email, customer_name, policy, temp_file_path)
+            # Prepare policy data for the new template-based function
+            from email_service import indian_date_filter
+            policy_data = {
+                'client_name': customer_name,
+                'policy_type': policy.get('product_name', 'Insurance'),
+                'policy_no': policy.get('policy_number', 'N/A'),
+                'asset': policy.get('remarks', 'N/A'),
+                'start_date': indian_date_filter(policy.get('policy_from')),
+                'expiry_date': indian_date_filter(policy.get('policy_to'))
+            }
+            
+            result = send_policy_email(customer_email, policy_data, temp_file_path)
             # Clean up temp file
             try:
                 import os
@@ -751,7 +762,18 @@ Insta Insurance Consultancy Portal"""
         
         # Send email with policy document attachment
         if temp_file_path:
-            result = send_policy_email(customer_email, customer_name, policy, temp_file_path)
+            # Prepare policy data for the new template-based function
+            from email_service import indian_date_filter
+            policy_data = {
+                'client_name': customer_name,
+                'policy_type': policy.get('product_name', 'Insurance'),
+                'policy_no': policy.get('policy_number', 'N/A'),
+                'asset': policy.get('remarks', 'N/A'),
+                'start_date': indian_date_filter(policy.get('policy_from')),
+                'expiry_date': indian_date_filter(policy.get('policy_to'))
+            }
+            
+            result = send_policy_email(customer_email, policy_data, temp_file_path)
             # Clean up temp file
             try:
                 import os

@@ -5,7 +5,7 @@ from whatsapp_bot import (
     send_renewal_reminder,
     normalize_phone
 )
-from email_service import send_policy_email, send_renewal_reminder_email
+from email_service import send_policy_email, send_renewal_reminder_email, indian_date_filter
 from supabase import create_client
 from config import Config
 import io
@@ -93,11 +93,20 @@ def send_policy_email_api():
         if not temp_file_path:
             return jsonify({'success': False, 'message': 'Could not download file'}), 400
 
+        # Prepare policy data for the new template-based function
+        policy_data = {
+            'client_name': customer['name'],
+            'policy_type': policy.get('product_name', 'Insurance'),
+            'policy_no': policy.get('policy_number', 'N/A'),
+            'asset': policy.get('remarks', 'N/A'),
+            'start_date': indian_date_filter(policy.get('policy_from')),
+            'expiry_date': indian_date_filter(policy.get('policy_to'))
+        }
+        
         # Send email
         success, message = send_policy_email(
             customer['email'], 
-            customer['name'], 
-            policy, 
+            policy_data, 
             temp_file_path
         )
 
@@ -145,12 +154,20 @@ def send_renewal_reminder_email_api():
             file_path = os.path.join(temp_dir, renewal_file.filename)
             renewal_file.save(file_path)
 
+        # Prepare renewal data for the new template-based function
+        renewal_data = {
+            'client_name': customer['name'],
+            'policy_no': policy.get('policy_number', policy.get('policy_id', 'N/A')),
+            'asset': policy.get('remarks', 'N/A'),
+            'company': policy.get('insurance_company', 'N/A'),
+            'expiry_date': policy.get('policy_to', 'N/A'),
+            'payment_link': payment_link if payment_link else None
+        }
+        
         success, message = send_renewal_reminder_email(
             customer['email'],
-            customer['name'],
-            policy,
-            file_path=file_path,
-            payment_link=payment_link if payment_link else None
+            renewal_data,
+            file_path=file_path
         )
 
         # Clean up temp file

@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify, render_template, redirect, url_fo
 from flask_login import login_required
 from supabase import create_client
 from config import Config
+from database_pool import execute_query
+from email_service import send_renewal_reminder_email, indian_date_filter
 from renewal_service import (
     renew_policy,
     get_policy_renewal_history,
@@ -10,6 +12,7 @@ from renewal_service import (
     send_payment_confirmation_whatsapp
 )
 import logging
+import os
 
 
 def convert_date_format(date_string):
@@ -541,3 +544,51 @@ def update_policy_payment_api():
     except Exception as e:
         logger.error(f"Error in update_policy_payment_api: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route("/send_renewal_reminder/<policy_id>", methods=['POST'])
+@login_required
+def send_reminder(policy_id):
+    """Send a renewal reminder for a specific policy."""
+    try:
+        # 1. Fetch the policy details from the database
+        policy_response = execute_query('policies', 'select', filters={'policy_id': policy_id}, single=True)
+        if not policy_response.data:
+            return jsonify({'success': False, 'message': 'Policy not found'}), 404
+        policy = policy_response.data
+
+        # 2. Fetch the client details
+        client_response = execute_query('clients', 'select', filters={'client_id': policy['client_id']}, single=True)
+        if not client_response.data:
+            return jsonify({'success': False, 'message': 'Client not found for this policy'}), 404
+        client = client_response.data
+        
+        # 3. Check if the client has an email address
+        if not client.get('email'):
+             return jsonify({'success': False, 'message': 'Client does not have an email address on file.'}), 400
+
+        # 4. Create the data dictionary with the exact keys the HTML template needs
+        renewal_data = {
+            'client_name': client.get('name', 'Valued Customer'),
+            'policy_no': policy.get('policy_number', 'N/A'), # The official policy number
+            'asset': policy.get('remarks', 'N/A'),            # Using the 'remarks' field as requested
+            'company': policy.get('insurance_company', 'N/A'),# The insurance company name
+            'expiry_date': indian_date_filter(policy.get('policy_to'))
+        }
+
+        # 5. Call the email function with the data dictionary
+        # (Assuming no file attachment for a reminder)
+        success, message = send_renewal_reminder_email(
+            client.get('email'),
+            renewal_data,
+            file_path=None 
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': f"Renewal reminder sent successfully to {client.get('email')}"})
+        else:
+            return jsonify({'success': False, 'message': f"Failed to send email: {message}"}), 500
+
+    except Exception as e:
+        print(f"Error in send_reminder route: {e}")
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500

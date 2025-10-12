@@ -49,13 +49,13 @@ class Config:
     # Archive Folder ID - Get this from your Google Drive Archive folder URL
     ARCHIVE_FOLDER_ID = os.getenv("ARCHIVE_FOLDER_ID", "YOUR_ARCHIVE_FOLDER_ID_HERE")
 
-    # Email Configuration
-    SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    # Email Configuration (Updated for Zoho Mail)
+    SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.zoho.in")
     SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-    FROM_EMAIL = os.getenv("FROM_EMAIL")
-    FROM_NAME = os.getenv("FROM_NAME", "Insurance Portal")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")  # Use your Zoho App Password here
+    FROM_EMAIL = os.getenv("FROM_EMAIL")  # Should be the same as SMTP_USERNAME
+    FROM_NAME = os.getenv("FROM_NAME", "Insta Insurance Consultancy")
 
     # Twilio WhatsApp
     TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
