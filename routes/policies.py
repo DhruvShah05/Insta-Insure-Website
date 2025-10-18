@@ -526,6 +526,10 @@ def add_policy():
             health_member_sum_insureds = request.form.getlist("health_member_sum_insured[]")
             health_member_bonuses = request.form.getlist("health_member_bonus[]")
             
+            # Floater-specific fields (single sum_insured and bonus for entire policy)
+            floater_sum_insured = request.form.get("floater_sum_insured")
+            floater_bonus = request.form.get("floater_bonus")
+            
             # Factory insurance specific fields
             factory_building = request.form.get("factory_building")
             factory_plant_machinery = request.form.get("factory_plant_machinery")
@@ -741,6 +745,14 @@ def add_policy():
                             "policy_id": policy_id,
                             "plan_type": health_plan_type
                         }
+                        
+                        # Add floater-specific fields if it's a floater plan
+                        if health_plan_type == "FLOATER":
+                            if floater_sum_insured:
+                                health_details["floater_sum_insured"] = float(floater_sum_insured)
+                            if floater_bonus:
+                                health_details["floater_bonus"] = float(floater_bonus)
+                        
                         health_result = supabase.table("health_insurance_details").insert(health_details).execute()
                         health_id = health_result.data[0]["health_id"]
                         
@@ -752,14 +764,18 @@ def add_policy():
                                         "health_id": health_id,
                                         "member_name": member_name.strip()
                                     }
-                                    if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
-                                        member_data["sum_insured"] = float(health_member_sum_insureds[i])
-                                    if i < len(health_member_bonuses) and health_member_bonuses[i]:
-                                        member_data["bonus"] = float(health_member_bonuses[i])
+                                    
+                                    # For INDIVIDUAL plans, store sum_insured and bonus per member
+                                    # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
+                                    if health_plan_type == "INDIVIDUAL":
+                                        if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
+                                            member_data["sum_insured"] = float(health_member_sum_insureds[i])
+                                        if i < len(health_member_bonuses) and health_member_bonuses[i]:
+                                            member_data["bonus"] = float(health_member_bonuses[i])
                                     
                                     supabase.table("health_insured_members").insert(member_data).execute()
                         
-                        print(f"Health insurance details saved for policy {policy_id}")
+                        print(f"Health insurance details saved for policy {policy_id} with plan type {health_plan_type}")
                     except Exception as e:
                         print(f"Error saving health insurance details: {e}")
                         # Don't fail the whole operation, just log the error

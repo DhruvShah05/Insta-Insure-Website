@@ -312,14 +312,26 @@ def update_policy_details_api():
             policy_updates['product_name'] = data['product_name']
         if 'agent_name' in data:
             policy_updates['agent_name'] = data['agent_name']
-        if 'sum_insured' in data:
-            policy_updates['sum_insured'] = data['sum_insured']
-        if 'net_premium' in data:
-            policy_updates['net_premium'] = data['net_premium']
-        if 'gross_premium' in data:
-            policy_updates['gross_premium'] = data['gross_premium']
-        if 'tp_tr_premium' in data:
-            policy_updates['tp_tr_premium'] = data['tp_tr_premium']
+        if 'sum_insured' in data and data['sum_insured'] and str(data['sum_insured']).strip():
+            try:
+                policy_updates['sum_insured'] = float(data['sum_insured'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid sum insured amount'}), 400
+        if 'net_premium' in data and data['net_premium'] and str(data['net_premium']).strip():
+            try:
+                policy_updates['net_premium'] = float(data['net_premium'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid net premium amount'}), 400
+        if 'gross_premium' in data and data['gross_premium'] and str(data['gross_premium']).strip():
+            try:
+                policy_updates['gross_premium'] = float(data['gross_premium'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid gross premium amount'}), 400
+        if 'tp_tr_premium' in data and data['tp_tr_premium'] and str(data['tp_tr_premium']).strip():
+            try:
+                policy_updates['tp_tr_premium'] = float(data['tp_tr_premium'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid TP/TR premium amount'}), 400
         if 'business_type' in data:
             policy_updates['business_type'] = data['business_type']
         if 'group_name' in data:
@@ -362,6 +374,13 @@ def update_policy_details_api():
                 if 'plan_type' in health_data:
                     health_updates['plan_type'] = health_data['plan_type']
                 
+                # Handle floater-specific fields
+                if health_data.get('plan_type') == 'FLOATER':
+                    if 'floater_sum_insured' in health_data:
+                        health_updates['floater_sum_insured'] = float(health_data['floater_sum_insured']) if health_data['floater_sum_insured'] else None
+                    if 'floater_bonus' in health_data:
+                        health_updates['floater_bonus'] = float(health_data['floater_bonus']) if health_data['floater_bonus'] else None
+                
                 if health_updates:
                     supabase.table("health_insurance_details").update(health_updates).eq("health_id", health_id).execute()
                 
@@ -371,14 +390,29 @@ def update_policy_details_api():
                     supabase.table("health_insured_members").delete().eq("health_id", health_id).execute()
                     
                     # Insert new members
+                    plan_type = health_data.get('plan_type', health_result.data[0].get('plan_type'))
                     for member in health_data['members']:
                         if member.get('member_name'):  # Only insert if name is provided
                             member_data = {
                                 'health_id': health_id,
-                                'member_name': member['member_name'],
-                                'sum_insured': member.get('sum_insured', ''),
-                                'bonus': member.get('bonus', '')
+                                'member_name': member['member_name']
                             }
+                            
+                            # For INDIVIDUAL plans, store sum_insured and bonus per member
+                            # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
+                            if plan_type == 'INDIVIDUAL':
+                                # Handle numeric fields properly
+                                if member.get('sum_insured') and str(member.get('sum_insured')).strip():
+                                    try:
+                                        member_data['sum_insured'] = float(member['sum_insured'])
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid values
+                                if member.get('bonus') and str(member.get('bonus')).strip():
+                                    try:
+                                        member_data['bonus'] = float(member['bonus'])
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid values
+                            
                             supabase.table("health_insured_members").insert(member_data).execute()
             
             elif health_data.get('plan_type'):  # Create new health insurance if plan_type is provided
@@ -387,6 +421,14 @@ def update_policy_details_api():
                     'policy_id': policy_id,
                     'plan_type': health_data['plan_type']
                 }
+                
+                # Add floater-specific fields if it's a floater plan
+                if health_data['plan_type'] == 'FLOATER':
+                    if 'floater_sum_insured' in health_data and health_data['floater_sum_insured']:
+                        health_insert['floater_sum_insured'] = float(health_data['floater_sum_insured'])
+                    if 'floater_bonus' in health_data and health_data['floater_bonus']:
+                        health_insert['floater_bonus'] = float(health_data['floater_bonus'])
+                
                 health_result = supabase.table("health_insurance_details").insert(health_insert).execute()
                 health_id = health_result.data[0]['health_id']
                 
@@ -396,10 +438,24 @@ def update_policy_details_api():
                         if member.get('member_name'):  # Only insert if name is provided
                             member_data = {
                                 'health_id': health_id,
-                                'member_name': member['member_name'],
-                                'sum_insured': member.get('sum_insured', ''),
-                                'bonus': member.get('bonus', '')
+                                'member_name': member['member_name']
                             }
+                            
+                            # For INDIVIDUAL plans, store sum_insured and bonus per member
+                            # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
+                            if health_data['plan_type'] == 'INDIVIDUAL':
+                                # Handle numeric fields properly
+                                if member.get('sum_insured') and str(member.get('sum_insured')).strip():
+                                    try:
+                                        member_data['sum_insured'] = float(member['sum_insured'])
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid values
+                                if member.get('bonus') and str(member.get('bonus')).strip():
+                                    try:
+                                        member_data['bonus'] = float(member['bonus'])
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid values
+                            
                             supabase.table("health_insured_members").insert(member_data).execute()
         
         # Handle factory insurance details
@@ -410,16 +466,31 @@ def update_policy_details_api():
             factory_result = supabase.table("factory_insurance_details").select("*").eq("policy_id", policy_id).execute()
             
             factory_updates = {}
-            if 'building' in factory_data:
-                factory_updates['building'] = factory_data['building']
-            if 'plant_machinery' in factory_data:
-                factory_updates['plant_machinery'] = factory_data['plant_machinery']
-            if 'furniture_fittings' in factory_data:
-                factory_updates['furniture_fittings'] = factory_data['furniture_fittings']
-            if 'stocks' in factory_data:
-                factory_updates['stocks'] = factory_data['stocks']
-            if 'electrical_installations' in factory_data:
-                factory_updates['electrical_installations'] = factory_data['electrical_installations']
+            if 'building' in factory_data and factory_data['building'] and str(factory_data['building']).strip():
+                try:
+                    factory_updates['building'] = float(factory_data['building'])
+                except (ValueError, TypeError):
+                    pass  # Skip invalid values
+            if 'plant_machinery' in factory_data and factory_data['plant_machinery'] and str(factory_data['plant_machinery']).strip():
+                try:
+                    factory_updates['plant_machinery'] = float(factory_data['plant_machinery'])
+                except (ValueError, TypeError):
+                    pass  # Skip invalid values
+            if 'furniture_fittings' in factory_data and factory_data['furniture_fittings'] and str(factory_data['furniture_fittings']).strip():
+                try:
+                    factory_updates['furniture_fittings'] = float(factory_data['furniture_fittings'])
+                except (ValueError, TypeError):
+                    pass  # Skip invalid values
+            if 'stocks' in factory_data and factory_data['stocks'] and str(factory_data['stocks']).strip():
+                try:
+                    factory_updates['stocks'] = float(factory_data['stocks'])
+                except (ValueError, TypeError):
+                    pass  # Skip invalid values
+            if 'electrical_installations' in factory_data and factory_data['electrical_installations'] and str(factory_data['electrical_installations']).strip():
+                try:
+                    factory_updates['electrical_installations'] = float(factory_data['electrical_installations'])
+                except (ValueError, TypeError):
+                    pass  # Skip invalid values
             
             if factory_result.data:
                 # Update existing factory details

@@ -54,12 +54,15 @@ def list_pending():
         # Flatten customer data
         for policy in pending:
             if policy.get("clients"):
-                policy["customer_name"] = policy["clients"]["name"]
+                policy["client_name"] = policy["clients"]["name"]
                 policy["customer_email"] = policy["clients"]["email"]
                 policy["customer_phone"] = policy["clients"].get("phone", "")
             if policy.get("members"):
                 policy["member_name"] = policy["members"].get("member_name", "")
+                # Use member name as the primary display name
+                policy["customer_name"] = policy["members"].get("member_name", "")
             else:
+                policy["client_name"] = "Unknown"
                 policy["customer_name"] = "Unknown"
                 policy["customer_email"] = ""
                 policy["customer_phone"] = ""
@@ -122,6 +125,10 @@ def add_pending():
             health_member_names = request.form.getlist("health_member_name[]")
             health_member_sum_insureds = request.form.getlist("health_member_sum_insured[]")
             health_member_bonuses = request.form.getlist("health_member_bonus[]")
+            
+            # Floater-specific fields (single sum_insured and bonus for entire policy)
+            floater_sum_insured = request.form.get("floater_sum_insured")
+            floater_bonus = request.form.get("floater_bonus")
             
             # Factory insurance specific fields
             factory_building = request.form.get("factory_building")
@@ -242,6 +249,14 @@ def add_pending():
                         "pending_id": pending_id,
                         "plan_type": health_plan_type
                     }
+                    
+                    # Add floater-specific fields if it's a floater plan
+                    if health_plan_type == "FLOATER":
+                        if floater_sum_insured:
+                            health_details["floater_sum_insured"] = float(floater_sum_insured)
+                        if floater_bonus:
+                            health_details["floater_bonus"] = float(floater_bonus)
+                    
                     health_result = supabase.table("pending_health_insurance_details").insert(health_details).execute()
                     pending_health_id = health_result.data[0]["pending_health_id"]
                     
@@ -253,14 +268,18 @@ def add_pending():
                                     "pending_health_id": pending_health_id,
                                     "member_name": member_name.strip()
                                 }
-                                if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
-                                    member_data["sum_insured"] = float(health_member_sum_insureds[i])
-                                if i < len(health_member_bonuses) and health_member_bonuses[i]:
-                                    member_data["bonus"] = float(health_member_bonuses[i])
+                                
+                                # For INDIVIDUAL plans, store sum_insured and bonus per member
+                                # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
+                                if health_plan_type == "INDIVIDUAL":
+                                    if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
+                                        member_data["sum_insured"] = float(health_member_sum_insureds[i])
+                                    if i < len(health_member_bonuses) and health_member_bonuses[i]:
+                                        member_data["bonus"] = float(health_member_bonuses[i])
                                 
                                 supabase.table("pending_health_insured_members").insert(member_data).execute()
                     
-                    print(f"Health insurance details saved for pending policy {pending_id}")
+                    print(f"Health insurance details saved for pending policy {pending_id} with plan type {health_plan_type}")
                 except Exception as e:
                     print(f"Error saving health insurance details: {e}")
                     # Don't fail the whole operation, just log the error
@@ -521,23 +540,23 @@ def complete_pending(pending_id):
             if send_to_customer:
                 messages = []
 
-                # Send via WhatsApp if phone available
+                # Send via WhatsApp and Email using the unified function
                 if customer.get("phone"):
                     try:
                         from whatsapp_bot import send_policy_to_customer, normalize_phone
                         phone = normalize_phone(customer["phone"])
-                        whatsapp_success, whatsapp_msg = send_policy_to_customer(phone, inserted_policy)
+                        # This function handles both WhatsApp and Email sending automatically
+                        success, message = send_policy_to_customer(phone, inserted_policy, send_email=True)
 
-                        if whatsapp_success:
-                            messages.append("WhatsApp: Sent successfully")
+                        if success:
+                            messages.append("Document sent successfully")
                         else:
-                            messages.append(f"WhatsApp: {whatsapp_msg}")
+                            messages.append(f"Delivery status: {message}")
                     except Exception as e:
-                        print(f"WhatsApp error: {e}")
-                        messages.append("WhatsApp: Failed to send")
-
-                # Send via Email if email available
-                if customer.get("email"):
+                        print(f"Delivery error: {e}")
+                        messages.append("Failed to send document")
+                elif customer.get("email"):
+                    # If no phone but has email, send email only
                     try:
                         from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
                         from email_service import send_policy_email, indian_date_filter
@@ -604,11 +623,13 @@ def complete_pending(pending_id):
 
         # Flatten customer data
         if pending.get("clients"):
-            pending["customer_name"] = pending["clients"]["name"]
+            pending["client_name"] = pending["clients"]["name"]
             pending["customer_email"] = pending["clients"]["email"]
             pending["customer_phone"] = pending["clients"].get("phone", "")
         if pending.get("members"):
             pending["member_name"] = pending["members"].get("member_name", "")
+            # Use member name as the primary display name
+            pending["customer_name"] = pending["members"].get("member_name", "")
 
         return render_template("complete_pending.html", pending=pending)
 

@@ -52,37 +52,37 @@ class RealtimeExcelSync:
         self._update_hashes()
         logger.info(f"Real-time Excel sync initialized for: {excel_file}")
     
-    def _determine_financial_year(self, policy_to_date):
-        """Determine financial year from policy expiry date (April to March)"""
-        if not policy_to_date:
+    def _determine_financial_year(self, policy_from_date):
+        """Determine financial year from policy start date (April to March)"""
+        if not policy_from_date:
             return None
         
         try:
             # Handle different date formats
-            if isinstance(policy_to_date, str):
+            if isinstance(policy_from_date, str):
                 for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S'):
                     try:
-                        expiry_date = datetime.strptime(policy_to_date, fmt).date()
+                        start_date = datetime.strptime(policy_from_date, fmt).date()
                         break
                     except ValueError:
                         continue
                 else:
                     return None
-            elif isinstance(policy_to_date, datetime):
-                expiry_date = policy_to_date.date()
-            elif isinstance(policy_to_date, date):
-                expiry_date = policy_to_date
+            elif isinstance(policy_from_date, datetime):
+                start_date = policy_from_date.date()
+            elif isinstance(policy_from_date, date):
+                start_date = policy_from_date
             else:
                 return None
             
             # Financial year logic: April to March
-            if expiry_date.month >= 4:  # April to December
-                return f"{expiry_date.year}-{str(expiry_date.year + 1)[2:]}"
+            if start_date.month >= 4:  # April to December
+                return f"{start_date.year}-{str(start_date.year + 1)[2:]}"
             else:  # January to March
-                return f"{expiry_date.year - 1}-{str(expiry_date.year)[2:]}"
+                return f"{start_date.year - 1}-{str(start_date.year)[2:]}"
                 
         except Exception as e:
-            logger.warning(f"Error determining financial year for date {policy_to_date}: {e}")
+            logger.warning(f"Error determining financial year for date {policy_from_date}: {e}")
             return None
     
     def _get_policies_with_insurance_details(self):
@@ -343,10 +343,10 @@ class RealtimeExcelSync:
                     wb.save(self.local_excel_path)
                     return
                 
-                # Group policies by financial year
+                # Group policies by financial year based on policy start date
                 policies_by_year = {}
                 for policy in policies_data:
-                    financial_year = self._determine_financial_year(policy.get('policy_to'))
+                    financial_year = self._determine_financial_year(policy.get('policy_from'))
                     if financial_year:
                         if financial_year not in policies_by_year:
                             policies_by_year[financial_year] = []

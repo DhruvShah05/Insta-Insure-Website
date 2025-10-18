@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claims Management - Insta Insurances Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        .claims-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-4);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-2);
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending { background: var(--warning-light); color: var(--warning-dark); }
+        .status-processing { background: var(--info-light); color: var(--info-dark); }
+        .status-approved { background: var(--success-light); color: var(--success-dark); }
+        .status-settled { background: var(--primary-light); color: var(--primary-dark); }
+        .status-rejected { background: var(--danger-light); color: var(--danger-dark); }
+
+        .claim-type-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .type-cashless { background: var(--success-light); color: var(--success-dark); }
+        .type-reimbursement { background: var(--info-light); color: var(--info-dark); }
+
+        .table-responsive {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .table th {
+            background: var(--gray-50);
+            border: none;
+            font-weight: 600;
+            color: var(--gray-700);
+            padding: 1rem;
+        }
+
+        .table td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-color: var(--gray-100);
+        }
+
+        .table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .btn-action {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            border-radius: var(--radius-md);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-500);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="sidebar-brand">
+                    <h4>Insta Insurances</h4>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="{{ url_for('policies.add_policy') }}" class="nav-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                        Add Policy
+                    </a>
+                    <a href="{{ url_for('pending_policies.index') }}" class="nav-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        Pending Policies
+                    </a>
+                    <a href="{{ url_for('existing_policies.index') }}" class="nav-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h8c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+                        </svg>
+                        Existing Policies
+                    </a>
+                    <a href="{{ url_for('claims.index') }}" class="nav-link active">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 11H7v6h2v-6zm4 0h-2v6h2v-6zm4 0h-2v6h2v-6zm2.5-9H19V1h-2v1H7V1H5v1H4.5C3.67 2 3 2.67 3 3.5v15C3 19.33 3.67 20 4.5 20h15c.83 0 1.5-.67 1.5-1.5v-15C21 2.67 20.33 2 19.5 2z"/>
+                        </svg>
+                        Claims
+                    </a>
+                    <a href="{{ url_for('renewal_routes.index') }}" class="nav-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 6v3l4-4-4-4v3c-4.42 0-8 3.58-8 8 0 1.57.46 3.03 1.24 4.26L6.7 14.8c-.45-.83-.7-1.79-.7-2.8 0-3.31 2.69-6 6-6zm6.76 1.74L17.3 9.2c.44.84.7 1.79.7 2.8 0 3.31-2.69 6-6 6v-3l-4 4 4 4v-3c4.42 0 8-3.58 8-8 0-1.57-.46-3.03-1.24-4.26z"/>
+                        </svg>
+                        Renewals
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="content-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="page-title">Claims Management</h1>
+                            <p class="page-subtitle">Manage insurance claims and track their status</p>
+                        </div>
+                        <a href="{{ url_for('claims.add_claim') }}" class="btn btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                            Add New Claim
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Claims Statistics -->
+                <div class="claims-stats">
+                    <div class="stat-card">
+                        <div class="stat-number text-primary">{{ stats.get('total', 0) }}</div>
+                        <div class="stat-label">Total Claims</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-warning">{{ stats.get('pending', 0) }}</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-info">{{ stats.get('processing', 0) }}</div>
+                        <div class="stat-label">Processing</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-success">{{ stats.get('approved', 0) }}</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-primary">{{ stats.get('settled', 0) }}</div>
+                        <div class="stat-label">Settled</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number text-danger">{{ stats.get('rejected', 0) }}</div>
+                        <div class="stat-label">Rejected</div>
+                    </div>
+                </div>
+
+                <!-- Claims Table -->
+                {% if claims %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Claim ID</th>
+                                <th>Policy Number</th>
+                                <th>Client Name</th>
+                                <th>Member Name</th>
+                                <th>Type</th>
+                                <th>Hospital</th>
+                                <th>Claimed Amount</th>
+                                <th>Status</th>
+                                <th>Created Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for claim in claims %}
+                            <tr>
+                                <td>
+                                    <strong>#{{ claim.claim_id }}</strong>
+                                </td>
+                                <td>{{ claim.policies.policy_number }}</td>
+                                <td>{{ claim.policies.clients.name }}</td>
+                                <td>{{ claim.member_name }}</td>
+                                <td>
+                                    <span class="claim-type-badge type-{{ claim.claim_type.lower() }}">
+                                        {{ claim.claim_type }}
+                                    </span>
+                                </td>
+                                <td>{{ claim.hospital_name or '-' }}</td>
+                                <td>
+                                    {% if claim.claimed_amount %}
+                                        ₹{{ "{:,.2f}".format(claim.claimed_amount) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="status-badge status-{{ claim.status.lower() }}">
+                                        {{ claim.status }}
+                                    </span>
+                                </td>
+                                <td>{{ claim.created_at[:10] if claim.created_at else '-' }}</td>
+                                <td>
+                                    <a href="{{ url_for('claims.view_claim', claim_id=claim.claim_id) }}" 
+                                       class="btn btn-sm btn-outline-primary btn-action">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 11H7v6h2v-6zm4 0h-2v6h2v-6zm4 0h-2v6h2v-6zm2.5-9H19V1h-2v1H7V1H5v1H4.5C3.67 2 3 2.67 3 3.5v15C3 19.33 3.67 20 4.5 20h15c.83 0 1.5-.67 1.5-1.5v-15C21 2.67 20.33 2 19.5 2z"/>
+                    </svg>
+                    <h5>No Claims Found</h5>
+                    <p>Start by adding your first insurance claim.</p>
+                    <a href="{{ url_for('claims.add_claim') }}" class="btn btn-primary">
+                        Add New Claim
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

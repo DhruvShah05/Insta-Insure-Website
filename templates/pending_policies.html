@@ -58,18 +58,18 @@
             margin: var(--spacing-1) 0 0 0;
         }
         
-        .customer-info {
+        .member-info {
             display: flex;
             flex-direction: column;
             gap: var(--spacing-1);
         }
         
-        .customer-name {
+        .member-name {
             font-weight: 500;
             color: var(--gray-900);
         }
         
-        .customer-email {
+        .member-email {
             font-size: var(--font-size-xs);
             color: var(--gray-500);
         }
@@ -180,7 +180,7 @@
                     <thead>
                         <tr>
                             <th>Pending ID</th>
-                            <th>Customer</th>
+                            <th>Member</th>
                             <th>Company</th>
                             <th>Product</th>
                             <th>Agent</th>
@@ -194,9 +194,9 @@
                         <tr>
                             <td><strong>#{{ policy.pending_id }}</strong></td>
                             <td>
-                                <div class="customer-info">
-                                    <div class="customer-name">{{ policy.customer_name }}</div>
-                                    <div class="customer-email">{{ policy.customer_email }}</div>
+                                <div class="member-info">
+                                    <div class="member-name">{{ policy.customer_name }}</div>
+                                    <div class="member-email">{{ policy.customer_email }}</div>
                                 </div>
                             </td>
                             <td>{{ policy.insurance_company }}</td>

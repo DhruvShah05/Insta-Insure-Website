@@ -7,7 +7,7 @@ Successfully modified the existing Excel sync system to organize policies by fin
 
 ### **1. Financial Year Logic**
 - **Financial Year Definition**: April to March (e.g., 2025-26 = April 2025 to March 2026)
-- **Year Determination**: Based on policy expiration dates (`policy_to` field)
+- **Year Determination**: Based on policy start dates (`policy_from` field)
 - **Sheet Naming**: "2025-26", "2024-25", "2023-24", etc.
 - **Smart Date Handling**: Supports multiple date formats from database
 
@@ -23,7 +23,7 @@ insurance_data.xlsx
 ```
 
 ### **3. Financial Year Sheet Content**
-Each financial year sheet contains **all policies expiring in that financial year** with:
+Each financial year sheet contains **all policies starting in that financial year** with:
 
 #### **Basic Policy Data (26 columns):**
 - Policy ID, Client Name, Member Name, Policy Number
@@ -53,11 +53,11 @@ Each financial year sheet contains **all policies expiring in that financial yea
 
 #### **Financial Year Determination:**
 ```python
-def _determine_financial_year(self, policy_to_date):
+def _determine_financial_year(self, policy_from_date):
     # April to December → Current year to next year
     # January to March → Previous year to current year
-    # Example: Policy expiring May 2025 → "2025-26"
-    # Example: Policy expiring Feb 2026 → "2025-26"
+    # Example: Policy starting May 2025 → "2025-26"
+    # Example: Policy starting Feb 2026 → "2025-26"
 ```
 
 #### **Comprehensive Data Integration:**
@@ -113,7 +113,7 @@ graph TD
 
 #### **For Business Management:**
 - **Year-wise Analysis**: Easy financial year comparisons
-- **Policy Tracking**: Clear expiry date organization
+- **Policy Tracking**: Clear start date organization
 - **Complete View**: All policy types in one comprehensive sheet
 - **Historical Data**: Separate sheets maintain data integrity
 
@@ -174,4 +174,4 @@ The financial year Excel system is now fully implemented and operational. Your E
 - ✅ **Professional Formatting** ready for analysis
 - ✅ **Maintains Existing Functionality** while adding new features
 
-The system will create sheets like "2025-26", "2024-25" etc., based on policy expiry dates, with each sheet containing all relevant policies and their complete insurance details for that financial year!
+The system will create sheets like "2025-26", "2024-25" etc., based on policy start dates, with each sheet containing all relevant policies and their complete insurance details for that financial year!
