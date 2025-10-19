@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Claim - Insta Insurance Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Back to Claims</a>
+        </div>
+    </nav>
+
+    <div class="form-container">
+        <div class="form-header text-center">
+            <h1>Add New Claim</h1>
+            <p class="text-muted">Submit a new insurance claim on behalf of a client.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
+                    {% if 'Claim Number:' in message %}
+                        <strong><i class="fas fa-check-circle"></i> {{ message.split('Claim Number:')[0] }}</strong>
+                        <br><span class="fs-5 fw-bold text-primary">Claim Number: {{ message.split('Claim Number:')[1] }}</span>
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data" id="addClaimForm">
+            <!-- Policy Lookup Section -->
+            <div class="form-section">
+                <h5>1. Find Policy</h5>
+                <div class="mb-3">
+                    <label for="policy_number" class="form-label">Policy Number <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="text" id="policy_number" name="policy_number" class="form-control" placeholder="Enter policy number to begin" required>
+                        <button class="btn btn-outline-primary" type="button" id="lookupPolicyBtn">Find</button>
+                    </div>
+                    <div class="form-text">This will automatically fetch client and member details.</div>
+                </div>
+
+                <div id="policyDetails" style="display:none;" class="alert alert-success">
+                    <strong>Client Found:</strong> <span id="clientName"></span>
+                </div>
+
+                <div class="mb-3" id="memberSelection" style="display:none;">
+                    <label for="member_name" class="form-label">Select Member <span class="text-danger">*</span></label>
+                    <select id="member_name" name="member_name" class="form-select" required></select>
+                </div>
+            </div>
+
+            <!-- Claim Details Section -->
+            <div class="form-section" id="claimDetailsSection" style="display:none;">
+                <h5>2. Claim Details</h5>
+                <div class="mb-3">
+                    <label for="claim_number" class="form-label">Claim Number <span class="text-danger">*</span></label>
+                    <input type="text" id="claim_number" name="claim_number" class="form-control" placeholder="Enter claim number from insurance company" required>
+                    <div class="form-text">Enter the claim number provided by the insurance company.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="claim_type" class="form-label">Type of Claim <span class="text-danger">*</span></label>
+                    <select id="claim_type" name="claim_type" class="form-select" required>
+                        <option value="CASHLESS">Cashless</option>
+                        <option value="REIMBURSEMENT">Reimbursement</option>
+                        <option value="PRE-POST">Pre-Post</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="diagnosis" class="form-label">Diagnosis</label>
+                    <input type="text" id="diagnosis" name="diagnosis" class="form-control" placeholder="e.g., Viral Fever, Surgery">
+                </div>
+                <div class="mb-3">
+                    <label for="hospital_name" class="form-label">Name of Hospital</label>
+                    <input type="text" id="hospital_name" name="hospital_name" class="form-control">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="admission_date" class="form-label">Date of Admission</label>
+                        <input type="text" id="admission_date" name="admission_date" class="form-control date-picker" placeholder="DD/MM/YYYY">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="discharge_date" class="form-label">Date of Discharge</label>
+                        <input type="text" id="discharge_date" name="discharge_date" class="form-control date-picker" placeholder="DD/MM/YYYY">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="claimed_amount" class="form-label">Claimed Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" step="0.01" id="claimed_amount" name="claimed_amount" class="form-control" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Document Uploads Section -->
+            <div class="form-section" id="documentsSection" style="display:none;">
+                <h5>3. Upload Documents</h5>
+                <div id="documentsContainer">
+                    <div class="document-item mb-3 border p-3 rounded">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label">Document Type</label>
+                                <div class="input-group">
+                                    <select name="document_types[]" class="form-select document-type-select">
+                                        {% for doc_type in document_types %}
+                                        <option value="{{ doc_type }}">{{ doc_type.replace('_', ' ').title() }}</option>
+                                        {% endfor %}
+                                        <option value="OTHER">Other (Custom)</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="addCustomDocType(this)" title="Add Custom Type">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control mt-2 custom-doc-type" name="custom_document_types[]" placeholder="Enter custom document type" style="display:none;">
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label">File</label>
+                                <input type="file" name="claim_documents[]" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="addDocumentBtn" class="btn btn-sm btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-1"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Add Another Document
+                </button>
+            </div>
+            
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" id="submitBtn" class="btn btn-primary" disabled>Submit Claim</button>
+                <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr('.date-picker', {
+                dateFormat: 'd/m/Y',
+                allowInput: true,  // Allow manual typing
+                clickOpens: true,  // Still allow clicking to open calendar
+                altInput: false,   // Don't use alternative input
+                parseDate: function(datestr, format) {
+                    // Custom date parsing for DD/MM/YYYY format
+                    if (datestr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                        const parts = datestr.split('/');
+                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                    return null;
+                }
+            });
+
+            const lookupBtn = document.getElementById('lookupPolicyBtn');
+            const policyNumberInput = document.getElementById('policy_number');
+            const policyDetailsDiv = document.getElementById('policyDetails');
+            const clientNameSpan = document.getElementById('clientName');
+            const memberSelectionDiv = document.getElementById('memberSelection');
+            const memberSelect = document.getElementById('member_name');
+            const claimDetailsSection = document.getElementById('claimDetailsSection');
+            const documentsSection = document.getElementById('documentsSection');
+            const submitBtn = document.getElementById('submitBtn');
+
+            async function findPolicy() {
+                const policyNumber = policyNumberInput.value.trim();
+                if (!policyNumber) {
+                    alert('Please enter a policy number.');
+                    return;
+                }
+                
+                lookupBtn.disabled = true;
+                lookupBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Finding...';
+                
+                try {
+                    const response = await fetch(`/claims/api/policy-lookup?policy_number=${encodeURIComponent(policyNumber)}`);
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        clientNameSpan.textContent = data.client_name;
+                        policyDetailsDiv.style.display = 'block';
+
+                        memberSelect.innerHTML = ''; // Clear previous options
+                        if (data.members && data.members.length > 0) {
+                            data.members.forEach(member => {
+                                const option = document.createElement('option');
+                                option.value = member;
+                                option.textContent = member;
+                                memberSelect.appendChild(option);
+                            });
+                        } else {
+                            const option = document.createElement('option');
+                            option.textContent = 'No members found for this policy';
+                            memberSelect.appendChild(option);
+                            memberSelect.disabled = true;
+                        }
+                        
+                        memberSelectionDiv.style.display = 'block';
+                        claimDetailsSection.style.display = 'block';
+                        documentsSection.style.display = 'block';
+                        submitBtn.disabled = false;
+                        
+                    } else {
+                        alert('Error: ' + data.error);
+                        policyDetailsDiv.style.display = 'none';
+                        memberSelectionDiv.style.display = 'none';
+                        claimDetailsSection.style.display = 'none';
+                        documentsSection.style.display = 'none';
+                        submitBtn.disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Lookup failed:', error);
+                    alert('An error occurred while looking up the policy.');
+                } finally {
+                    lookupBtn.disabled = false;
+                    lookupBtn.textContent = 'Find';
+                }
+            }
+            
+            lookupBtn.addEventListener('click', findPolicy);
+            policyNumberInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    findPolicy();
+                }
+            });
+
+            document.getElementById('addDocumentBtn').addEventListener('click', function() {
+                const container = document.getElementById('documentsContainer');
+                const newItem = container.querySelector('.document-item').cloneNode(true);
+                newItem.querySelector('input[type="file"]').value = '';
+                newItem.querySelector('.custom-doc-type').style.display = 'none';
+                newItem.querySelector('.custom-doc-type').value = '';
+                newItem.querySelector('.document-type-select').value = newItem.querySelector('.document-type-select').options[0].value;
+                
+                // Add a remove button to the new item
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger mt-2';
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = function() {
+                    newItem.remove();
+                };
+                newItem.querySelector('.align-items-end').appendChild(removeBtn);
+                
+                container.appendChild(newItem);
+            });
+
+            // Handle document type selection changes
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('document-type-select')) {
+                    const customInput = e.target.closest('.document-item').querySelector('.custom-doc-type');
+                    if (e.target.value === 'OTHER') {
+                        customInput.style.display = 'block';
+                        customInput.required = true;
+                    } else {
+                        customInput.style.display = 'none';
+                        customInput.required = false;
+                        customInput.value = '';
+                    }
+                }
+            });
+        });
+
+        // Function to add custom document type
+        async function addCustomDocType(button) {
+            const docItem = button.closest('.document-item');
+            const customInput = docItem.querySelector('.custom-doc-type');
+            const select = docItem.querySelector('.document-type-select');
+            
+            if (customInput.style.display === 'none') {
+                // Show custom input
+                customInput.style.display = 'block';
+                customInput.focus();
+                select.value = 'OTHER';
+                return;
+            }
+            
+            const customType = customInput.value.trim().toUpperCase();
+            if (!customType) {
+                alert('Please enter a custom document type name.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/claims/api/add-document-type', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ type_name: customType })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Add to all dropdowns
+                    const allSelects = document.querySelectorAll('.document-type-select');
+                    allSelects.forEach(selectEl => {
+                        const newOption = document.createElement('option');
+                        newOption.value = customType;
+                        newOption.textContent = customType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        
+                        // Insert before "Other (Custom)" option
+                        const otherOption = selectEl.querySelector('option[value="OTHER"]');
+                        selectEl.insertBefore(newOption, otherOption);
+                    });
+                    
+                    // Select the new type and hide custom input
+                    select.value = customType;
+                    customInput.style.display = 'none';
+                    customInput.value = '';
+                    
+                    alert('Custom document type added successfully!');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error adding custom document type:', error);
+                alert('Failed to add custom document type.');
+            }
+        }
+    </script>
+</body>
+</html>

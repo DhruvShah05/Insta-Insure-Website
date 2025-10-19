@@ -199,6 +199,11 @@ class ExcelSyncService:
                         member_df.columns = ['member_' + col for col in member_df.columns]
                         df_policies = pd.concat([df_policies.drop('members', axis=1), member_df], axis=1)
                     
+                    # Add commission amount calculation
+                    if 'net_premium' in df_policies.columns and 'commission_percentage' in df_policies.columns:
+                        df_policies['commission_amount'] = pd.to_numeric(df_policies['net_premium'], errors='coerce') * pd.to_numeric(df_policies['commission_percentage'], errors='coerce') / 100
+                        df_policies['commission_amount'] = df_policies['commission_amount'].round(2)
+                    
                     # Reorder columns
                     cols = df_policies.columns.tolist()
                     if 'client_id' in cols and 'member_id' in cols:
@@ -214,6 +219,20 @@ class ExcelSyncService:
                         df_policies = df_policies[cols]
                     
                     df_policies.to_excel(writer, sheet_name="Policies", index=False)
+                
+                # Claims with policy and client info
+                claims = self.supabase.table("claims").select(
+                    "*, policies(policy_number, clients(name, phone, email))"
+                ).execute()
+                df_claims = pd.DataFrame(claims.data)
+                if not df_claims.empty:
+                    # Process join data
+                    if 'policies' in df_claims.columns:
+                        policy_df = pd.json_normalize(df_claims['policies'])
+                        policy_df.columns = ['policy_' + col for col in policy_df.columns]
+                        df_claims = pd.concat([df_claims.drop('policies', axis=1), policy_df], axis=1)
+                    
+                    df_claims.to_excel(writer, sheet_name="Claims", index=False)
                 
                 # Pending Policies
                 pending = self.supabase.table("pending_policies").select(
@@ -247,6 +266,18 @@ class ExcelSyncService:
                         df_pending = df_pending[cols]
                     
                     df_pending.to_excel(writer, sheet_name="Pending Policies", index=False)
+                
+                # Health Insurance Details with floater fields
+                health_details = self.supabase.table("health_insurance_details").select("*").execute()
+                df_health = pd.DataFrame(health_details.data)
+                if not df_health.empty:
+                    df_health.to_excel(writer, sheet_name="Health Insurance Details", index=False)
+                
+                # Factory Insurance Details
+                factory_details = self.supabase.table("factory_insurance_details").select("*").execute()
+                df_factory = pd.DataFrame(factory_details.data)
+                if not df_factory.empty:
+                    df_factory.to_excel(writer, sheet_name="Factory Insurance Details", index=False)
             
             # Apply formatting
             self._format_excel(self.local_excel_path)

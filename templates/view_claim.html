@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim #{{ claim.claim_id }} - Insta Insurance Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 500;
+            color: #718096;
+            font-size: 15px;
+        }
+        .detail-value {
+            color: #1a202c;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-PENDING { background-color: var(--warning-light); color: #92400e; }
+        .status-PROCESSING { background-color: var(--info-light); color: #1e40af; }
+        .status-APPROVED { background-color: #cce5ff; color: #004085; }
+        .status-SETTLED { background-color: var(--success-light); color: #065f46; }
+        .status-REJECTED { background-color: var(--danger-light); color: #991b1b; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                Insta Insurance Consultancy Portal
+            </a>
+            <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Back to Claims</a>
+        </div>
+    </nav>
+
+    <div class="detail-container">
+        <div class="content-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Claim Details <span class="text-muted">{{ claim.claim_number or ('#' + claim.claim_id|string) }}</span></h1>
+                    <span class="status-badge status-{{ claim.status }}">{{ claim.status }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {% if 'Claim Number:' in message %}
+                        <strong><i class="fas fa-check-circle"></i> {{ message.split('Claim Number:')[0] }}</strong>
+                        <br><span class="fs-5 fw-bold text-primary">Claim Number: {{ message.split('Claim Number:')[1] }}</span>
+                    {% else %}
+                        {{ message }}
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <!-- Left Column: Claim Details -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Claim Information</h5>
+                        <div class="detail-row"><span class="detail-label">Client Name</span> <span class="detail-value">{{ claim.policies.clients.name }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Member Name</span> <span class="detail-value">{{ claim.member_name }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Policy Number</span> <span class="detail-value">{{ claim.policies.policy_number }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Claim Number</span> <span class="detail-value">{{ claim.claim_number or 'Not set' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Claim Type</span> <span class="detail-value">{{ claim.claim_type }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Diagnosis</span> <span class="detail-value">{{ claim.diagnosis or '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Hospital Name</span> <span class="detail-value">{{ claim.hospital_name or '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Admission Date</span> <span class="detail-value">{{ claim.admission_date | indian_date if claim.admission_date else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Discharge Date</span> <span class="detail-value">{{ claim.discharge_date | indian_date if claim.discharge_date else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Claimed Amount</span> <span class="detail-value">₹{{ "{:,.2f}".format(claim.claimed_amount) if claim.claimed_amount else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Approved Amount</span> <span class="detail-value">₹{{ "{:,.2f}".format(claim.approved_amount or claim.settled_amount) if (claim.approved_amount or claim.settled_amount) else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Remarks</span> <span class="detail-value">{{ claim.remarks or '-' }}</span></div>
+                    </div>
+                </div>
+
+                {% if claim.status == 'SETTLED' %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Settlement Information</h5>
+                        <div class="detail-row"><span class="detail-label">Settled Amount</span> <span class="detail-value">₹{{ "{:,.2f}".format(claim.settled_amount) if claim.settled_amount else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">Settlement Date</span> <span class="detail-value">{{ claim.settlement_date | indian_date if claim.settlement_date else '-' }}</span></div>
+                        <div class="detail-row"><span class="detail-label">UTR No.</span> <span class="detail-value">{{ claim.utr_no or '-' }}</span></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Claim Documents</h5>
+                        <ul class="list-group list-group-flush">
+                            {% for doc in documents %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ doc.document_name }} <small class="text-muted">({{ doc.document_type }})</small></span>
+                                <a href="{{ doc.drive_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                            </li>
+                            {% else %}
+                            <li class="list-group-item text-muted">No documents have been uploaded for this claim.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Update Forms -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Update Status</h5>
+                        <form method="POST" action="{{ url_for('claims.update_claim_status', claim_id=claim.claim_id) }}">
+                            <div class="mb-3">
+                                <label for="claim_number_update" class="form-label">Claim Number</label>
+                                <input type="text" id="claim_number_update" name="claim_number" class="form-control" value="{{ claim.claim_number or '' }}" placeholder="Enter claim number from insurance company">
+                                <div class="form-text">Update if claim number was provided by insurance company.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="status" class="form-label">New Status</label>
+                                <select id="status" name="status" class="form-select" onchange="toggleStatusFields()">
+                                    <option value="PENDING" {% if claim.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                    <option value="PROCESSING" {% if claim.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                                    <option value="APPROVED" {% if claim.status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                                    <option value="REJECTED" {% if claim.status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                                    <option value="SETTLED" {% if claim.status == 'SETTLED' %}selected{% endif %}>Settled</option>
+                                </select>
+                            </div>
+
+                            <div id="approvedFields" style="display:{{ 'block' if claim.status == 'APPROVED' else 'none' }};">
+                                <div class="mb-3">
+                                    <label for="approved_amount" class="form-label">Approved Amount</label>
+                                    <input type="number" step="0.01" id="approved_amount" name="approved_amount" class="form-control" value="{{ claim.approved_amount or '' }}">
+                                </div>
+                            </div>
+
+                            <div id="settlementFields" style="display:{{ 'block' if claim.status == 'SETTLED' else 'none' }};">
+                                <div class="mb-3">
+                                    <label for="settled_amount" class="form-label">Settled Amount</label>
+                                    <input type="number" step="0.01" id="settled_amount" name="settled_amount" class="form-control" value="{{ claim.settled_amount or '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="settlement_date" class="form-label">Settlement Date</label>
+                                    <input type="text" id="settlement_date" name="settlement_date" class="form-control date-picker" value="{{ claim.settlement_date | indian_date if claim.settlement_date else '' }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="utr_no" class="form-label">UTR No.</label>
+                                    <input type="text" id="utr_no" name="utr_no" class="form-control" value="{{ claim.utr_no or '' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="remarks" class="form-label">Remarks (Optional)</label>
+                                <textarea name="remarks" class="form-control" rows="3">{{ claim.remarks or '' }}</textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">Update Status</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Upload Additional Document</h5>
+                        <form method="POST" action="{{ url_for('claims.upload_document', claim_id=claim.claim_id) }}" enctype="multipart/form-data" id="uploadDocForm">
+                            <div class="mb-3">
+                                <label for="document_type" class="form-label">Document Type</label>
+                                <div class="input-group">
+                                    <select name="document_type" id="document_type" class="form-select">
+                                        <option value="MEDICAL_BILL">Medical Bill</option>
+                                        <option value="DISCHARGE_SUMMARY">Discharge Summary</option>
+                                        <option value="PRESCRIPTION">Prescription</option>
+                                        <option value="LAB_REPORT">Lab Report</option>
+                                        <option value="OTHER">Other (Custom)</option>
+                                    </select>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="toggleCustomDocType()" title="Add Custom Type">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                    </button>
+                                </div>
+                                <input type="text" id="custom_document_type" name="custom_document_type" class="form-control mt-2" placeholder="Enter custom document type" style="display:none;">
+                            </div>
+                            <div class="mb-3">
+                                <label for="document" class="form-label">File</label>
+                                <input type="file" name="document" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">Upload Document</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            flatpickr('.date-picker', {
+                dateFormat: 'd/m/Y',
+                allowInput: true,  // Allow manual typing
+                clickOpens: true,  // Still allow clicking to open calendar
+                altInput: false,   // Don't use alternative input
+                parseDate: function(datestr, format) {
+                    // Custom date parsing for DD/MM/YYYY format
+                    if (datestr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                        const parts = datestr.split('/');
+                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                    return null;
+                }
+            });
+        });
+
+        function toggleStatusFields() {
+            const status = document.getElementById('status').value;
+            const approvedFields = document.getElementById('approvedFields');
+            const settlementFields = document.getElementById('settlementFields');
+            
+            // Hide all fields first
+            approvedFields.style.display = 'none';
+            settlementFields.style.display = 'none';
+            
+            // Show relevant fields based on status
+            if (status === 'APPROVED') {
+                approvedFields.style.display = 'block';
+            } else if (status === 'SETTLED') {
+                settlementFields.style.display = 'block';
+            }
+        }
+
+        function toggleCustomDocType() {
+            const select = document.getElementById('document_type');
+            const customInput = document.getElementById('custom_document_type');
+            
+            if (customInput.style.display === 'none') {
+                customInput.style.display = 'block';
+                customInput.focus();
+                select.value = 'OTHER';
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+                select.value = 'MEDICAL_BILL';
+            }
+        }
+
+        // Handle document type selection
+        document.getElementById('document_type').addEventListener('change', function() {
+            const customInput = document.getElementById('custom_document_type');
+            if (this.value === 'OTHER') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+                customInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

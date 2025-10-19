@@ -13,6 +13,7 @@ from routes.existing_policies import existing_policies_bp
 from routes.whatsapp_routes import whatsapp_bp
 from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
+from routes.claims import claims_bp
 import os
 import logging
 import time
@@ -224,6 +225,7 @@ app.register_blueprint(existing_policies_bp)
 app.register_blueprint(whatsapp_bp)
 app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)
+app.register_blueprint(claims_bp)
 
 # Register health check blueprint
 health_bp = create_health_check_blueprint()

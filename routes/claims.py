@@ -1,39 +1,43 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required
 from supabase import create_client, Client
 from config import Config
 import io
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2 import service_account
-from datetime import datetime, date
-import os
+from datetime import datetime
+import logging
+
+# Set up logging for this blueprint
+logger = logging.getLogger(__name__)
 
 # Initialize Supabase client
 supabase: Client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
-# Google Drive setup
+# Google Drive setup (using the same pattern as your other files)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "my-first-project-7fb14-715c168d62d2.json"
-
-# Initialize Google Drive service
-def get_drive_service():
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES
-    )
-    return build("drive", "v3", credentials=credentials)
-
-drive_service = get_drive_service()
-ROOT_FOLDER_ID = "1BdQZhqJNJxFYzKJJmJxJJxJJxJJxJJxJ"  # Replace with your actual root folder ID
+SERVICE_ACCOUNT_FILE = Config.GOOGLE_CREDENTIALS_FILE
+ROOT_FOLDER_ID = "0AOc3bRLhlrgzUk9PVA" # Your main root folder ID from policies.py
 
 claims_bp = Blueprint('claims', __name__, url_prefix='/claims')
 
-def find_or_create_folder(parent_folder_id, folder_name):
-    """Find existing folder or create new one"""
+def get_drive_service():
+    """Initializes and returns the Google Drive service object."""
     try:
-        # Search for existing folder
-        query = f"name='{folder_name}' and parents in '{parent_folder_id}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+        creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+        return build("drive", "v3", credentials=creds)
+    except Exception as e:
+        logger.error(f"Failed to initialize Google Drive service: {e}")
+        return None
+
+def find_or_create_folder(drive_service, parent_folder_id, folder_name):
+    """Finds a folder by name within a parent folder, or creates it if it doesn't exist."""
+    try:
+        query = f"name='{folder_name}' and '{parent_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
         results = drive_service.files().list(
             q=query,
+            fields="files(id, name)",
             supportsAllDrives=True,
             includeItemsFromAllDrives=True
         ).execute()
@@ -41,66 +45,41 @@ def find_or_create_folder(parent_folder_id, folder_name):
         folders = results.get('files', [])
         
         if folders:
-            return folders[0]
+            return folders[0]['id']
         else:
-            # Create new folder
             folder_metadata = {
                 'name': folder_name,
                 'parents': [parent_folder_id],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
-            
-            folder = drive_service.files().create(
-                body=folder_metadata,
-                supportsAllDrives=True
-            ).execute()
-            
-            return folder
+            folder = drive_service.files().create(body=folder_metadata, supportsAllDrives=True, fields='id').execute()
+            return folder['id']
             
     except Exception as e:
-        print(f"Error in find_or_create_folder: {e}")
+        logger.error(f"Error in find_or_create_folder for '{folder_name}': {e}")
         raise
 
 def upload_claim_document(file, client_id, member_name, claim_id, document_type):
-    """Upload claim document to Google Drive in organized folder structure"""
-    print(f"\nUploading claim document: {file.filename}")
-    print(f"   Client ID: {client_id}")
-    print(f"   Member Name: {member_name}")
-    print(f"   Claim ID: {claim_id}")
-    print(f"   Document Type: {document_type}")
+    """Uploads a claim document to a structured folder in Google Drive."""
+    drive_service = get_drive_service()
+    if not drive_service:
+        raise Exception("Google Drive service could not be initialized.")
 
     try:
-        # Step 1: Find or create client folder
-        client_folder = find_or_create_folder(ROOT_FOLDER_ID, str(client_id))
-        client_folder_id = client_folder['id']
+        # Build the folder structure: Client -> Member -> Claims -> Claim_ID -> Document_Type
+        client_folder_id = find_or_create_folder(drive_service, ROOT_FOLDER_ID, str(client_id))
+        member_folder_id = find_or_create_folder(drive_service, client_folder_id, member_name)
+        claims_folder_id = find_or_create_folder(drive_service, member_folder_id, "Claims")
+        claim_folder_id = find_or_create_folder(drive_service, claims_folder_id, f"Claim_{claim_id}")
+        doc_type_folder_id = find_or_create_folder(drive_service, claim_folder_id, document_type)
 
-        # Step 2: Find or create member subfolder
-        member_folder = find_or_create_folder(client_folder_id, member_name)
-        member_folder_id = member_folder['id']
-
-        # Step 3: Find or create Claims folder
-        claims_folder = find_or_create_folder(member_folder_id, "Claims")
-        claims_folder_id = claims_folder['id']
-
-        # Step 4: Find or create specific claim folder
-        claim_folder_name = f"Claim_{claim_id}"
-        claim_folder = find_or_create_folder(claims_folder_id, claim_folder_name)
-        claim_folder_id = claim_folder['id']
-
-        # Step 5: Find or create document type folder
-        doc_type_folder = find_or_create_folder(claim_folder_id, document_type)
-        doc_type_folder_id = doc_type_folder['id']
-
-        # Step 6: Generate filename
-        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
         new_filename = f"{client_id}_{member_name}_{document_type}_{timestamp}.{file_extension}"
 
-        # Step 7: Upload file
         file_metadata = {"name": new_filename, "parents": [doc_type_folder_id]}
-        file_content = file.read()
-
-        media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype=file.mimetype, resumable=True)
+        media = MediaIoBaseUpload(io.BytesIO(file.read()), mimetype=file.mimetype, resumable=True)
+        
         uploaded_file = drive_service.files().create(
             body=file_metadata,
             media_body=media,
@@ -110,36 +89,24 @@ def upload_claim_document(file, client_id, member_name, claim_id, document_type)
 
         drive_path = f"{client_id}/{member_name}/Claims/Claim_{claim_id}/{document_type}/{new_filename}"
 
-        print(f"Claim document uploaded successfully!")
-        print(f"   Drive Path: {drive_path}")
-        print(f"   Drive URL: {uploaded_file.get('webViewLink')}")
-
         return {
             "id": uploaded_file.get("id"),
+            "name": uploaded_file.get("name"),
             "webViewLink": uploaded_file.get("webViewLink"),
             "drive_path": drive_path,
             "file_size": uploaded_file.get("size")
         }
-
     except Exception as e:
-        print(f"Error uploading claim document: {e}")
+        logger.error(f"Error uploading claim document to Drive: {e}")
         raise
 
 @claims_bp.route('/')
+@login_required
 def index():
     """View all claims"""
     try:
-        # Get all claims with policy and client information
-        result = (
-            supabase.table("claims")
-            .select("*, policies(policy_number, clients(name), members(member_name))")
-            .order("created_at", desc=True)
-            .execute()
-        )
-        
-        claims = result.data if result.data else []
-        
-        # Get claims statistics
+        result = supabase.table("claims").select("*, policies(policy_number, clients(name))").order("created_at", desc=True).execute()
+        claims = result.data or []
         stats = {
             'total': len(claims),
             'pending': len([c for c in claims if c['status'] == 'PENDING']),
@@ -148,307 +115,326 @@ def index():
             'settled': len([c for c in claims if c['status'] == 'SETTLED']),
             'rejected': len([c for c in claims if c['status'] == 'REJECTED'])
         }
-        
         return render_template('claims.html', claims=claims, stats=stats)
-        
     except Exception as e:
-        print(f"Error fetching claims: {e}")
+        logger.error(f"Error fetching claims: {e}")
         flash(f"Error loading claims: {str(e)}", "error")
         return render_template('claims.html', claims=[], stats={})
 
+@claims_bp.route('/api/document-types')
+@login_required
+def get_document_types():
+    """API endpoint to get all available document types."""
+    try:
+        result = supabase.table("custom_document_types").select("type_name").eq("is_active", True).order("type_name").execute()
+        types = [item['type_name'] for item in result.data] if result.data else []
+        return jsonify({'document_types': types})
+    except Exception as e:
+        logger.error(f"Error fetching document types: {e}")
+        return jsonify({'error': 'Failed to fetch document types'}), 500
+
+@claims_bp.route('/api/add-document-type', methods=['POST'])
+@login_required
+def add_document_type():
+    """API endpoint to add a new custom document type."""
+    try:
+        data = request.get_json()
+        type_name = data.get('type_name', '').strip().upper()
+        
+        if not type_name:
+            return jsonify({'error': 'Document type name is required'}), 400
+        
+        # Check if it already exists
+        existing = supabase.table("custom_document_types").select("id").eq("type_name", type_name).execute()
+        if existing.data:
+            return jsonify({'error': 'Document type already exists'}), 400
+        
+        # Add new document type
+        result = supabase.table("custom_document_types").insert({"type_name": type_name}).execute()
+        return jsonify({'success': True, 'type_name': type_name})
+        
+    except Exception as e:
+        logger.error(f"Error adding document type: {e}")
+        return jsonify({'error': 'Failed to add document type'}), 500
+
 @claims_bp.route('/add', methods=['GET', 'POST'])
+@login_required
 def add_claim():
-    """Add new claim"""
+    """Handles the creation of a new claim."""
+    if request.method == 'GET':
+        # Get document types for the form
+        try:
+            result = supabase.table("custom_document_types").select("type_name").eq("is_active", True).order("type_name").execute()
+            document_types = [item['type_name'] for item in result.data] if result.data else []
+        except:
+            document_types = ['MEDICAL_BILL', 'DISCHARGE_SUMMARY', 'PRESCRIPTION', 'LAB_REPORT', 'OTHER']
+        
+        return render_template('add_claim.html', document_types=document_types)
+    
     if request.method == 'POST':
         try:
-            # Get form data
             policy_number = request.form.get('policy_number')
             member_name = request.form.get('member_name')
             claim_type = request.form.get('claim_type')
-            diagnosis = request.form.get('diagnosis')
-            hospital_name = request.form.get('hospital_name')
-            admission_date = request.form.get('admission_date')
-            discharge_date = request.form.get('discharge_date')
-            claimed_amount = request.form.get('claimed_amount')
-            settled_amount = request.form.get('settled_amount')
-            settlement_date = request.form.get('settlement_date')
-            utr_no = request.form.get('utr_no')
-            status = request.form.get('status', 'PENDING')
-            remarks = request.form.get('remarks')
+            claim_number = request.form.get('claim_number')
 
-            # Validate required fields
-            if not policy_number or not member_name or not claim_type:
-                flash("Policy number, member name, and claim type are required", "error")
+            if not all([policy_number, member_name, claim_type, claim_number]):
+                flash("Policy Number, Member Name, Claim Type, and Claim Number are required.", "error")
                 return redirect(url_for('claims.add_claim'))
 
-            # Find policy
-            policy_result = supabase.table("policies").select("policy_id, client_id, clients(name)").eq("policy_number", policy_number).execute()
-            
+            policy_result = supabase.table("policies").select("policy_id, client_id, clients(client_id)").eq("policy_number", policy_number).single().execute()
             if not policy_result.data:
-                flash("Policy not found", "error")
+                flash("Policy number not found.", "error")
                 return redirect(url_for('claims.add_claim'))
             
-            policy = policy_result.data[0]
-            policy_id = policy['policy_id']
-            client_id = policy['client_id']
-            client_name = policy['clients']['name']
+            policy = policy_result.data
+            client_id = policy['clients']['client_id']
 
-            # Convert date strings to proper format
-            def convert_date(date_str):
-                if date_str:
-                    try:
-                        # Handle DD/MM/YYYY format
-                        if '/' in date_str:
-                            day, month, year = date_str.split('/')
-                            return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            # Convert dates from DD/MM/YYYY to YYYY-MM-DD format for database
+            def convert_date_format(date_str):
+                if not date_str:
+                    return None
+                try:
+                    # If it's already in YYYY-MM-DD format, return as is
+                    if len(date_str.split('-')) == 3 and len(date_str.split('-')[0]) == 4:
                         return date_str
-                    except:
-                        return None
-                return None
+                    # Convert from DD/MM/YYYY to YYYY-MM-DD
+                    day, month, year = date_str.split('/')
+                    return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                except:
+                    return None
 
-            # Prepare claim data
+            # Check if claim number already exists
+            existing_claim = supabase.table("claims").select("claim_id").eq("claim_number", claim_number).execute()
+            if existing_claim.data:
+                flash(f"Claim number '{claim_number}' already exists. Please use a different claim number.", "error")
+                return redirect(url_for('claims.add_claim'))
+
             claim_data = {
-                "policy_id": policy_id,
+                "policy_id": policy['policy_id'],
                 "member_name": member_name,
                 "claim_type": claim_type,
-                "diagnosis": diagnosis,
-                "hospital_name": hospital_name,
-                "status": status,
-                "remarks": remarks
+                "claim_number": claim_number,
+                "diagnosis": request.form.get('diagnosis'),
+                "hospital_name": request.form.get('hospital_name'),
+                "admission_date": convert_date_format(request.form.get('admission_date')),
+                "discharge_date": convert_date_format(request.form.get('discharge_date')),
+                "claimed_amount": float(request.form.get('claimed_amount')) if request.form.get('claimed_amount') else None,
+                "status": "PENDING"
             }
-
-            # Add optional fields
-            if admission_date:
-                claim_data["admission_date"] = convert_date(admission_date)
-            if discharge_date:
-                claim_data["discharge_date"] = convert_date(discharge_date)
-            if claimed_amount:
-                claim_data["claimed_amount"] = float(claimed_amount)
-            if settled_amount:
-                claim_data["settled_amount"] = float(settled_amount)
-            if settlement_date:
-                claim_data["settlement_date"] = convert_date(settlement_date)
-            if utr_no:
-                claim_data["utr_no"] = utr_no
-
-            # Insert claim
+            
             result = supabase.table("claims").insert(claim_data).execute()
-            claim = result.data[0]
-            claim_id = claim["claim_id"]
+            claim_id = result.data[0]["claim_id"]
 
-            print(f"Claim created successfully: {result.data}")
+            files = request.files.getlist('claim_documents[]')
+            document_types = request.form.getlist('document_types[]')
+            custom_document_types = request.form.getlist('custom_document_types[]')
 
-            # Handle document uploads
-            uploaded_files = request.files.getlist('claim_documents')
-            document_types = request.form.getlist('document_types')
+            for i, file in enumerate(files):
+                if file and file.filename:
+                    try:
+                        doc_type = document_types[i] if i < len(document_types) else 'OTHER'
+                        
+                        # If it's a custom type, use the custom name and save it to database
+                        if doc_type == 'OTHER' and i < len(custom_document_types) and custom_document_types[i]:
+                            custom_type = custom_document_types[i].strip().upper()
+                            # Save custom type to database if it doesn't exist
+                            try:
+                                existing = supabase.table("custom_document_types").select("id").eq("type_name", custom_type).execute()
+                                if not existing.data:
+                                    supabase.table("custom_document_types").insert({"type_name": custom_type}).execute()
+                                doc_type = custom_type
+                            except:
+                                pass  # If saving fails, just use the custom name
+                        
+                        drive_file = upload_claim_document(file, client_id, member_name, claim_id, doc_type)
+                        doc_data = {
+                            "claim_id": claim_id,
+                            "document_name": file.filename,
+                            "document_type": doc_type,
+                            "drive_file_id": drive_file["id"],
+                            "drive_url": drive_file["webViewLink"],
+                            "drive_path": drive_file["drive_path"],
+                            "file_size": drive_file.get("file_size")
+                        }
+                        supabase.table("claim_documents").insert(doc_data).execute()
+                    except Exception as e:
+                        logger.error(f"Failed to upload document '{file.filename}': {e}")
+                        flash(f"Warning: Could not upload document '{file.filename}'.", "warning")
 
-            if uploaded_files and uploaded_files[0].filename:
-                for i, file in enumerate(uploaded_files):
-                    if file and file.filename:
-                        try:
-                            # Get document type for this file
-                            doc_type = document_types[i] if i < len(document_types) else 'OTHER'
-                            
-                            # Upload to Google Drive
-                            drive_file = upload_claim_document(file, client_id, member_name, claim_id, doc_type)
-                            
-                            # Save document record
-                            doc_data = {
-                                "claim_id": claim_id,
-                                "document_name": file.filename,
-                                "document_type": doc_type,
-                                "drive_file_id": drive_file["id"],
-                                "drive_url": drive_file["webViewLink"],
-                                "drive_path": drive_file["drive_path"],
-                                "file_size": drive_file.get("file_size")
-                            }
-                            
-                            supabase.table("claim_documents").insert(doc_data).execute()
-                            print(f"Document uploaded: {file.filename}")
-                            
-                        except Exception as e:
-                            print(f"Error uploading document {file.filename}: {e}")
-                            flash(f"Error uploading document {file.filename}: {str(e)}", "warning")
-
-            flash("Claim added successfully!", "success")
+            flash(f"Claim added successfully! Claim Number: {claim_number}", "success")
             return redirect(url_for('claims.view_claim', claim_id=claim_id))
 
         except Exception as e:
-            print(f"Error adding claim: {e}")
-            flash(f"Error adding claim: {str(e)}", "error")
+            logger.error(f"Error adding claim: {e}", exc_info=True)
+            flash(f"An unexpected error occurred while adding the claim: {str(e)}", "error")
             return redirect(url_for('claims.add_claim'))
 
     return render_template('add_claim.html')
 
 @claims_bp.route('/<int:claim_id>')
+@login_required
 def view_claim(claim_id):
     """View claim details"""
     try:
-        # Get claim with policy and client information
-        claim_result = (
-            supabase.table("claims")
-            .select("*, policies(policy_number, clients(name, client_id), members(member_name))")
-            .eq("claim_id", claim_id)
-            .single()
-            .execute()
-        )
-        
+        claim_result = supabase.table("claims").select("*, policies(policy_number, clients(name, client_id))").eq("claim_id", claim_id).single().execute()
         if not claim_result.data:
             flash("Claim not found", "error")
             return redirect(url_for('claims.index'))
         
         claim = claim_result.data
-        
-        # Get claim documents
-        docs_result = (
-            supabase.table("claim_documents")
-            .select("*")
-            .eq("claim_id", claim_id)
-            .order("uploaded_at", desc=True)
-            .execute()
-        )
-        
-        documents = docs_result.data if docs_result.data else []
+        docs_result = supabase.table("claim_documents").select("*").eq("claim_id", claim_id).order("uploaded_at", desc=True).execute()
+        documents = docs_result.data or []
         
         return render_template('view_claim.html', claim=claim, documents=documents)
-        
     except Exception as e:
-        print(f"Error fetching claim: {e}")
-        flash(f"Error loading claim: {str(e)}", "error")
+        logger.error(f"Error fetching claim details for ID {claim_id}: {e}")
+        flash(f"Error loading claim details: {str(e)}", "error")
         return redirect(url_for('claims.index'))
 
 @claims_bp.route('/api/policy-lookup')
+@login_required
 def policy_lookup():
-    """API endpoint to lookup policy by policy number"""
+    """API endpoint to look up a policy and get its associated members."""
+    policy_number = request.args.get('policy_number')
+    if not policy_number:
+        return jsonify({'error': 'Policy number is required'}), 400
+        
     try:
-        policy_number = request.args.get('policy_number')
-        if not policy_number:
-            return jsonify({'error': 'Policy number is required'}), 400
-        
-        # Get policy with health insurance members
-        policy_result = (
-            supabase.table("policies")
-            .select("policy_id, policy_number, client_id, member_id, clients(name), members(member_name)")
-            .eq("policy_number", policy_number)
-            .execute()
-        )
-        
+        policy_result = supabase.table("policies").select("policy_id, product_name, clients(name)").eq("policy_number", policy_number).single().execute()
         if not policy_result.data:
             return jsonify({'error': 'Policy not found'}), 404
         
-        policy = policy_result.data[0]
+        policy = policy_result.data
+        members = []
+
+        if "HEALTH" in policy.get('product_name', '').upper():
+            health_details_res = supabase.table("health_insurance_details").select("health_id").eq("policy_id", policy['policy_id']).single().execute()
+            if health_details_res.data:
+                health_id = health_details_res.data['health_id']
+                members_res = supabase.table("health_insured_members").select("member_name").eq("health_id", health_id).execute()
+                if members_res.data:
+                    members = sorted([m['member_name'] for m in members_res.data])
         
-        # Get health insurance members for this policy
-        health_members = []
-        try:
-            health_result = (
-                supabase.table("health_insurance_details")
-                .select("health_id")
-                .eq("policy_id", policy['policy_id'])
-                .execute()
-            )
-            
-            if health_result.data:
-                health_id = health_result.data[0]['health_id']
-                members_result = (
-                    supabase.table("health_insured_members")
-                    .select("member_name")
-                    .eq("health_id", health_id)
-                    .execute()
-                )
-                
-                if members_result.data:
-                    health_members = [m['member_name'] for m in members_result.data]
-        except:
-            pass  # Health insurance details might not exist
-        
-        # If no health members, use the main policy member
-        if not health_members and policy.get('members'):
-            health_members = [policy['members']['member_name']]
-        
+        if not members:
+            member_res = supabase.table("policies").select("members(member_name)").eq("policy_id", policy['policy_id']).single().execute()
+            if member_res.data and member_res.data.get('members'):
+                members = [member_res.data['members']['member_name']]
+
         return jsonify({
-            'policy_id': policy['policy_id'],
-            'policy_number': policy['policy_number'],
             'client_name': policy['clients']['name'],
-            'client_id': policy['client_id'],
-            'members': health_members
+            'members': members
         })
         
     except Exception as e:
-        print(f"Error in policy lookup: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(f"Error in policy lookup API: {e}")
+        return jsonify({'error': 'An internal error occurred.'}), 500
 
 @claims_bp.route('/<int:claim_id>/update-status', methods=['POST'])
+@login_required
 def update_claim_status(claim_id):
-    """Update claim status"""
+    """Handles status updates and adds settlement information."""
     try:
         new_status = request.form.get('status')
-        remarks = request.form.get('remarks', '')
-        
         if not new_status:
-            flash("Status is required", "error")
+            flash("Status is required.", "error")
             return redirect(url_for('claims.view_claim', claim_id=claim_id))
         
         update_data = {
             "status": new_status,
-            "remarks": remarks
+            "remarks": request.form.get('remarks', '')
         }
         
-        # If status is SETTLED, update settlement date
+        # Handle claim number update
+        claim_number_update = request.form.get('claim_number', '').strip()
+        if claim_number_update:
+            # Check if this claim number is already used by another claim
+            existing_claim = supabase.table("claims").select("claim_id").eq("claim_number", claim_number_update).neq("claim_id", claim_id).execute()
+            if existing_claim.data:
+                flash(f"Claim number '{claim_number_update}' is already used by another claim.", "error")
+                return redirect(url_for('claims.view_claim', claim_id=claim_id))
+            update_data["claim_number"] = claim_number_update
+        
+        # Handle approved amount for APPROVED status
+        if new_status == 'APPROVED':
+            approved_amount = request.form.get('approved_amount')
+            update_data["approved_amount"] = float(approved_amount) if approved_amount else None
+        
+        # Handle settlement information for SETTLED status
         if new_status == 'SETTLED':
-            settlement_date = request.form.get('settlement_date')
             settled_amount = request.form.get('settled_amount')
-            utr_no = request.form.get('utr_no')
+            settlement_date = request.form.get('settlement_date')
+            settled_amount_float = float(settled_amount) if settled_amount else None
             
+            update_data["settled_amount"] = settled_amount_float
+            
+            # If approved_amount is not set, set it to settled_amount (they should be the same)
+            if settled_amount_float and not update_data.get("approved_amount"):
+                # Check if approved_amount is already set in database
+                current_claim = supabase.table("claims").select("approved_amount").eq("claim_id", claim_id).single().execute()
+                if current_claim.data and not current_claim.data.get("approved_amount"):
+                    update_data["approved_amount"] = settled_amount_float
+            
+            # Convert settlement date from DD/MM/YYYY to YYYY-MM-DD
             if settlement_date:
-                update_data["settlement_date"] = settlement_date
-            if settled_amount:
-                update_data["settled_amount"] = float(settled_amount)
-            if utr_no:
-                update_data["utr_no"] = utr_no
+                try:
+                    if '/' in settlement_date:
+                        day, month, year = settlement_date.split('/')
+                        update_data["settlement_date"] = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                    else:
+                        update_data["settlement_date"] = settlement_date
+                except:
+                    update_data["settlement_date"] = None
+            else:
+                update_data["settlement_date"] = None
+                
+            update_data["utr_no"] = request.form.get('utr_no')
         
         supabase.table("claims").update(update_data).eq("claim_id", claim_id).execute()
-        
         flash("Claim status updated successfully!", "success")
-        return redirect(url_for('claims.view_claim', claim_id=claim_id))
         
     except Exception as e:
-        print(f"Error updating claim status: {e}")
-        flash(f"Error updating claim status: {str(e)}", "error")
-        return redirect(url_for('claims.view_claim', claim_id=claim_id))
+        logger.error(f"Error updating status for claim {claim_id}: {e}")
+        flash(f"Error updating status: {str(e)}", "error")
+        
+    return redirect(url_for('claims.view_claim', claim_id=claim_id))
 
 @claims_bp.route('/<int:claim_id>/upload-document', methods=['POST'])
+@login_required
 def upload_document(claim_id):
-    """Upload additional document to existing claim"""
+    """Upload additional document to an existing claim."""
     try:
-        # Get claim details
-        claim_result = (
-            supabase.table("claims")
-            .select("*, policies(client_id)")
-            .eq("claim_id", claim_id)
-            .single()
-            .execute()
-        )
-        
+        claim_result = supabase.table("claims").select("*, policies(clients(client_id))").eq("claim_id", claim_id).single().execute()
         if not claim_result.data:
             flash("Claim not found", "error")
             return redirect(url_for('claims.index'))
         
         claim = claim_result.data
-        client_id = claim['policies']['client_id']
+        client_id = claim['policies']['clients']['client_id']
         member_name = claim['member_name']
         
         file = request.files.get('document')
         document_type = request.form.get('document_type', 'OTHER')
+        custom_document_type = request.form.get('custom_document_type', '')
+        
+        # If it's a custom type, use the custom name and save it to database
+        if document_type == 'OTHER' and custom_document_type:
+            custom_type = custom_document_type.strip().upper()
+            # Save custom type to database if it doesn't exist
+            try:
+                existing = supabase.table("custom_document_types").select("id").eq("type_name", custom_type).execute()
+                if not existing.data:
+                    supabase.table("custom_document_types").insert({"type_name": custom_type}).execute()
+                document_type = custom_type
+            except:
+                document_type = custom_type  # Use custom name even if saving fails
         
         if not file or not file.filename:
-            flash("Please select a file to upload", "error")
+            flash("Please select a file to upload.", "error")
             return redirect(url_for('claims.view_claim', claim_id=claim_id))
         
-        # Upload to Google Drive
         drive_file = upload_claim_document(file, client_id, member_name, claim_id, document_type)
         
-        # Save document record
         doc_data = {
             "claim_id": claim_id,
             "document_name": file.filename,
@@ -458,13 +444,11 @@ def upload_document(claim_id):
             "drive_path": drive_file["drive_path"],
             "file_size": drive_file.get("file_size")
         }
-        
         supabase.table("claim_documents").insert(doc_data).execute()
         
         flash("Document uploaded successfully!", "success")
-        return redirect(url_for('claims.view_claim', claim_id=claim_id))
-        
     except Exception as e:
-        print(f"Error uploading document: {e}")
+        logger.error(f"Error uploading additional document for claim {claim_id}: {e}")
         flash(f"Error uploading document: {str(e)}", "error")
-        return redirect(url_for('claims.view_claim', claim_id=claim_id))
+        
+    return redirect(url_for('claims.view_claim', claim_id=claim_id))

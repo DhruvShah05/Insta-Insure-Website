@@ -126,6 +126,20 @@ class RealtimeExcelSync:
             logger.error(f"Error getting policies with insurance details: {e}")
             return [], {}, {}, {}
     
+    def _get_claims_with_details(self):
+        """Get all claims with policy and client information"""
+        try:
+            # Get all claims with policy and client info
+            claims = self.supabase.table("claims").select(
+                "*, policies(policy_number, policy_from, clients(name, phone, email))"
+            ).execute()
+            
+            return claims.data
+            
+        except Exception as e:
+            logger.error(f"Error getting claims with details: {e}")
+            return []
+    
     def _convert_date_for_display(self, date_str):
         """Convert database date to display format"""
         if not date_str:
@@ -281,12 +295,14 @@ class RealtimeExcelSync:
             members = self.supabase.table("members").select("*").execute()
             policies = self.supabase.table("policies").select("*").execute()
             pending = self.supabase.table("pending_policies").select("*").execute()
+            claims = self.supabase.table("claims").select("*").execute()
 
             self.last_supabase_data = {
                 'clients': self._get_data_hash(clients.data),
                 'members': self._get_data_hash(members.data),
                 'policies': self._get_data_hash(policies.data),
-                'pending_policies': self._get_data_hash(pending.data)
+                'pending_policies': self._get_data_hash(pending.data),
+                'claims': self._get_data_hash(claims.data)
             }
         except Exception as e:
             logger.error(f"Error updating Supabase hashes: {e}")
@@ -352,10 +368,30 @@ class RealtimeExcelSync:
                             policies_by_year[financial_year] = []
                         policies_by_year[financial_year].append(policy)
                 
-                # Create sheets for each financial year
+                # Get claims data
+                claims_data = self._get_claims_with_details()
+                
+                # Group claims by financial year based on claim creation date
+                claims_by_year = {}
+                for claim in claims_data:
+                    # Use claim creation date instead of policy start date
+                    claim_date = claim.get('created_at')
+                    if claim_date:
+                        financial_year = self._determine_financial_year(claim_date)
+                        if financial_year:
+                            if financial_year not in claims_by_year:
+                                claims_by_year[financial_year] = []
+                            claims_by_year[financial_year].append(claim)
+                
+                # Create sheets for each financial year (policies)
                 for financial_year in sorted(policies_by_year.keys(), reverse=True):
                     year_policies = policies_by_year[financial_year]
                     self._create_financial_year_sheet(wb, financial_year, year_policies, health_details, health_members, factory_details)
+                
+                # Create sheets for each financial year (claims)
+                for financial_year in sorted(claims_by_year.keys(), reverse=True):
+                    year_claims = claims_by_year[financial_year]
+                    self._create_claims_financial_year_sheet(wb, financial_year, year_claims)
                 
                 # Also create summary sheets
                 self._create_clients_sheet(wb)
@@ -394,13 +430,13 @@ class RealtimeExcelSync:
                 "Policy ID", "Client Name", "Member Name", "Policy Number", "Insurance Company", 
                 "Product Type", "Agent Name", "Policy Start Date", "Policy End Date", "Payment Date",
                 "Business Type", "Group", "Subgroup", "Remarks", "Sum Insured", "Net Premium", 
-                "Gross Premium", "TP/TR Premium", "Commission %", "Commission Received", 
+                "Gross Premium", "TP/TR Premium", "Commission %", "Commission Amount", "Commission Received", 
                 "One Time Insurance", "Payment Details", "File Path", "Drive URL", "Created At", "Updated At"
             ]
             
             # Add health insurance headers if applicable
             if max_health_members > 0:
-                headers.append("Health Plan Type")
+                headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus"])
                 for i in range(max_health_members):
                     member_num = i + 1
                     headers.extend([
@@ -432,6 +468,17 @@ class RealtimeExcelSync:
                 client_info = policy.get('clients', {})
                 member_info = policy.get('members', {})
                 
+                # Calculate commission amount
+                commission_amount = ''
+                try:
+                    net_premium = policy.get('net_premium')
+                    commission_percentage = policy.get('commission_percentage')
+                    if net_premium and commission_percentage:
+                        commission_amount = float(net_premium) * float(commission_percentage) / 100
+                        commission_amount = f"{commission_amount:.2f}"
+                except (ValueError, TypeError):
+                    commission_amount = ''
+                
                 row_data = [
                     policy.get('policy_id', ''),
                     client_info.get('name', '') if client_info else '',
@@ -452,6 +499,7 @@ class RealtimeExcelSync:
                     policy.get('gross_premium', ''),
                     policy.get('tp_tr_premium', ''),
                     policy.get('commission_percentage', ''),
+                    commission_amount,
                     'Yes' if policy.get('commission_received') else 'No',
                     'Yes' if policy.get('one_time_insurance') else 'No',
                     policy.get('payment_details', ''),
@@ -465,7 +513,11 @@ class RealtimeExcelSync:
                 if max_health_members > 0:
                     if policy_id in health_details:
                         health_detail = health_details[policy_id]
-                        row_data.append(health_detail.get('plan_type', ''))
+                        row_data.extend([
+                            health_detail.get('plan_type', ''),
+                            health_detail.get('floater_sum_insured', ''),
+                            health_detail.get('floater_bonus', '')
+                        ])
                         
                         # Add member data
                         members = health_members.get(policy_id, [])
@@ -481,7 +533,7 @@ class RealtimeExcelSync:
                                 row_data.extend(['', '', ''])  # Empty cells for missing members
                     else:
                         # No health insurance for this policy
-                        row_data.extend([''] * (1 + max_health_members * 3))
+                        row_data.extend([''] * (3 + max_health_members * 3))
                 
                 # Add factory insurance data
                 if policy_id in factory_details:
@@ -519,6 +571,77 @@ class RealtimeExcelSync:
             
         except Exception as e:
             logger.error(f"Error creating financial year sheet {financial_year}: {e}")
+    
+    def _create_claims_financial_year_sheet(self, workbook, financial_year, claims):
+        """Create a claims sheet for a specific financial year"""
+        try:
+            ws = workbook.create_sheet(f"Claims {financial_year}")
+            
+            # Define claims headers
+            headers = [
+                "Claim ID", "Policy Number", "Client Name", "Member Name", "Claim Type", 
+                "Claim Number", "Diagnosis", "Hospital Name", "Admission Date", "Discharge Date",
+                "Claimed Amount", "Approved Amount", "Settled Amount", "Status", "Settlement Date",
+                "UTR No", "Remarks", "Created At", "Updated At"
+            ]
+            
+            # Write headers
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+            
+            # Write data rows
+            for row_idx, claim in enumerate(claims, 2):
+                policy_info = claim.get('policies', {})
+                client_info = policy_info.get('clients', {}) if policy_info else {}
+                
+                row_data = [
+                    claim.get('claim_id', ''),
+                    policy_info.get('policy_number', '') if policy_info else '',
+                    client_info.get('name', '') if client_info else '',
+                    claim.get('member_name', ''),
+                    claim.get('claim_type', ''),
+                    claim.get('claim_number', ''),
+                    claim.get('diagnosis', ''),
+                    claim.get('hospital_name', ''),
+                    self._convert_date_for_display(claim.get('admission_date')),
+                    self._convert_date_for_display(claim.get('discharge_date')),
+                    claim.get('claimed_amount', ''),
+                    claim.get('approved_amount', ''),
+                    claim.get('settled_amount', ''),
+                    claim.get('status', ''),
+                    self._convert_date_for_display(claim.get('settlement_date')),
+                    claim.get('utr_no', ''),
+                    claim.get('remarks', ''),
+                    self._convert_date_for_display(claim.get('created_at')),
+                    self._convert_date_for_display(claim.get('updated_at'))
+                ]
+                
+                # Write row data
+                for col, value in enumerate(row_data, 1):
+                    ws.cell(row=row_idx, column=col, value=value)
+            
+            # Auto-adjust column widths
+            for column in ws.columns:
+                max_length = 0
+                column_letter = get_column_letter(column[0].column)
+                
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                
+                adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            logger.info(f"Created claims financial year sheet 'Claims {financial_year}' with {len(claims)} claims")
+            
+        except Exception as e:
+            logger.error(f"Error creating claims financial year sheet {financial_year}: {e}")
     
     def _create_clients_sheet(self, workbook):
         """Create clients summary sheet"""
@@ -614,12 +737,14 @@ class RealtimeExcelSync:
             members = self.supabase.table("members").select("*").execute()
             policies = self.supabase.table("policies").select("*").execute()
             pending = self.supabase.table("pending_policies").select("*").execute()
+            claims = self.supabase.table("claims").select("*").execute()
 
             current_hashes = {
                 'clients': self._get_data_hash(clients.data),
                 'members': self._get_data_hash(members.data),
                 'policies': self._get_data_hash(policies.data),
-                'pending_policies': self._get_data_hash(pending.data)
+                'pending_policies': self._get_data_hash(pending.data),
+                'claims': self._get_data_hash(claims.data)
             }
 
             changed = current_hashes != self.last_supabase_data

@@ -54,6 +54,12 @@
             background: var(--success-light);
             color: var(--success);
         }
+        
+        /* New Style for Claims Stat Icon */
+        .stat-icon.claims {
+            background: #e0e7ff; /* A light indigo */
+            color: #4338ca;    /* A darker indigo */
+        }
 
         .stat-number {
             font-size: var(--font-size-3xl);
@@ -314,6 +320,8 @@
             <div class="d-flex gap-2">
                 <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Pending Policies</a>
                 <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">All Clients</a>
+                <!-- *** ADDITION 1: CLAIMS BUTTON IN NAVBAR *** -->
+                <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Claims</a>
                 <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
                 <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-primary">Add Pending</a>
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
@@ -341,6 +349,16 @@
                 </div>
                 <h3 class="stat-number">{{ total_pending_policies if total_pending_policies else 0 }}</h3>
                 <p class="stat-label">Pending Policies</p>
+            </div>
+            <!-- *** ADDITION 2: CLAIMS STATS CARD *** -->
+            <div class="stat-card">
+                <div class="stat-icon claims">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </div>
+                <h3 class="stat-number">{{ total_claims if total_claims else 0 }}</h3>
+                <p class="stat-label">Total Claims</p>
             </div>
             <div class="stat-card">
                 <div class="stat-icon total">
@@ -381,6 +399,16 @@
                 </div>
                 <h4 class="quick-action-title">View All Clients</h4>
                 <p class="quick-action-desc">Browse clients, members, and their policies</p>
+            </a>
+            <!-- *** ADDITION 3: CLAIMS QUICK ACTION CARD *** -->
+            <a href="{{ url_for('claims.index') }}" class="quick-action-card">
+                <div class="quick-action-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </div>
+                <h4 class="quick-action-title">Manage Claims</h4>
+                <p class="quick-action-desc">View and process all claims</p>
             </a>
             <a href="{{ url_for('pending_policies.list_pending') }}" class="quick-action-card">
                 <div class="quick-action-icon">

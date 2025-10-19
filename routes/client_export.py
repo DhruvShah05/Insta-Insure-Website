@@ -48,7 +48,7 @@ def export_client_data(client_id):
         policies_result = supabase.table("policies").select("""
             policy_id, policy_number, insurance_company, product_name, agent_name,
             policy_from, policy_to, payment_date, business_type, group_name, subgroup_name,
-            remarks, sum_insured, net_premium, gross_premium, tp_tr_premium
+            remarks, sum_insured, net_premium, gross_premium, tp_tr_premium, commission_percentage
         """).eq("client_id", client_id).execute()
         
         policies = policies_result.data
@@ -108,12 +108,12 @@ def export_client_data(client_id):
             "Policy Number", "Insurance Company", "Product Type", "Agent Name",
             "Policy Start Date", "Policy End Date", "Payment Date", "Business Type",
             "Group", "Subgroup", "Remarks", "Sum Insured", "Net Premium", 
-            "Gross Premium", "TP/TR Premium"
+            "Gross Premium", "TP/TR Premium", "Commission %", "Commission Amount"
         ]
         
         # Add health insurance headers if applicable
         if max_health_members > 0:
-            headers.append("Health Plan Type")
+            headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus"])
             for i in range(max_health_members):
                 member_num = i + 1
                 headers.extend([
@@ -143,6 +143,17 @@ def export_client_data(client_id):
             policy_id = policy['policy_id']
             
             # Basic policy data
+            # Calculate commission amount
+            commission_amount = ''
+            try:
+                net_premium = policy.get('net_premium')
+                commission_percentage = policy.get('commission_percentage')
+                if net_premium and commission_percentage:
+                    commission_amount = float(net_premium) * float(commission_percentage) / 100
+                    commission_amount = f"{commission_amount:.2f}"
+            except (ValueError, TypeError):
+                commission_amount = ''
+            
             row_data = [
                 policy.get('policy_number', ''),
                 policy.get('insurance_company', ''),
@@ -158,14 +169,20 @@ def export_client_data(client_id):
                 policy.get('sum_insured', ''),
                 policy.get('net_premium', ''),
                 policy.get('gross_premium', ''),
-                policy.get('tp_tr_premium', '')
+                policy.get('tp_tr_premium', ''),
+                policy.get('commission_percentage', ''),
+                commission_amount
             ]
             
             # Add health insurance data if applicable
             if max_health_members > 0:
                 if policy_id in health_details:
                     health_detail = health_details[policy_id]
-                    row_data.append(health_detail.get('plan_type', ''))
+                    row_data.extend([
+                        health_detail.get('plan_type', ''),
+                        health_detail.get('floater_sum_insured', ''),
+                        health_detail.get('floater_bonus', '')
+                    ])
                     
                     # Add member data
                     members = health_members.get(policy_id, [])
@@ -181,7 +198,7 @@ def export_client_data(client_id):
                             row_data.extend(['', '', ''])  # Empty cells for missing members
                 else:
                     # No health insurance for this policy
-                    row_data.extend([''] * (1 + max_health_members * 3))
+                    row_data.extend([''] * (3 + max_health_members * 3))
             
             # Add factory insurance data
             if policy_id in factory_details:

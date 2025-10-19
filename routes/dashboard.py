@@ -54,6 +54,10 @@ def index():
         pending_policies_result = supabase.table("pending_policies").select("pending_id", count="exact").execute()
         total_pending_policies = pending_policies_result.count if pending_policies_result.count else 0
 
+        # --- NEW: Get total claims count ---
+        claims_result = supabase.table("claims").select("claim_id", count="exact").execute()
+        total_claims = claims_result.count or 0
+
         print(f"Total active policies: {total_active_policies}")
         print(f"Total pending policies: {total_pending_policies}")
 
@@ -66,4 +70,5 @@ def index():
     return render_template("dashboard.html", 
                          policies=policies, 
                          total_active_policies=total_active_policies,
-                         total_pending_policies=total_pending_policies)
+                         total_pending_policies=total_pending_policies,
+                         total_claims=total_claims)

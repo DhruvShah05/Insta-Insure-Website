@@ -9,6 +9,7 @@ from routes.existing_policies import existing_policies_bp
 from routes.whatsapp_routes import whatsapp_bp
 from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
+from routes.claims import claims_bp
 import os
 import logging
 import threading
@@ -204,6 +205,7 @@ app.register_blueprint(existing_policies_bp)
 app.register_blueprint(whatsapp_bp)  # WhatsApp routes
 app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)  # Renewal routes
+app.register_blueprint(claims_bp)  
 
 # Register Excel blueprint if available
 if excel_routes_available and excel_bp:
