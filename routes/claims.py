@@ -103,10 +103,41 @@ def upload_claim_document(file, client_id, member_name, claim_id, document_type)
 @claims_bp.route('/')
 @login_required
 def index():
-    """View all claims"""
+    """View all claims with optional filtering"""
     try:
-        result = supabase.table("claims").select("*, policies(policy_number, clients(name))").order("created_at", desc=True).execute()
+        # Get filter parameters
+        client_id = request.args.get('client_id')
+        policy_number = request.args.get('policy_number')
+        search_query = request.args.get('search', '').strip()
+        
+        # Build the query
+        query = supabase.table("claims").select("*, policies(policy_number, client_id, clients(name, client_id))")
+        
+        # Apply filters
+        if client_id:
+            query = query.eq("policies.client_id", client_id)
+        
+        if policy_number:
+            query = query.eq("policies.policy_number", policy_number)
+        
+        # Execute query
+        result = query.order("created_at", desc=True).execute()
         claims = result.data or []
+        
+        # Apply text search if provided
+        if search_query:
+            search_lower = search_query.lower()
+            filtered_claims = []
+            for claim in claims:
+                # Search in claim number, member name, client name, policy number
+                if (search_lower in str(claim.get('claim_number', '')).lower() or
+                    search_lower in str(claim.get('member_name', '')).lower() or
+                    search_lower in str(claim['policies']['clients']['name']).lower() or
+                    search_lower in str(claim['policies']['policy_number']).lower()):
+                    filtered_claims.append(claim)
+            claims = filtered_claims
+        
+        # Calculate stats
         stats = {
             'total': len(claims),
             'pending': len([c for c in claims if c['status'] == 'PENDING']),
@@ -115,11 +146,30 @@ def index():
             'settled': len([c for c in claims if c['status'] == 'SETTLED']),
             'rejected': len([c for c in claims if c['status'] == 'REJECTED'])
         }
-        return render_template('claims.html', claims=claims, stats=stats)
+        
+        # Get client name for display if filtering by client
+        client_name = None
+        if client_id:
+            try:
+                client_result = supabase.table("clients").select("name").eq("client_id", client_id).single().execute()
+                if client_result.data:
+                    client_name = client_result.data['name']
+            except:
+                pass
+        
+        return render_template('claims.html', 
+                             claims=claims, 
+                             stats=stats,
+                             current_client_id=client_id,
+                             current_policy_number=policy_number,
+                             current_search=search_query,
+                             client_name=client_name)
     except Exception as e:
         logger.error(f"Error fetching claims: {e}")
         flash(f"Error loading claims: {str(e)}", "error")
-        return render_template('claims.html', claims=[], stats={})
+        return render_template('claims.html', claims=[], stats={}, 
+                             current_client_id=None, current_policy_number=None, 
+                             current_search="", client_name=None)
 
 @claims_bp.route('/api/document-types')
 @login_required
@@ -329,6 +379,69 @@ def policy_lookup():
     except Exception as e:
         logger.error(f"Error in policy lookup API: {e}")
         return jsonify({'error': 'An internal error occurred.'}), 500
+
+@claims_bp.route('/api/search-clients')
+@login_required
+def search_clients():
+    """API endpoint to search for clients by name."""
+    search_term = request.args.get('search', '').strip()
+    if len(search_term) < 2:
+        return jsonify({'clients': []})
+        
+    try:
+        # Search clients by name (case-insensitive)
+        result = supabase.table("clients").select("client_id, name").ilike("name", f"%{search_term}%").order("name").limit(10).execute()
+        clients = result.data or []
+        
+        return jsonify({'clients': clients})
+        
+    except Exception as e:
+        logger.error(f"Error searching clients: {e}")
+        return jsonify({'error': 'Failed to search clients'}), 500
+
+@claims_bp.route('/api/client-policies')
+@login_required
+def get_client_policies():
+    """API endpoint to get all policies for a specific client."""
+    client_id = request.args.get('client_id')
+    if not client_id:
+        return jsonify({'error': 'Client ID is required'}), 400
+        
+    try:
+        # Get all policies for the client
+        policies_result = supabase.table("policies").select("policy_id, policy_number, product_name, members(member_name)").eq("client_id", client_id).order("policy_number").execute()
+        
+        if not policies_result.data:
+            return jsonify({'policies': []})
+        
+        policies = []
+        for policy in policies_result.data:
+            # Get members for health insurance policies
+            members = []
+            if "HEALTH" in policy.get('product_name', '').upper():
+                health_details_res = supabase.table("health_insurance_details").select("health_id").eq("policy_id", policy['policy_id']).execute()
+                if health_details_res.data:
+                    health_id = health_details_res.data[0]['health_id']
+                    members_res = supabase.table("health_insured_members").select("member_name").eq("health_id", health_id).execute()
+                    if members_res.data:
+                        members = sorted([m['member_name'] for m in members_res.data])
+            
+            # Fallback to regular members table
+            if not members and policy.get('members'):
+                members = [policy['members']['member_name']]
+            
+            policies.append({
+                'policy_id': policy['policy_id'],
+                'policy_number': policy['policy_number'],
+                'product_name': policy['product_name'],
+                'members': members
+            })
+        
+        return jsonify({'policies': policies})
+        
+    except Exception as e:
+        logger.error(f"Error fetching client policies: {e}")
+        return jsonify({'error': 'Failed to fetch client policies'}), 500
 
 @claims_bp.route('/<int:claim_id>/update-status', methods=['POST'])
 @login_required

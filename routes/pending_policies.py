@@ -109,9 +109,12 @@ def add_pending():
             policy_to = request.form.get("policy_to")
             payment_date = request.form.get("payment_date")
             net_premium = request.form.get("net_premium")
-            gross_premium = request.form.get("gross_premium")
+            addon_premium = request.form.get("addon_premium")  # NEW
             tp_tr_premium = request.form.get("tp_tr_premium")
+            gst_percentage = request.form.get("gst_percentage")  # NEW
+            gross_premium = request.form.get("gross_premium")  # This will be auto-calculated
             commission_percentage = request.form.get("commission_percentage")
+            commission_amount = request.form.get("commission_amount")  # NEW
             business_type = request.form.get("business_type")
             group_name = request.form.get("group_name")
             subgroup_name = request.form.get("subgroup_name")
@@ -125,10 +128,12 @@ def add_pending():
             health_member_names = request.form.getlist("health_member_name[]")
             health_member_sum_insureds = request.form.getlist("health_member_sum_insured[]")
             health_member_bonuses = request.form.getlist("health_member_bonus[]")
+            health_member_deductibles = request.form.getlist("health_member_deductible[]")
             
-            # Floater-specific fields (single sum_insured and bonus for entire policy)
+            # Floater-specific fields (single sum_insured, bonus, and deductible for entire policy)
             floater_sum_insured = request.form.get("floater_sum_insured")
             floater_bonus = request.form.get("floater_bonus")
+            floater_deductible = request.form.get("floater_deductible")
             
             # Factory insurance specific fields
             factory_building = request.form.get("factory_building")
@@ -221,12 +226,18 @@ def add_pending():
                 pending_data["payment_details"] = payment_details
             if net_premium:
                 pending_data["net_premium"] = float(net_premium)
-            if gross_premium:
-                pending_data["gross_premium"] = float(gross_premium)
+            if addon_premium:
+                pending_data["addon_premium"] = float(addon_premium)
             if tp_tr_premium:
                 pending_data["tp_tr_premium"] = float(tp_tr_premium)
+            if gst_percentage:
+                pending_data["gst_percentage"] = float(gst_percentage)
+            if gross_premium:
+                pending_data["gross_premium"] = float(gross_premium)
             if commission_percentage:
                 pending_data["commission_percentage"] = float(commission_percentage)
+            if commission_amount:
+                pending_data["commission_amount"] = float(commission_amount)
             if business_type:
                 pending_data["business_type"] = business_type
             if group_name:
@@ -251,11 +262,13 @@ def add_pending():
                     }
                     
                     # Add floater-specific fields if it's a floater plan
-                    if health_plan_type == "FLOATER":
+                    if health_plan_type in ["FLOATER", "TOPUP_FLOATER"]:
                         if floater_sum_insured:
                             health_details["floater_sum_insured"] = float(floater_sum_insured)
                         if floater_bonus:
                             health_details["floater_bonus"] = float(floater_bonus)
+                        if health_plan_type == "TOPUP_FLOATER" and floater_deductible:
+                            health_details["floater_deductible"] = float(floater_deductible)
                     
                     health_result = supabase.table("pending_health_insurance_details").insert(health_details).execute()
                     pending_health_id = health_result.data[0]["pending_health_id"]
@@ -269,13 +282,15 @@ def add_pending():
                                     "member_name": member_name.strip()
                                 }
                                 
-                                # For INDIVIDUAL plans, store sum_insured and bonus per member
-                                # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
-                                if health_plan_type == "INDIVIDUAL":
+                                # For INDIVIDUAL plans, store sum_insured, bonus, and deductible per member
+                                # For FLOATER plans, only store member names (sum_insured, bonus, and deductible are in health_details)
+                                if health_plan_type in ["INDIVIDUAL", "TOPUP_INDIVIDUAL"]:
                                     if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
                                         member_data["sum_insured"] = float(health_member_sum_insureds[i])
                                     if i < len(health_member_bonuses) and health_member_bonuses[i]:
                                         member_data["bonus"] = float(health_member_bonuses[i])
+                                    if health_plan_type == "TOPUP_INDIVIDUAL" and i < len(health_member_deductibles) and health_member_deductibles[i]:
+                                        member_data["deductible"] = float(health_member_deductibles[i])
                                 
                                 supabase.table("pending_health_insured_members").insert(member_data).execute()
                     

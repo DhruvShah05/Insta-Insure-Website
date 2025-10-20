@@ -436,13 +436,14 @@ class RealtimeExcelSync:
             
             # Add health insurance headers if applicable
             if max_health_members > 0:
-                headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus"])
+                headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus", "Floater Deductible"])
                 for i in range(max_health_members):
                     member_num = i + 1
                     headers.extend([
                         f"Health Member {member_num} Name",
                         f"Health Member {member_num} Sum Insured", 
-                        f"Health Member {member_num} Bonus"
+                        f"Health Member {member_num} Bonus",
+                        f"Health Member {member_num} Deductible"
                     ])
             
             # Add factory insurance headers
@@ -516,7 +517,8 @@ class RealtimeExcelSync:
                         row_data.extend([
                             health_detail.get('plan_type', ''),
                             health_detail.get('floater_sum_insured', ''),
-                            health_detail.get('floater_bonus', '')
+                            health_detail.get('floater_bonus', ''),
+                            health_detail.get('floater_deductible', '')
                         ])
                         
                         # Add member data
@@ -527,13 +529,14 @@ class RealtimeExcelSync:
                                 row_data.extend([
                                     member.get('member_name', ''),
                                     member.get('sum_insured', ''),
-                                    member.get('bonus', '')
+                                    member.get('bonus', ''),
+                                    member.get('deductible', '')
                                 ])
                             else:
-                                row_data.extend(['', '', ''])  # Empty cells for missing members
+                                row_data.extend(['', '', '', ''])  # Empty cells for missing members
                     else:
                         # No health insurance for this policy
-                        row_data.extend([''] * (3 + max_health_members * 3))
+                        row_data.extend([''] * (4 + max_health_members * 4))
                 
                 # Add factory insurance data
                 if policy_id in factory_details:

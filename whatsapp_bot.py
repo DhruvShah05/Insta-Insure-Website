@@ -36,7 +36,7 @@ twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if (TWILIO_A
 
 # Content Template SIDs - APPROVED TEMPLATES
 POLICY_DOCUMENT_TEMPLATE_SID = "HX09943977f51524767ed93c7cc670fb47"  # Policy Issued Template
-RENEWAL_REMINDER_TEMPLATE_SID = "HX6ac0316d76491e79d912f81072cf343c"   # Renewal Reminder Template
+RENEWAL_REMINDER_TEMPLATE_SID = "HX169afdf8bae849bb296476c9d4e4db9d"   # Renewal Reminder Template
 
 # WhatsApp Media Configuration
 USE_CONTENT_TEMPLATES = os.getenv('USE_WHATSAPP_CONTENT_TEMPLATES', 'true').lower() == 'true'
@@ -697,12 +697,18 @@ def send_policy_to_customer(phone, policy, send_email=True):
 def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=None):
     """Send renewal reminder with optional file or payment link via WhatsApp and email"""
     try:
-        # Get customer name for template
+        # Get member name for template (use member name instead of client name)
         try:
-            customer, _ = get_customer_policies(phone)
-            customer_name = customer['name'] if customer else "Customer"
+            # Get member name from policy data if available
+            member_name = "Customer"  # Default fallback
+            if policy.get('members') and policy['members'].get('member_name'):
+                member_name = policy['members']['member_name']
+            else:
+                # Fallback to client name if member name not available
+                customer, _ = get_customer_policies(phone)
+                member_name = customer['name'] if customer else "Customer"
         except:
-            customer_name = "Customer"
+            member_name = "Customer"
         
         # Convert expiry date to Indian format
         expiry_date = policy.get('policy_to') or policy.get('expiry_date')
@@ -713,10 +719,10 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
         
         # Prepare template variables for approved renewal template
         template_variables = {
-            "1": customer_name,
+            "1": member_name,
             "2": policy.get('policy_number', 'N/A'),
-            "3": policy.get('remarks', 'N/A'),
-            "4": policy.get('insurance_company', ''),
+            "3": policy.get('insurance_company', ''),
+            "4": policy.get('remarks', 'N/A'),
             "5": expiry_date or 'N/A',
             "6": "Please contact us for renewal assistance.",  # Default message
             "7": "test-policy.pdf"  # Default media path for renewal reminders

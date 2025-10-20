@@ -375,11 +375,13 @@ def update_policy_details_api():
                     health_updates['plan_type'] = health_data['plan_type']
                 
                 # Handle floater-specific fields
-                if health_data.get('plan_type') == 'FLOATER':
+                if health_data.get('plan_type') in ['FLOATER', 'TOPUP_FLOATER']:
                     if 'floater_sum_insured' in health_data:
                         health_updates['floater_sum_insured'] = float(health_data['floater_sum_insured']) if health_data['floater_sum_insured'] else None
                     if 'floater_bonus' in health_data:
                         health_updates['floater_bonus'] = float(health_data['floater_bonus']) if health_data['floater_bonus'] else None
+                    if health_data.get('plan_type') == 'TOPUP_FLOATER' and 'floater_deductible' in health_data:
+                        health_updates['floater_deductible'] = float(health_data['floater_deductible']) if health_data['floater_deductible'] else None
                 
                 if health_updates:
                     supabase.table("health_insurance_details").update(health_updates).eq("health_id", health_id).execute()
@@ -398,9 +400,9 @@ def update_policy_details_api():
                                 'member_name': member['member_name']
                             }
                             
-                            # For INDIVIDUAL plans, store sum_insured and bonus per member
-                            # For FLOATER plans, only store member names (sum_insured and bonus are in health_details)
-                            if plan_type == 'INDIVIDUAL':
+                            # For INDIVIDUAL plans, store sum_insured, bonus, and deductible per member
+                            # For FLOATER plans, only store member names (sum_insured, bonus, and deductible are in health_details)
+                            if plan_type in ['INDIVIDUAL', 'TOPUP_INDIVIDUAL']:
                                 # Handle numeric fields properly
                                 if member.get('sum_insured') and str(member.get('sum_insured')).strip():
                                     try:
@@ -410,6 +412,11 @@ def update_policy_details_api():
                                 if member.get('bonus') and str(member.get('bonus')).strip():
                                     try:
                                         member_data['bonus'] = float(member['bonus'])
+                                    except (ValueError, TypeError):
+                                        pass  # Skip invalid values
+                                if plan_type == 'TOPUP_INDIVIDUAL' and member.get('deductible') and str(member.get('deductible')).strip():
+                                    try:
+                                        member_data['deductible'] = float(member['deductible'])
                                     except (ValueError, TypeError):
                                         pass  # Skip invalid values
                             

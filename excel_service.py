@@ -199,10 +199,25 @@ class ExcelSyncService:
                         member_df.columns = ['member_' + col for col in member_df.columns]
                         df_policies = pd.concat([df_policies.drop('members', axis=1), member_df], axis=1)
                     
-                    # Add commission amount calculation
+                    # Add commission amount calculation (Net + Addon) * Commission %
                     if 'net_premium' in df_policies.columns and 'commission_percentage' in df_policies.columns:
-                        df_policies['commission_amount'] = pd.to_numeric(df_policies['net_premium'], errors='coerce') * pd.to_numeric(df_policies['commission_percentage'], errors='coerce') / 100
-                        df_policies['commission_amount'] = df_policies['commission_amount'].round(2)
+                        net_premium = pd.to_numeric(df_policies['net_premium'], errors='coerce').fillna(0)
+                        addon_premium = pd.to_numeric(df_policies.get('addon_premium', 0), errors='coerce').fillna(0)
+                        commission_percentage = pd.to_numeric(df_policies['commission_percentage'], errors='coerce').fillna(0)
+                        
+                        # Calculate commission based on (Net + Addon) * Commission %
+                        commission_base = net_premium + addon_premium
+                        df_policies['calculated_commission_amount'] = (commission_base * commission_percentage / 100).round(2)
+                        
+                        # Use stored commission_amount if available, otherwise use calculated
+                        if 'commission_amount' not in df_policies.columns:
+                            df_policies['commission_amount'] = df_policies['calculated_commission_amount']
+                        else:
+                            # Fill missing commission_amount with calculated values
+                            df_policies['commission_amount'] = df_policies['commission_amount'].fillna(df_policies['calculated_commission_amount'])
+                        
+                        # Remove the temporary calculated column
+                        df_policies.drop('calculated_commission_amount', axis=1, inplace=True)
                     
                     # Reorder columns
                     cols = df_policies.columns.tolist()
@@ -250,6 +265,26 @@ class ExcelSyncService:
                         member_df = pd.json_normalize(df_pending['members'])
                         member_df.columns = ['member_' + col for col in member_df.columns]
                         df_pending = pd.concat([df_pending.drop('members', axis=1), member_df], axis=1)
+                    
+                    # Add commission amount calculation for pending policies (Net + Addon) * Commission %
+                    if 'net_premium' in df_pending.columns and 'commission_percentage' in df_pending.columns:
+                        net_premium = pd.to_numeric(df_pending['net_premium'], errors='coerce').fillna(0)
+                        addon_premium = pd.to_numeric(df_pending.get('addon_premium', 0), errors='coerce').fillna(0)
+                        commission_percentage = pd.to_numeric(df_pending['commission_percentage'], errors='coerce').fillna(0)
+                        
+                        # Calculate commission based on (Net + Addon) * Commission %
+                        commission_base = net_premium + addon_premium
+                        df_pending['calculated_commission_amount'] = (commission_base * commission_percentage / 100).round(2)
+                        
+                        # Use stored commission_amount if available, otherwise use calculated
+                        if 'commission_amount' not in df_pending.columns:
+                            df_pending['commission_amount'] = df_pending['calculated_commission_amount']
+                        else:
+                            # Fill missing commission_amount with calculated values
+                            df_pending['commission_amount'] = df_pending['commission_amount'].fillna(df_pending['calculated_commission_amount'])
+                        
+                        # Remove the temporary calculated column
+                        df_pending.drop('calculated_commission_amount', axis=1, inplace=True)
                     
                     # Reorder columns
                     cols = df_pending.columns.tolist()

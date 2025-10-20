@@ -223,22 +223,36 @@
             </div>
 
             <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="net_premium" class="form-label">Net Premium</label>
-                    <input type="number" name="net_premium" id="net_premium" class="form-control" step="0.01">
+                <div class="col-md-3">
+                    <label for="net_premium" class="form-label">Net Premium/OD</label>
+                    <input type="number" name="net_premium" id="net_premium" class="form-control" step="0.01" onchange="calculateGrossPremium()">
                 </div>
-                <div class="col-md-4">
-                    <label for="gross_premium" class="form-label">Gross Premium</label>
-                    <input type="number" name="gross_premium" id="gross_premium" class="form-control" step="0.01">
+                <div class="col-md-3">
+                    <label for="addon_premium" class="form-label">Addon Premium</label>
+                    <input type="number" name="addon_premium" id="addon_premium" class="form-control" step="0.01" onchange="calculateGrossPremium()">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="tp_tr_premium" class="form-label">TP/TR Premium</label>
-                    <input type="number" name="tp_tr_premium" id="tp_tr_premium" class="form-control" step="0.01">
+                    <input type="number" name="tp_tr_premium" id="tp_tr_premium" class="form-control" step="0.01" onchange="calculateGrossPremium()">
                     <small class="text-muted">Third Party/Transit Premium</small>
+                </div>
+                <div class="col-md-3">
+                    <label for="gst_percentage" class="form-label">GST %</label>
+                    <input type="number" name="gst_percentage" id="gst_percentage" class="form-control" step="0.01" value="18" onchange="calculateGrossPremium()">
+                </div>
+                <div class="col-md-4">
+                    <label for="gross_premium" class="form-label">Gross Premium (Auto-calculated)</label>
+                    <input type="number" name="gross_premium" id="gross_premium" class="form-control" step="0.01" readonly style="background-color: #f8f9fa;">
+                    <small class="text-muted">Net + Addon + TP/TR + GST</small>
                 </div>
                 <div class="col-md-4">
                     <label for="commission_percentage" class="form-label">Commission %</label>
-                    <input type="number" name="commission_percentage" id="commission_percentage" class="form-control" step="0.01">
+                    <input type="number" name="commission_percentage" id="commission_percentage" class="form-control" step="0.01" onchange="calculateCommission()">
+                </div>
+                <div class="col-md-4">
+                    <label for="commission_amount" class="form-label">Commission Amount (Auto-calculated)</label>
+                    <input type="number" name="commission_amount" id="commission_amount" class="form-control" step="0.01" readonly style="background-color: #f8f9fa;">
+                    <small class="text-muted">(Net + Addon) × Commission %</small>
                 </div>
             </div>
 
@@ -313,24 +327,49 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="health_plan_type" id="topup_floater_plan" value="TOPUP_FLOATER">
+                                <label class="form-check-label" for="topup_floater_plan">
+                                    <strong>Topup Floater Plan</strong><br>
+                                    <small class="text-muted">Family floater topup with single sum insured, bonus and deductible</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="health_plan_type" id="topup_individual_plan" value="TOPUP_INDIVIDUAL">
+                                <label class="form-check-label" for="topup_individual_plan">
+                                    <strong>Topup Individual Plan</strong><br>
+                                    <small class="text-muted">Individual topup with separate sum insured, bonus and deductible per member</small>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Floater-specific fields -->
                 <div id="floaterFieldsContainer" style="display: none;">
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="floater_sum_insured" class="form-label">Floater Sum Insured <span class="required-indicator">*</span></label>
                                 <input type="number" step="0.01" name="floater_sum_insured" id="floater_sum_insured" class="form-control" placeholder="Total sum insured for all members">
                                 <small class="text-muted">This amount applies to all members in the floater policy</small>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="floater_bonus" class="form-label">Floater Bonus</label>
                                 <input type="number" step="0.01" name="floater_bonus" id="floater_bonus" class="form-control" placeholder="Total bonus for all members">
                                 <small class="text-muted">This bonus applies to all members in the floater policy</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4" id="floaterDeductibleContainer" style="display: none;">
+                            <div class="mb-3">
+                                <label for="floater_deductible" class="form-label">Floater Deductible <span class="required-indicator">*</span></label>
+                                <input type="number" step="0.01" name="floater_deductible" id="floater_deductible" class="form-control" placeholder="Total deductible for all members">
+                                <small class="text-muted">This deductible applies to all members in the floater topup policy</small>
                             </div>
                         </div>
                     </div>
@@ -533,62 +572,135 @@
         function initializeHealthPlanTypeHandlers() {
             const floaterPlan = document.getElementById('floater_plan');
             const individualPlan = document.getElementById('individual_plan');
+            const topupFloaterPlan = document.getElementById('topup_floater_plan');
+            const topupIndividualPlan = document.getElementById('topup_individual_plan');
             
             if (floaterPlan && individualPlan) {
                 floaterPlan.addEventListener('change', handleHealthPlanTypeChange);
                 individualPlan.addEventListener('change', handleHealthPlanTypeChange);
+            }
+            
+            if (topupFloaterPlan && topupIndividualPlan) {
+                topupFloaterPlan.addEventListener('change', handleHealthPlanTypeChange);
+                topupIndividualPlan.addEventListener('change', handleHealthPlanTypeChange);
             }
         }
         
         function handleHealthPlanTypeChange() {
             const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
             const floaterFieldsContainer = document.getElementById('floaterFieldsContainer');
+            const floaterDeductibleContainer = document.getElementById('floaterDeductibleContainer');
             const healthMembersContainer = document.getElementById('healthMembersContainer');
             const floaterSumInsured = document.getElementById('floater_sum_insured');
             const floaterBonus = document.getElementById('floater_bonus');
+            const floaterDeductible = document.getElementById('floater_deductible');
             
             if (!selectedPlan) return;
             
-            if (selectedPlan.value === 'FLOATER') {
-                // Show floater fields, hide individual member sum_insured/bonus fields
+            const planType = selectedPlan.value;
+            const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
+            const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
+            
+            if (isFloaterPlan) {
+                // Show floater fields, hide individual member fields
                 floaterFieldsContainer.style.display = 'block';
                 floaterSumInsured.setAttribute('required', 'required');
                 
-                // Hide sum_insured and bonus fields for individual members
+                // Show/hide floater deductible based on topup plan
+                if (planType === 'TOPUP_FLOATER') {
+                    floaterDeductibleContainer.style.display = 'block';
+                    floaterDeductible.setAttribute('required', 'required');
+                } else {
+                    floaterDeductibleContainer.style.display = 'none';
+                    floaterDeductible.removeAttribute('required');
+                }
+                
+                // Hide sum_insured, bonus, and deductible fields for individual members
                 const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
                 const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
+                const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
                 
                 memberSumInsuredFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-4');
+                    const colDiv = field.closest('.col-md-3');
                     if (colDiv) colDiv.style.display = 'none';
                     field.removeAttribute('required');
                 });
                 
                 memberBonusFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-4');
+                    const colDiv = field.closest('.col-md-3');
                     if (colDiv) colDiv.style.display = 'none';
                 });
                 
-            } else if (selectedPlan.value === 'INDIVIDUAL') {
-                // Hide floater fields, show individual member sum_insured/bonus fields
+                memberDeductibleFields.forEach(field => {
+                    const colDiv = field.closest('.col-md-3');
+                    if (colDiv) colDiv.style.display = 'none';
+                });
+                
+            } else {
+                // Hide floater fields, show individual member fields
                 floaterFieldsContainer.style.display = 'none';
+                floaterDeductibleContainer.style.display = 'none';
                 floaterSumInsured.removeAttribute('required');
+                floaterDeductible.removeAttribute('required');
                 
                 // Show sum_insured and bonus fields for individual members
                 const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
                 const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
+                const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
                 
                 memberSumInsuredFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-4');
+                    const colDiv = field.closest('.col-md-3');
                     if (colDiv) colDiv.style.display = 'block';
                     field.setAttribute('required', 'required');
                 });
                 
                 memberBonusFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-4');
+                    const colDiv = field.closest('.col-md-3');
                     if (colDiv) colDiv.style.display = 'block';
                 });
+                
+                // Show/hide deductible fields based on topup plan
+                memberDeductibleFields.forEach(field => {
+                    const colDiv = field.closest('.col-md-3');
+                    if (colDiv) {
+                        if (planType === 'TOPUP_INDIVIDUAL') {
+                            colDiv.style.display = 'block';
+                        } else {
+                            colDiv.style.display = 'none';
+                        }
+                    }
+                });
             }
+            
+            // Update existing member fields visibility
+            updateExistingMemberFields();
+        }
+        
+        function updateExistingMemberFields() {
+            const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
+            if (!selectedPlan) return;
+            
+            const planType = selectedPlan.value;
+            const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
+            const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
+            
+            // Update all existing member items
+            const existingMembers = document.querySelectorAll('.health-member-item');
+            existingMembers.forEach(memberItem => {
+                const sumInsuredDiv = memberItem.querySelector('input[name="health_member_sum_insured[]"]')?.closest('.col-md-3');
+                const bonusDiv = memberItem.querySelector('input[name="health_member_bonus[]"]')?.closest('.col-md-3');
+                const deductibleDiv = memberItem.querySelector('input[name="health_member_deductible[]"]')?.closest('.col-md-3');
+                
+                if (sumInsuredDiv) {
+                    sumInsuredDiv.style.display = isFloaterPlan ? 'none' : 'block';
+                }
+                if (bonusDiv) {
+                    bonusDiv.style.display = isFloaterPlan ? 'none' : 'block';
+                }
+                if (deductibleDiv) {
+                    deductibleDiv.style.display = (isTopupPlan && !isFloaterPlan) ? 'block' : 'none';
+                }
+            });
         }
         
         function handleProductChange(productName) {
@@ -641,9 +753,11 @@
             
             // Check current plan type to determine field visibility
             const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
-            const isFloaterPlan = selectedPlan && selectedPlan.value === 'FLOATER';
+            const isFloaterPlan = selectedPlan && (selectedPlan.value === 'FLOATER' || selectedPlan.value === 'TOPUP_FLOATER');
+            const isTopupPlan = selectedPlan && (selectedPlan.value === 'TOPUP_FLOATER' || selectedPlan.value === 'TOPUP_INDIVIDUAL');
             const sumInsuredDisplay = isFloaterPlan ? 'none' : 'block';
             const bonusDisplay = isFloaterPlan ? 'none' : 'block';
+            const deductibleDisplay = isTopupPlan && !isFloaterPlan ? 'block' : 'none';
             
             memberDiv.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -656,17 +770,21 @@
                     </button>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Member Name <span style="color: #e53e3e;">*</span></label>
                         <input type="text" name="health_member_name[]" class="form-control health-member-field" placeholder="Member name" ${requiredAttr}>
                     </div>
-                    <div class="col-md-4" style="display: ${sumInsuredDisplay}">
+                    <div class="col-md-3" style="display: ${sumInsuredDisplay}">
                         <label class="form-label">Sum Insured</label>
                         <input type="number" step="0.01" name="health_member_sum_insured[]" class="form-control" placeholder="Coverage amount">
                     </div>
-                    <div class="col-md-4" style="display: ${bonusDisplay}">
+                    <div class="col-md-3" style="display: ${bonusDisplay}">
                         <label class="form-label">Bonus</label>
                         <input type="number" step="0.01" name="health_member_bonus[]" class="form-control" placeholder="Bonus amount">
+                    </div>
+                    <div class="col-md-3" style="display: ${deductibleDisplay}">
+                        <label class="form-label">Deductible</label>
+                        <input type="number" step="0.01" name="health_member_deductible[]" class="form-control" placeholder="Deductible amount">
                     </div>
                 </div>
             `;
@@ -806,6 +924,43 @@
             
             console.log('Form validation passed');
             return true;
+        }
+
+        // Calculate gross premium automatically
+        function calculateGrossPremium() {
+            const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+            const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
+            const tpTrPremium = parseFloat(document.getElementById('tp_tr_premium').value) || 0;
+            const gstPercentage = parseFloat(document.getElementById('gst_percentage').value) || 0;
+            
+            // Calculate base amount (net + addon + tp/tr)
+            const baseAmount = netPremium + addonPremium + tpTrPremium;
+            
+            // Calculate GST amount
+            const gstAmount = (baseAmount * gstPercentage) / 100;
+            
+            // Calculate gross premium
+            const grossPremium = baseAmount + gstAmount;
+            
+            // Update the gross premium field
+            document.getElementById('gross_premium').value = grossPremium.toFixed(2);
+            
+            // Also recalculate commission if percentage is set
+            calculateCommission();
+        }
+
+        // Calculate commission amount automatically
+        function calculateCommission() {
+            const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+            const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
+            const commissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
+            
+            // Commission is calculated on (Net + Addon) only
+            const commissionBase = netPremium + addonPremium;
+            const commissionAmount = (commissionBase * commissionPercentage) / 100;
+            
+            // Update the commission amount field
+            document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
         }
     </script>
     

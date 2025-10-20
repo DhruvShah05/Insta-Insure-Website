@@ -48,7 +48,8 @@ def export_client_data(client_id):
         policies_result = supabase.table("policies").select("""
             policy_id, policy_number, insurance_company, product_name, agent_name,
             policy_from, policy_to, payment_date, business_type, group_name, subgroup_name,
-            remarks, sum_insured, net_premium, gross_premium, tp_tr_premium, commission_percentage
+            remarks, sum_insured, net_premium, addon_premium, tp_tr_premium, gst_percentage, 
+            gross_premium
         """).eq("client_id", client_id).execute()
         
         policies = policies_result.data
@@ -103,23 +104,24 @@ def export_client_data(client_id):
         for policy_id in health_members:
             max_health_members = max(max_health_members, len(health_members[policy_id]))
         
-        # Create headers
+        # Create headers (removed commission fields for client privacy)
         headers = [
             "Policy Number", "Insurance Company", "Product Type", "Agent Name",
             "Policy Start Date", "Policy End Date", "Payment Date", "Business Type",
-            "Group", "Subgroup", "Remarks", "Sum Insured", "Net Premium", 
-            "Gross Premium", "TP/TR Premium", "Commission %", "Commission Amount"
+            "Group", "Subgroup", "Remarks", "Sum Insured", "Net Premium/OD", 
+            "Addon Premium", "TP/TR Premium", "GST %", "Gross Premium"
         ]
         
         # Add health insurance headers if applicable
         if max_health_members > 0:
-            headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus"])
+            headers.extend(["Health Plan Type", "Floater Sum Insured", "Floater Bonus", "Floater Deductible"])
             for i in range(max_health_members):
                 member_num = i + 1
                 headers.extend([
                     f"Member {member_num} Name",
                     f"Member {member_num} Sum Insured", 
-                    f"Member {member_num} Bonus"
+                    f"Member {member_num} Bonus",
+                    f"Member {member_num} Deductible"
                 ])
         
         # Add factory insurance headers
@@ -142,17 +144,7 @@ def export_client_data(client_id):
         for row_idx, policy in enumerate(policies, 2):
             policy_id = policy['policy_id']
             
-            # Basic policy data
-            # Calculate commission amount
-            commission_amount = ''
-            try:
-                net_premium = policy.get('net_premium')
-                commission_percentage = policy.get('commission_percentage')
-                if net_premium and commission_percentage:
-                    commission_amount = float(net_premium) * float(commission_percentage) / 100
-                    commission_amount = f"{commission_amount:.2f}"
-            except (ValueError, TypeError):
-                commission_amount = ''
+            # Basic policy data (commission information excluded for client privacy)
             
             row_data = [
                 policy.get('policy_number', ''),
@@ -168,10 +160,10 @@ def export_client_data(client_id):
                 policy.get('remarks', ''),
                 policy.get('sum_insured', ''),
                 policy.get('net_premium', ''),
-                policy.get('gross_premium', ''),
+                policy.get('addon_premium', ''),
                 policy.get('tp_tr_premium', ''),
-                policy.get('commission_percentage', ''),
-                commission_amount
+                policy.get('gst_percentage', ''),
+                policy.get('gross_premium', '')
             ]
             
             # Add health insurance data if applicable
@@ -181,7 +173,8 @@ def export_client_data(client_id):
                     row_data.extend([
                         health_detail.get('plan_type', ''),
                         health_detail.get('floater_sum_insured', ''),
-                        health_detail.get('floater_bonus', '')
+                        health_detail.get('floater_bonus', ''),
+                        health_detail.get('floater_deductible', '')
                     ])
                     
                     # Add member data
@@ -192,13 +185,14 @@ def export_client_data(client_id):
                             row_data.extend([
                                 member.get('member_name', ''),
                                 member.get('sum_insured', ''),
-                                member.get('bonus', '')
+                                member.get('bonus', ''),
+                                member.get('deductible', '')
                             ])
                         else:
-                            row_data.extend(['', '', ''])  # Empty cells for missing members
+                            row_data.extend(['', '', '', ''])  # Empty cells for missing members
                 else:
                     # No health insurance for this policy
-                    row_data.extend([''] * (3 + max_health_members * 3))
+                    row_data.extend([''] * (4 + max_health_members * 4))
             
             # Add factory insurance data
             if policy_id in factory_details:

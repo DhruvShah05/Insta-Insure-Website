@@ -452,7 +452,7 @@
                     <thead>
                         <tr>
                             <th>Policy ID</th>
-                            <th>Customer</th>
+                            <th>Member</th>
                             <th>Company</th>
                             <th>Policy Details</th>
                             <th>Expiry Date</th>
@@ -468,7 +468,7 @@
                             <td><strong>#{{ policy.policy_id }}</strong></td>
                             <td>
                                 <div class="customer-info">
-                                    <div class="customer-name">{{ policy.customer_name }}</div>
+                                    <div class="customer-name">{{ policy.member_name }}</div>
                                 {% if policy.customer_phone %}
                                     <div class="customer-contact">{{ policy.customer_phone }}</div>
                                 {% endif %}
@@ -513,7 +513,7 @@
                                 <div class="action-buttons">
                                     <button class="btn whatsapp-btn btn-sm renewal-btn"
                                             data-policy-id="{{ policy.policy_id }}"
-                                            data-customer-name="{{ policy.customer_name }}"
+                                            data-customer-name="{{ policy.member_name }}"
                                             data-insurance-company="{{ policy.insurance_company }}"
                                             data-product-name="{{ policy.product_name }}"
                                             data-customer-phone="{{ policy.customer_phone }}"
@@ -528,7 +528,7 @@
                                     </button>
                                     <button class="btn paid-btn btn-sm policy-paid-btn"
                                             data-policy-id="{{ policy.policy_id }}"
-                                            data-customer-name="{{ policy.customer_name }}"
+                                            data-customer-name="{{ policy.member_name }}"
                                             data-insurance-company="{{ policy.insurance_company }}"
                                             data-product-name="{{ policy.product_name }}"
                                             data-customer-phone="{{ policy.customer_phone }}"
@@ -568,7 +568,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <strong>Customer:</strong> <span id="modalCustomerName"></span><br>
+                        <strong>Member:</strong> <span id="modalCustomerName"></span><br>
                         <strong>Phone:</strong> <span id="modalPhone"></span><br>
                         <strong>Email:</strong> <span id="modalEmail"></span><br>
                         <strong>Policy:</strong> <span id="modalPolicyDetails"></span>
@@ -618,7 +618,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <strong>Customer:</strong> <span id="paidModalCustomerName"></span><br>
+                        <strong>Member:</strong> <span id="paidModalCustomerName"></span><br>
                         <strong>Phone:</strong> <span id="paidModalPhone"></span><br>
                         <strong>Email:</strong> <span id="paidModalEmail"></span><br>
                         <strong>Policy:</strong> <span id="paidModalPolicyDetails"></span>
