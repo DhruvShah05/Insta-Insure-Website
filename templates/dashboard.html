@@ -289,7 +289,188 @@
             .table th:nth-child(8), .table td:nth-child(8) { width: 7%; } /* Document */
         }
 
+        /* Hamburger Menu Styles */
+        .hamburger-menu {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .hamburger-menu:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .hamburger-line {
+            width: 20px;
+            height: 2px;
+            background-color: #374151;
+            margin: 2px 0;
+            transition: 0.3s;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(-45deg) translate(-4px, 4px);
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(45deg) translate(-4px, -4px);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
+            z-index: 1050;
+            overflow-y: auto;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .sidebar-nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #374151;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-nav-item:hover {
+            background-color: #f3f4f6;
+            color: #374151;
+            text-decoration: none;
+        }
+
+        .sidebar-nav-item svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            color: #6b7280;
+        }
+
+        .sidebar-nav-section {
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 20px;
+        }
+
+        .sidebar-nav-section:first-child {
+            margin-top: 0;
+        }
+
+        /* User Profile Styles */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .user-profile:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-name {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Simplified Navigation */
+        .main-nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .main-nav .btn {
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+
+        /* Always show hamburger menu */
+        .hamburger-menu {
+            display: flex;
+        }
+
         @media (max-width: 768px) {
+            .main-nav {
+                display: none;
+            }
+
             .dashboard-stats {
                 grid-template-columns: 1fr;
             }
@@ -323,7 +504,6 @@
                 height: 8px;
             }
 
-
             .customer-name {
                 font-size: var(--font-size-xs);
             }
@@ -331,21 +511,119 @@
     </style>
 </head>
 <body>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" width="24" height="24" class="me-2">
+                <span class="fw-bold">Insta Insurance</span>
+            </div>
+            <button class="sidebar-close" id="sidebarClose">&times;</button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-section">Main Actions</div>
+            <a href="{{ url_for('policies.add_policy') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Add Policy
+            </a>
+            <a href="{{ url_for('pending_policies.add_pending') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Add Pending Policy
+            </a>
+            <a href="{{ url_for('dashboard.view_all_policies') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                </svg>
+                View All Policies
+            </a>
+            <a href="{{ url_for('claims.index') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                </svg>
+                Claims
+            </a>
+
+            <div class="sidebar-nav-section">Management</div>
+            <a href="{{ url_for('pending_policies.list_pending') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                </svg>
+                Pending Policies
+            </a>
+            <a href="{{ url_for('existing_policies.list_all') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                All Clients
+            </a>
+            <a href="{{ url_for('whatsapp_logs.whatsapp_logs') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp Logs
+            </a>
+
+            <div class="sidebar-nav-section">Data & Reports</div>
+            <a href="/excel" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <path d="M12 18v-6"/>
+                    <path d="m9 15 3 3 3-3"/>
+                </svg>
+                Excel Data
+            </a>
+            <a href="{{ url_for('renewal.renewal_export_page') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/>
+                    <path d="m14 15 2 2 4-4"/>
+                </svg>
+                Renewal Export
+            </a>
+
+            <div class="sidebar-nav-section">Account</div>
+            <a href="{{ url_for('auth.logout') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                Logout
+            </a>
+        </nav>
+    </div>
+
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-4">
-            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
-                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
-                Insta Insurance Consultancy Portal
-            </a>
-            <div class="d-flex gap-2">
-                <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
-                <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Pending Policies</a>
-                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">All Clients</a>
-                <!-- *** ADDITION 1: CLAIMS BUTTON IN NAVBAR *** -->
-                <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Claims</a>
-                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
-                <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-primary">Add Pending</a>
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            <div class="d-flex align-items-center">
+                <div class="hamburger-menu" id="hamburgerMenu">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </div>
+                <a class="navbar-brand ms-3" href="{{ url_for('dashboard.index') }}">
+                    <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
+                    Insta Insurance Consultancy Portal
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="main-nav">
+                    <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
+                    <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-outline">Add Pending</a>
+                    <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
+                    <a href="{{ url_for('claims.index') }}" class="btn btn-primary">Claims</a>
+                </div>
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="user-avatar">{{ current_user.name[0].upper() if current_user and current_user.name else 'U' }}</div>
+                    <span class="user-name d-none d-md-inline">{{ current_user.name if current_user and current_user.name else 'User' }}</span>
+                </div>
             </div>
         </div>
     </nav>
@@ -723,7 +1001,120 @@
                     firstDayOfWeek: 1
                 }
             });
+
+            // Initialize sidebar functionality
+            initializeSidebar();
         });
+
+        // Sidebar functionality
+        function initializeSidebar() {
+            const hamburgerMenu = document.getElementById('hamburgerMenu');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const sidebarClose = document.getElementById('sidebarClose');
+
+            // Toggle sidebar
+            function toggleSidebar() {
+                hamburgerMenu.classList.toggle('active');
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+
+            // Close sidebar
+            function closeSidebar() {
+                hamburgerMenu.classList.remove('active');
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            // Event listeners
+            hamburgerMenu.addEventListener('click', toggleSidebar);
+            sidebarClose.addEventListener('click', closeSidebar);
+            sidebarOverlay.addEventListener('click', closeSidebar);
+
+            // Close sidebar when clicking on nav items (mobile)
+            const sidebarNavItems = document.querySelectorAll('.sidebar-nav-item');
+            sidebarNavItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            // Close sidebar on window resize if open
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+        }
+
+        // User menu functionality
+        function toggleUserMenu() {
+            // For now, just show a simple menu - you can expand this later
+            const userOptions = [
+                { label: 'Profile', action: () => alert('Profile functionality coming soon') },
+                { label: 'Settings', action: () => alert('Settings functionality coming soon') },
+                { label: 'Logout', action: () => window.location.href = '{{ url_for("auth.logout") }}' }
+            ];
+
+            // Create a simple dropdown menu
+            const existingMenu = document.querySelector('.user-dropdown');
+            if (existingMenu) {
+                existingMenu.remove();
+                return;
+            }
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'user-dropdown';
+            dropdown.style.cssText = `
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                min-width: 150px;
+                margin-top: 8px;
+            `;
+
+            userOptions.forEach((option, index) => {
+                const item = document.createElement('div');
+                item.textContent = option.label;
+                item.style.cssText = `
+                    padding: 12px 16px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                    ${index === userOptions.length - 1 ? '' : 'border-bottom: 1px solid #f3f4f6;'}
+                `;
+                item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f3f4f6');
+                item.addEventListener('mouseleave', () => item.style.backgroundColor = 'white');
+                item.addEventListener('click', () => {
+                    option.action();
+                    dropdown.remove();
+                });
+                dropdown.appendChild(item);
+            });
+
+            const userProfile = document.querySelector('.user-profile');
+            userProfile.style.position = 'relative';
+            userProfile.appendChild(dropdown);
+
+            // Close dropdown when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!userProfile.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+        }
     </script>
     <script>
         let currentPolicyId = null;

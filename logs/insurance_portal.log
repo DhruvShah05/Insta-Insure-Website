@@ -1494,3 +1494,241 @@ jinja2.exceptions.TemplateAssertionError: No filter named 'policy_status'.
 2025-10-21 18:02:59,382 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
 2025-10-21 18:03:04,179 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/renewal_export - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
 2025-10-21 18:03:08,402 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/get_renewal_data/2025/11 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:38,396 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:83]
+2025-10-21 18:25:38,408 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:281]
+2025-10-21 18:25:40,687 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,477 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,492 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,493 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/js/performance.js?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,651 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/apple-touch-icon-precomposed.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,652 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/apple-touch-icon.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:41,657 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/favicon.ico - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:25:50,252 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/send_renewal_reminder - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:26:05,652 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:26:06,017 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:26:06,019 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:26:06,022 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/js/performance.js?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:46:35,140 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:83]
+2025-10-21 18:46:35,153 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:281]
+2025-10-21 18:47:29,835 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:47:29,844 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/login?next=/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:47:29,851 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:47:38,691 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:47:39,076 ERROR: Exception on / [GET] [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/routes/dashboard.py", line 71, in index
+    return render_template("dashboard.html",
+                         policies=policies,
+                         total_active_policies=total_active_policies,
+                         total_pending_policies=total_pending_policies,
+                         total_claims=total_claims)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/templates/dashboard.html", line 346, in top-level template code
+    <a href="{{ url_for('whatsapp_logs.whatsapp_logs') }}" class="btn btn-outline">WhatsApp Logs</a>
+    ^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'whatsapp_logs.whatsapp_logs'. Did you mean 'whatsapp.send_policy_whatsapp' instead?
+2025-10-21 18:47:39,085 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:336]
+2025-10-21 18:47:44,390 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:47:44,688 ERROR: Exception on / [GET] [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/routes/dashboard.py", line 71, in index
+    return render_template("dashboard.html",
+                         policies=policies,
+                         total_active_policies=total_active_policies,
+                         total_pending_policies=total_pending_policies,
+                         total_claims=total_claims)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/templates/dashboard.html", line 346, in top-level template code
+    <a href="{{ url_for('whatsapp_logs.whatsapp_logs') }}" class="btn btn-outline">WhatsApp Logs</a>
+    ^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/werkzeug/routing/map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'whatsapp_logs.whatsapp_logs'. Did you mean 'whatsapp.send_policy_whatsapp' instead?
+2025-10-21 18:47:44,695 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:336]
+2025-10-21 18:49:09,548 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:84]
+2025-10-21 18:49:09,562 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:283]
+2025-10-21 18:49:12,662 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:49:49,360 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:49:51,264 ERROR: Exception on /whatsapp_logs [GET] [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/routes/whatsapp_logs_routes.py", line 72, in whatsapp_logs
+    return render_template(
+        'whatsapp_logs.html',
+    ...<6 lines>...
+        total_count=total_count
+    )
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/templates/whatsapp_logs.html", line 274, in top-level template code
+    <div class="stat-number">{{ summary.status_counts.delivered or 0 }}</div>
+    ^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'status_counts'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/routes/whatsapp_logs_routes.py", line 85, in whatsapp_logs
+    return render_template(
+        'whatsapp_logs.html',
+    ...<7 lines>...
+        error=str(e)
+    )
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/flask/templating.py", line 131, in _render
+    rv = template.render(context)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/templates/whatsapp_logs.html", line 274, in top-level template code
+    <div class="stat-number">{{ summary.status_counts.delivered or 0 }}</div>
+    ^^^^^^^^^
+  File "/Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/.venv/lib/python3.13/site-packages/jinja2/environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'status_counts'
+2025-10-21 18:49:51,270 ERROR: Server Error: 500 Internal Server Error: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application. [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:338]
+2025-10-21 18:49:51,328 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:10,988 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:84]
+2025-10-21 18:51:10,997 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:283]
+2025-10-21 18:51:12,894 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:15,117 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:33,085 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/send_renewal_reminder - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:40,196 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:40,566 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:40,568 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:40,568 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/js/performance.js?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:42,630 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:51,975 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/refresh_all_statuses - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:54,134 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:54,326 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:51:59,415 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:02,312 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:03,827 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/whatsapp/message_details/MMa86439bbe1b6dd0a88719b242848d213 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:07,268 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/refresh_status - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:07,678 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:07,885 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:08,116 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/refresh_status - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:08,472 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:08,679 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:24,344 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/whatsapp/message_details/MMa86439bbe1b6dd0a88719b242848d213 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:52:54,836 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/send_renewal_reminder - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:01,627 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:01,962 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:01,963 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:01,964 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/js/performance.js?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:03,572 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:06,646 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/refresh_status - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:07,090 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:07,338 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:27,988 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/refresh_status - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:28,514 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:53:28,792 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:57:57,738 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:84]
+2025-10-21 18:57:57,753 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:283]
+2025-10-21 18:57:59,779 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:58:02,902 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 18:58:09,398 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/cleanup_files - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:259]
+2025-10-21 19:06:18,286 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:85]
+2025-10-21 19:06:18,302 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:284]
+2025-10-21 19:06:21,684 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:06:25,534 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/whatsapp_logs - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:06:25,834 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/whatsapp/realtime_service_status - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:06:32,014 INFO: 127.0.0.1 - POST http://127.0.0.1:5050/api/whatsapp/cleanup_files - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:06:55,696 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:85]
+2025-10-21 19:06:55,710 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:284]
+2025-10-21 19:07:01,002 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/whatsapp/cleanup_preview - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:11:28,394 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:85]
+2025-10-21 19:11:28,410 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:284]
+2025-10-21 19:11:30,980 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:11:36,838 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/logout - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:11:36,964 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/login - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:11:37,052 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:13:20,107 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:85]
+2025-10-21 19:13:20,122 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:284]
+2025-10-21 19:13:21,607 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]
+2025-10-21 19:14:05,961 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:85]
+2025-10-21 19:14:05,977 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:284]
+2025-10-21 19:14:11,876 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:260]

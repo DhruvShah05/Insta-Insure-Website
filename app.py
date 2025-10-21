@@ -7,6 +7,7 @@ from routes.policies import policies_bp
 from routes.pending_policies import pending_policies_bp
 from routes.existing_policies import existing_policies_bp
 from routes.whatsapp_routes import whatsapp_bp
+from routes.whatsapp_logs_routes import whatsapp_logs_bp
 from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
 from routes.claims import claims_bp
@@ -19,6 +20,7 @@ from logging.handlers import RotatingFileHandler
 
 # Import WhatsApp bot functionality
 from whatsapp_bot import setup_whatsapp_webhook
+from realtime_cleanup_service import start_realtime_cleanup_service
 
 # Try to import Excel routes
 try:
@@ -265,6 +267,7 @@ app.register_blueprint(policies_bp)
 app.register_blueprint(pending_policies_bp)
 app.register_blueprint(existing_policies_bp)
 app.register_blueprint(whatsapp_bp)  # WhatsApp routes
+app.register_blueprint(whatsapp_logs_bp)  # WhatsApp logs
 app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)  # Renewal routes
 app.register_blueprint(claims_bp)  
@@ -377,11 +380,14 @@ if __name__ == "__main__":
     print("🔐 Authentication: Clerk")
 
     # Production settings
-    port = int(os.getenv('PORT', 5050))
-    debug = os.getenv('FLASK_ENV') == 'development'
-
-    # Production server configuration for multi-user access
-    if debug:
+    port = int(os.environ.get("PORT", 5050))
+    
+    # Start real-time cleanup service
+    print("🚀 Starting real-time file cleanup service...")
+    start_realtime_cleanup_service(check_interval_seconds=60)
+    print("✅ Real-time cleanup service started (checks every 60 seconds)")
+    
+    if Config.FLASK_ENV == "development":
         # Development mode
         app.run(
             host='0.0.0.0',

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-from flask_login import login_required
+from flask_login import login_required, current_user
 from supabase import create_client
 from config import Config
 from datetime import datetime, timedelta
@@ -72,7 +72,8 @@ def index():
                          policies=policies, 
                          total_active_policies=total_active_policies,
                          total_pending_policies=total_pending_policies,
-                         total_claims=total_claims)
+                         total_claims=total_claims,
+                         current_user=current_user)
 
 
 @dashboard_bp.route("/view_all_policies")

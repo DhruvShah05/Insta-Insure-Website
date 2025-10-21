@@ -21,6 +21,13 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import WhatsApp service for logging (avoid circular import by importing here)
+try:
+    from whatsapp_service import WhatsAppService
+except ImportError:
+    # Handle case where whatsapp_service is not available yet
+    WhatsAppService = None
+
 
 # Initialize Supabase
 supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
@@ -92,6 +99,20 @@ def send_whatsapp_message(to_number, message_text):
                 body=message_text,
                 to=format_whatsapp_address(to_number)
             )
+        
+        # Log message to database if WhatsAppService is available
+        if WhatsAppService:
+            try:
+                WhatsAppService.log_message(
+                    message_sid=msg.sid,
+                    phone_number=to_number,
+                    message_type="general",
+                    message_content=message_text,
+                    status='queued'
+                )
+            except Exception as log_error:
+                logger.error(f"Failed to log WhatsApp message {msg.sid}: {log_error}")
+        
         return {"sid": msg.sid}
     except Exception as e:
         print(f"Error sending WhatsApp message: {e}")
@@ -133,6 +154,33 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
         
         msg = twilio_client.messages.create(**message_params)
         logger.info(f"Content template message sent successfully: {msg.sid}")
+        
+        # Log message to database if WhatsAppService is available
+        if WhatsAppService:
+            try:
+                # Determine message type from content_sid
+                message_type = "general"
+                if content_sid == POLICY_DOCUMENT_TEMPLATE_SID:
+                    message_type = "policy_document"
+                elif content_sid == RENEWAL_REMINDER_TEMPLATE_SID:
+                    message_type = "renewal_reminder"
+                
+                # Create message content summary
+                message_content = f"Content template: {content_sid}"
+                if variables:
+                    message_content += f" | Variables: {json.dumps(variables)}"
+                
+                WhatsAppService.log_message(
+                    message_sid=msg.sid,
+                    phone_number=to_number,
+                    message_type=message_type,
+                    message_content=message_content,
+                    media_url=media_url,
+                    status='queued'
+                )
+            except Exception as log_error:
+                logger.error(f"Failed to log WhatsApp message {msg.sid}: {log_error}")
+        
         return {"sid": msg.sid}
     except Exception as e:
         logger.error(f"Error sending content template message: {e}")
