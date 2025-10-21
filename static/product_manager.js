@@ -11,7 +11,11 @@ class ProductManager {
             'MOTOR INSURANCE', 
             'FACTORY INSURANCE',
             'LIFE INSURANCE',
-            'TRAVEL INSURANCE'
+            'TRAVEL INSURANCE',
+            'BHARAT GRIHA RAKSHA',
+            'BHARAT SOOKSHMA UDYAM SURAKSHA',
+            'BHARAT LAGHU UDYAM SURAKSHA',
+            'BHARAT GRIHA RAKSHA POLICY - LTD'
         ];
     }
 
@@ -96,7 +100,11 @@ class ProductManager {
         if (!productName) return false;
         
         const trimmed = productName.trim().toUpperCase();
-        return trimmed.includes('HEALTH') || trimmed.includes('FACTORY');
+        return trimmed.includes('HEALTH') || 
+               trimmed.includes('FACTORY') ||
+               trimmed.includes('BHARAT GRIHA RAKSHA') ||
+               trimmed.includes('BHARAT SOOKSHMA UDYAM SURAKSHA') ||
+               trimmed.includes('BHARAT LAGHU UDYAM SURAKSHA');
     }
 
     /**
@@ -108,7 +116,10 @@ class ProductManager {
         const trimmed = productName.trim().toUpperCase();
         if (trimmed.includes('HEALTH')) {
             return 'health';
-        } else if (trimmed.includes('FACTORY')) {
+        } else if (trimmed.includes('FACTORY') || 
+                   trimmed.includes('BHARAT GRIHA RAKSHA') ||
+                   trimmed.includes('BHARAT SOOKSHMA UDYAM SURAKSHA') ||
+                   trimmed.includes('BHARAT LAGHU UDYAM SURAKSHA')) {
             return 'factory';
         }
         return null;

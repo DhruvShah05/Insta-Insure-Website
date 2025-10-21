@@ -29,6 +29,19 @@ def convert_date_format(date_string):
     except:
         return date_string
 
+def _is_factory_insurance(product_name):
+    """Check if a product is a factory-type insurance that requires factory details"""
+    if not product_name:
+        return False
+    
+    product_upper = product_name.upper()
+    return (
+        "FACTORY" in product_upper or
+        "BHARAT GRIHA RAKSHA" in product_upper or
+        "BHARAT SOOKSHMA UDYAM SURAKSHA" in product_upper or
+        "BHARAT LAGHU UDYAM SURAKSHA" in product_upper
+    )
+
 policies_bp = Blueprint("policies", __name__)
 
 # Initialize Supabase
@@ -796,7 +809,7 @@ def add_policy():
                         # Don't fail the whole operation, just log the error
                 
                 # Handle factory insurance details if applicable
-                elif product_name and "FACTORY" in product_name.upper():
+                elif product_name and _is_factory_insurance(product_name):
                     try:
                         factory_details = {"policy_id": policy_id}
                         
