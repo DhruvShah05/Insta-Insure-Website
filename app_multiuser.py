@@ -488,6 +488,20 @@ def batch_operation_status(batch_id):
         logger.error(f"Batch status error: {e}")
         return jsonify({'error': str(e)}), 500
 
+# Route to serve renewal documents
+@app.route('/static/renewals/<filename>')
+def serve_renewal_document(filename):
+    """Serve renewal documents for WhatsApp"""
+    from flask import send_from_directory
+    import os
+    
+    renewals_dir = os.path.join(app.root_path, 'static', 'renewals')
+    
+    if not os.path.exists(os.path.join(renewals_dir, filename)):
+        return "File not found", 404
+    
+    return send_from_directory(renewals_dir, filename, mimetype='application/pdf')
+
 # Error handlers with enhanced logging
 @app.errorhandler(404)
 def not_found_error(error):

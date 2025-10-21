@@ -321,7 +321,7 @@ def serve_renewal_document(filename):
     if not os.path.exists(os.path.join(renewals_dir, filename)):
         return "File not found", 404
     
-    return send_from_directory(renewals_dir, filename)
+    return send_from_directory(renewals_dir, filename, mimetype='application/pdf')
 
 # Error handlers
 @app.errorhandler(404)
