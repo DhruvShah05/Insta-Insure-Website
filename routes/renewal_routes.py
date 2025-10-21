@@ -829,7 +829,6 @@ def get_renewal_data_api(year, month):
                 'policy_id': policy.get('policy_id'),
                 'policy_number': policy.get('policy_number', 'N/A'),
                 'expiry_date': policy.get('policy_to'),
-                'client_name': client.get('name', 'N/A'),
                 'member_name': member.get('member_name', 'N/A'),
                 'group_name': policy.get('group_name', 'N/A'),
                 'subgroup_name': policy.get('subgroup_name', 'N/A'),
@@ -896,7 +895,7 @@ def export_renewal_excel(year, month):
 
             excel_data.append({
                 'Date': expiry_date,
-                'Name': client.get('name', 'N/A'),
+                'Name': member.get('member_name', 'N/A'),
                 'Status_1': '',  # Empty column for manual filling
                 'Status_2': '',  # Empty column for manual filling
                 'Policy': policy.get('policy_number', 'N/A'),

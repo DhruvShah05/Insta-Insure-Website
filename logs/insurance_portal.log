@@ -1489,3 +1489,8 @@ jinja2.exceptions.TemplateAssertionError: No filter named 'policy_status'.
 2025-10-21 17:21:28,581 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/renewal_export - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
 2025-10-21 17:21:32,176 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/get_renewal_data/2025/11 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
 2025-10-21 17:21:37,038 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:02:57,677 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:83]
+2025-10-21 18:02:57,690 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:281]
+2025-10-21 18:02:59,382 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/ - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:03:04,179 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/renewal_export - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
+2025-10-21 18:03:08,402 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/api/get_renewal_data/2025/11 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:258]
