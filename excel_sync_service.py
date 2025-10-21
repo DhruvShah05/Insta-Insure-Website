@@ -296,13 +296,15 @@ class RealtimeExcelSync:
             policies = self.supabase.table("policies").select("*").execute()
             pending = self.supabase.table("pending_policies").select("*").execute()
             claims = self.supabase.table("claims").select("*").execute()
+            policy_history = self.supabase.table("policy_history").select("*").execute()
 
             self.last_supabase_data = {
                 'clients': self._get_data_hash(clients.data),
                 'members': self._get_data_hash(members.data),
                 'policies': self._get_data_hash(policies.data),
                 'pending_policies': self._get_data_hash(pending.data),
-                'claims': self._get_data_hash(claims.data)
+                'claims': self._get_data_hash(claims.data),
+                'policy_history': self._get_data_hash(policy_history.data)
             }
         except Exception as e:
             logger.error(f"Error updating Supabase hashes: {e}")
@@ -397,6 +399,7 @@ class RealtimeExcelSync:
                 self._create_clients_sheet(wb)
                 self._create_members_sheet(wb)
                 self._create_pending_policies_sheet(wb)
+                self._create_policy_history_sheet(wb)
                 
                 # Save workbook
                 wb.save(self.local_excel_path)
@@ -733,6 +736,101 @@ class RealtimeExcelSync:
         except Exception as e:
             logger.error(f"Error creating pending policies sheet: {e}")
 
+    def _create_policy_history_sheet(self, workbook):
+        """Create policy history sheet"""
+        try:
+            policy_history = self.supabase.table("policy_history").select("*").execute()
+            if not policy_history.data:
+                logger.info("No policy history data found")
+                return
+                
+            df_history = pd.DataFrame(policy_history.data)
+            
+            # Convert DataFrame to sheet
+            ws = workbook.create_sheet("Policy History")
+            
+            # Define user-friendly column headers
+            column_mapping = {
+                'history_id': 'History ID',
+                'original_policy_id': 'Original Policy ID',
+                'client_id': 'Client ID',
+                'member_id': 'Member ID',
+                'insurance_company': 'Insurance Company',
+                'product_name': 'Product Name',
+                'policy_number': 'Policy Number',
+                'one_time_insurance': 'One Time Insurance',
+                'commission_received': 'Commission Received',
+                'file_path': 'File Path',
+                'drive_file_id': 'Drive File ID',
+                'drive_path': 'Drive Path',
+                'drive_url': 'Drive URL',
+                'payment_date': 'Payment Date',
+                'agent_name': 'Agent Name',
+                'policy_from': 'Policy Start Date',
+                'policy_to': 'Policy End Date',
+                'payment_details': 'Payment Details',
+                'net_premium': 'Net Premium',
+                'addon_premium': 'Addon Premium',
+                'tp_tr_premium': 'TP/TR Premium',
+                'gst_percentage': 'GST %',
+                'gross_premium': 'Gross Premium',
+                'commission_percentage': 'Commission %',
+                'commission_amount': 'Commission Amount',
+                'business_type': 'Business Type',
+                'group_name': 'Group Name',
+                'subgroup_name': 'Subgroup Name',
+                'remarks': 'Remarks',
+                'sum_insured': 'Sum Insured',
+                'last_reminder_sent': 'Last Reminder Sent',
+                'renewed_at': 'Renewed At',
+                'created_at': 'Created At',
+                'archived_at': 'Archived At',
+                'archived_reason': 'Archived Reason',
+                'archived_by': 'Archived By'
+            }
+            
+            # Write headers with user-friendly names
+            headers = []
+            for col in df_history.columns:
+                headers.append(column_mapping.get(col, col))
+            
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            
+            # Write data with date formatting
+            for row_idx, (_, row) in enumerate(df_history.iterrows(), 2):
+                for col_idx, (col_name, value) in enumerate(row.items(), 1):
+                    # Format dates for display
+                    if col_name in ['payment_date', 'policy_from', 'policy_to', 'last_reminder_sent', 'renewed_at', 'created_at', 'archived_at']:
+                        value = self._convert_date_for_display(value)
+                    # Format boolean values
+                    elif col_name in ['one_time_insurance', 'commission_received']:
+                        value = 'Yes' if value else 'No'
+                    
+                    ws.cell(row=row_idx, column=col_idx, value=value)
+            
+            # Auto-adjust column widths
+            for column in ws.columns:
+                max_length = 0
+                column_letter = get_column_letter(column[0].column)
+                
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                
+                adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            logger.info(f"Created policy history sheet with {len(df_history)} records")
+            
+        except Exception as e:
+            logger.error(f"Error creating policy history sheet: {e}")
+
     def check_supabase_changes(self):
         """Check if Supabase data has changed"""
         try:
@@ -741,13 +839,15 @@ class RealtimeExcelSync:
             policies = self.supabase.table("policies").select("*").execute()
             pending = self.supabase.table("pending_policies").select("*").execute()
             claims = self.supabase.table("claims").select("*").execute()
+            policy_history = self.supabase.table("policy_history").select("*").execute()
 
             current_hashes = {
                 'clients': self._get_data_hash(clients.data),
                 'members': self._get_data_hash(members.data),
                 'policies': self._get_data_hash(policies.data),
                 'pending_policies': self._get_data_hash(pending.data),
-                'claims': self._get_data_hash(claims.data)
+                'claims': self._get_data_hash(claims.data),
+                'policy_history': self._get_data_hash(policy_history.data)
             }
 
             changed = current_hashes != self.last_supabase_data

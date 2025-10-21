@@ -8,6 +8,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from supabase import create_client
 from config import Config
 import logging
+from email_service import send_policy_email, indian_date_filter
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -754,7 +755,6 @@ Insta Insurance Consultancy Portal"""
         # Send email with policy document attachment
         if temp_file_path:
             # Prepare policy data for the new template-based function
-            from email_service import indian_date_filter
             policy_data = {
                 'client_name': customer_name,
                 'policy_type': policy.get('product_name', 'Insurance'),
@@ -830,8 +830,6 @@ Thank you for choosing our services!
 def send_renewal_confirmation_email(customer_email, customer_name, policy, renewed_file_details):
     """Send confirmation email when policy is renewed with document attachment"""
     try:
-        from email_service import send_policy_email
-
         subject = f"Policy Renewal Confirmation - {policy['product_name']} Insurance"
 
         # Format expiry date to Indian format
@@ -879,7 +877,6 @@ Insta Insurance Consultancy Portal"""
         # Send email with policy document attachment
         if temp_file_path:
             # Prepare policy data for the new template-based function
-            from email_service import indian_date_filter
             policy_data = {
                 'client_name': customer_name,
                 'policy_type': policy.get('product_name', 'Insurance'),
