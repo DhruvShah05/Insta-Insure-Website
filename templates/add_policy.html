@@ -1205,8 +1205,11 @@
             // Calculate gross premium
             const grossPremium = baseAmount + gstAmount;
             
+            // Round to whole number (no decimals)
+            const roundedGrossPremium = Math.round(grossPremium);
+            
             // Update the gross premium field
-            document.getElementById('gross_premium').value = grossPremium.toFixed(2);
+            document.getElementById('gross_premium').value = roundedGrossPremium;
             
             // Also recalculate commission if percentage is set
             calculateCommission();
@@ -1222,11 +1225,11 @@
             const commissionBase = netPremium + addonPremium;
             const commissionAmount = (commissionBase * commissionPercentage) / 100;
             
-            // Round based on decimal points: >= 0.5 rounds up, < 0.5 rounds down
-            const roundedCommissionAmount = Math.round(commissionAmount * 100) / 100;
+            // Round to whole number (no decimals)
+            const roundedCommissionAmount = Math.round(commissionAmount);
             
             // Update the commission amount field
-            document.getElementById('commission_amount').value = roundedCommissionAmount.toFixed(2);
+            document.getElementById('commission_amount').value = roundedCommissionAmount;
         }
         
     </script>
