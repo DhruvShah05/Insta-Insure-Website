@@ -245,15 +245,48 @@ def upload_renewed_policy_file(file, policy_id, client_id, member_name):
         return None, str(e)
 
 
-def renew_policy(policy_id, renewed_file, new_expiry_date=None, new_policy_number=None):
+def archive_policy_to_history(policy_id, archived_by=None):
     """
-    Renew a policy by replacing the old PDF with a new one
+    Archive current policy data to history table before renewal
+    
+    Args:
+        policy_id (int): The policy ID to archive
+        archived_by (str): User who performed the action (optional)
+    
+    Returns:
+        tuple: (success, message, history_id)
+    """
+    try:
+        # Use the database function to archive policy data
+        result = supabase.rpc('archive_policy_data', {
+            'p_policy_id': policy_id,
+            'p_reason': 'renewal',
+            'p_archived_by': archived_by
+        }).execute()
+        
+        if result.data:
+            history_id = result.data
+            logger.info(f"Successfully archived policy {policy_id} to history (ID: {history_id})")
+            return True, f"Policy archived to history (ID: {history_id})", history_id
+        else:
+            logger.error(f"Failed to archive policy {policy_id} to history")
+            return False, "Failed to archive policy to history", None
+            
+    except Exception as e:
+        logger.error(f"Error archiving policy {policy_id} to history: {e}")
+        return False, f"Error archiving to history: {str(e)}", None
+
+
+def renew_policy(policy_id, renewed_file, new_expiry_date=None, new_policy_number=None, archived_by=None):
+    """
+    Renew a policy by saving old data to history and replacing with new data
 
     Args:
         policy_id (int): The policy ID to renew
         renewed_file: The new policy PDF file
         new_expiry_date (str): New expiry date (optional)
         new_policy_number (str): New policy number (optional)
+        archived_by (str): User who performed the renewal (optional)
 
     Returns:
         tuple: (success, message, updated_policy_data)
@@ -308,7 +341,14 @@ def renew_policy(policy_id, renewed_file, new_expiry_date=None, new_policy_numbe
             return False, "Incomplete client/member information", None
 
         logger.info(f"Renewing policy {policy_id} for client {client_id}, member {member_name}")
-        # Archive old file instead of deleting
+        
+        # Step 1: Archive current policy data to history table
+        archive_success, archive_message, history_id = archive_policy_to_history(policy_id, archived_by)
+        if not archive_success:
+            logger.warning(f"Could not archive policy to history: {archive_message}")
+            # Continue with renewal even if history archiving fails
+        
+        # Step 2: Archive old file instead of deleting
         old_file_id = current_policy.get('drive_file_id')
         old_filename = current_policy.get('file_path', 'unknown.pdf')
 
@@ -404,15 +444,84 @@ def get_policy_renewal_history(policy_id):
         return None
 
 
-def update_policy_payment(policy_id, paid_file, new_expiry_date=None, new_policy_number=None):
+def get_policy_historical_data(policy_id):
     """
-    Update policy when payment is received - archive old PDF and upload new one
+    Get complete historical data for a policy from the history table
+    
+    Args:
+        policy_id (int): The policy ID to get history for
+    
+    Returns:
+        list: List of historical policy records, ordered by archived_at (newest first)
+    """
+    try:
+        history_result = (
+            supabase.table("policy_history")
+            .select("*")
+            .eq("original_policy_id", policy_id)
+            .order("archived_at", desc=True)
+            .execute()
+        )
+        
+        if history_result.data:
+            logger.info(f"Found {len(history_result.data)} historical records for policy {policy_id}")
+            return history_result.data
+        else:
+            logger.info(f"No historical records found for policy {policy_id}")
+            return []
+            
+    except Exception as e:
+        logger.error(f"Error getting policy historical data for policy {policy_id}: {e}")
+        return []
+
+
+def get_policy_with_history(policy_id):
+    """
+    Get current policy data along with its complete history
+    
+    Args:
+        policy_id (int): The policy ID to get data for
+    
+    Returns:
+        dict: Dictionary containing current policy and historical records
+    """
+    try:
+        # Get current policy
+        current_policy_result = (
+            supabase.table("policies")
+            .select("*, clients!policies_client_id_fkey(client_id, name, email, phone), members!policies_member_id_fkey(member_name)")
+            .eq("policy_id", policy_id)
+            .single()
+            .execute()
+        )
+        
+        if not current_policy_result.data:
+            return None
+        
+        # Get historical data
+        historical_data = get_policy_historical_data(policy_id)
+        
+        return {
+            "current_policy": current_policy_result.data,
+            "history": historical_data,
+            "total_versions": len(historical_data) + 1  # +1 for current version
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting policy with history for policy {policy_id}: {e}")
+        return None
+
+
+def update_policy_payment(policy_id, paid_file, new_expiry_date=None, new_policy_number=None, archived_by=None):
+    """
+    Update policy when payment is received - save old data to history, archive old PDF and upload new one
 
     Args:
         policy_id (int): The policy ID to update
         paid_file: The new policy PDF file after payment
         new_expiry_date (str): New expiry date (optional)
         new_policy_number (str): New policy number (optional)
+        archived_by (str): User who performed the update (optional)
 
     Returns:
         tuple: (success: bool, message: str, updated_policy: dict)
@@ -450,7 +559,14 @@ def update_policy_payment(policy_id, paid_file, new_expiry_date=None, new_policy
             return False, "Incomplete client/member information", None
 
         logger.info(f"Updating payment for policy {policy_id} for client {client_id}, member {member_name}")
-        # Archive old file instead of deleting
+        
+        # Step 1: Archive current policy data to history table
+        archive_success, archive_message, history_id = archive_policy_to_history(policy_id, archived_by)
+        if not archive_success:
+            logger.warning(f"Could not archive policy to history: {archive_message}")
+            # Continue with update even if history archiving fails
+        
+        # Step 2: Archive old file instead of deleting
         old_file_id = current_policy.get('drive_file_id')
         old_filename = current_policy.get('file_path', 'unknown.pdf')
 

@@ -104,6 +104,15 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
         return {"error": "Twilio not configured"}
     
     try:
+        # Validate that all variables have non-empty values (Twilio requirement)
+        for key, value in variables.items():
+            if not value or (isinstance(value, str) and value.strip() == ''):
+                logger.warning(f"Empty variable detected: {key} = '{value}', replacing with 'N/A'")
+                variables[key] = 'N/A'
+        
+        # Log the variables being sent for debugging
+        logger.info(f"Sending content template {content_sid} with variables: {variables}")
+        
         message_params = {
             'from_': format_whatsapp_address(TWILIO_FROM),
             'content_sid': content_sid,
@@ -116,9 +125,11 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
             message_params['media_url'] = [media_url]
         
         msg = twilio_client.messages.create(**message_params)
+        logger.info(f"Content template message sent successfully: {msg.sid}")
         return {"sid": msg.sid}
     except Exception as e:
         logger.error(f"Error sending content template message: {e}")
+        logger.error(f"Variables that caused error: {variables}")
         return {"error": str(e)}
 
 
@@ -160,14 +171,15 @@ def send_policy_document_whatsapp(phone, policy, customer_name):
             media_path = f"media/drive/{file_id}/{safe_filename}"  # Path only, not full URL
             
             # Prepare template variables for approved template
+            # Ensure all variables have non-empty values (Twilio doesn't allow empty strings)
             template_variables = {
-                "1": customer_name,
-                "2": policy.get('product_name', 'Insurance Policy'),
-                "3": policy.get('policy_number', 'N/A'),
-                "4": policy.get('remarks', 'N/A'),
+                "1": customer_name or "Customer",
+                "2": policy.get('product_name') or 'Insurance Policy',
+                "3": policy.get('policy_number') or 'N/A',
+                "4": policy.get('remarks') or 'N/A',
                 "5": coverage_start or 'N/A',
                 "6": expiry_date or 'N/A',
-                "7": media_path  # This will be used in template as: https://admin.instainsure.co.in/{{7}}
+                "7": media_path or 'test-policy.pdf'  # This will be used in template as: https://admin.instainsure.co.in/{{7}}
             }
             
             return send_content_template_message(
@@ -718,11 +730,12 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
                 expiry_date = f"{parts[2]}/{parts[1]}/{parts[0]}"
         
         # Prepare template variables for approved renewal template
+        # Ensure all variables have non-empty values (Twilio doesn't allow empty strings)
         template_variables = {
-            "1": member_name,
-            "2": policy.get('policy_number', 'N/A'),
-            "3": policy.get('insurance_company', ''),
-            "4": policy.get('remarks', 'N/A'),
+            "1": member_name or "Customer",
+            "2": policy.get('policy_number') or 'N/A',
+            "3": policy.get('insurance_company') or 'N/A',
+            "4": policy.get('remarks') or 'N/A',
             "5": expiry_date or 'N/A',
             "6": "Please contact us for renewal assistance.",  # Default message
             "7": "test-policy.pdf"  # Default media path for renewal reminders

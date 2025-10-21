@@ -959,8 +959,11 @@
             const commissionBase = netPremium + addonPremium;
             const commissionAmount = (commissionBase * commissionPercentage) / 100;
             
+            // Round based on decimal points: >= 0.5 rounds up, < 0.5 rounds down
+            const roundedCommissionAmount = Math.round(commissionAmount * 100) / 100;
+            
             // Update the commission amount field
-            document.getElementById('commission_amount').value = commissionAmount.toFixed(2);
+            document.getElementById('commission_amount').value = roundedCommissionAmount.toFixed(2);
         }
     </script>
     

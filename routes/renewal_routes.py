@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, send_file
 from flask_login import login_required
 from supabase import create_client
 from config import Config
@@ -7,12 +7,17 @@ from email_service import send_renewal_reminder_email, indian_date_filter
 from renewal_service import (
     renew_policy,
     get_policy_renewal_history,
+    get_policy_historical_data,
+    get_policy_with_history,
     update_policy_payment,
     send_payment_confirmation_email,
     send_payment_confirmation_whatsapp
 )
 import logging
 import os
+from datetime import datetime, timedelta
+import pandas as pd
+from io import BytesIO
 
 
 def convert_date_format(date_string):
@@ -138,12 +143,16 @@ def renew_policy_api():
             logger.error(f"No member data found for policy {policy_id}")
             return jsonify({'success': False, 'message': 'Member information not found'}), 404
 
-        # Renew the policy
+        # Renew the policy (pass current user email for audit trail)
+        from flask_login import current_user
+        archived_by = current_user.email if current_user and current_user.is_authenticated else None
+        
         success, message, updated_policy = renew_policy(
             policy_id=int(policy_id),
             renewed_file=renewed_file,
             new_expiry_date=new_expiry_date if new_expiry_date else None,
-            new_policy_number=new_policy_number if new_policy_number else None
+            new_policy_number=new_policy_number if new_policy_number else None,
+            archived_by=archived_by
         )
 
         if success:
@@ -227,6 +236,63 @@ def get_renewal_history_api(policy_id):
     except Exception as e:
         logger.error(f"Error getting renewal history: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route('/api/get_policy_history/<int:policy_id>')
+@login_required
+def get_policy_history_api(policy_id):
+    """API endpoint to get complete historical data for a policy"""
+    try:
+        historical_data = get_policy_historical_data(policy_id)
+        
+        return jsonify({
+            'success': True, 
+            'history': historical_data,
+            'total_records': len(historical_data)
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting policy history: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route('/api/get_policy_with_history/<int:policy_id>')
+@login_required
+def get_policy_with_history_api(policy_id):
+    """API endpoint to get current policy data along with complete history"""
+    try:
+        policy_data = get_policy_with_history(policy_id)
+        
+        if policy_data:
+            return jsonify({'success': True, 'data': policy_data})
+        else:
+            return jsonify({'success': False, 'message': 'Policy not found'}), 404
+
+    except Exception as e:
+        logger.error(f"Error getting policy with history: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route('/policy_history/<int:policy_id>')
+@login_required
+def policy_history_page(policy_id):
+    """Page for viewing policy history"""
+    try:
+        # Get policy with complete history
+        policy_data = get_policy_with_history(policy_id)
+        
+        if not policy_data:
+            flash("Policy not found", "error")
+            return redirect(url_for("existing_policies.list_all"))
+        
+        return render_template("policy_history.html", 
+                               policy_data=policy_data,
+                               policy_id=policy_id)
+    
+    except Exception as e:
+        logger.error(f"Error loading policy history page: {e}")
+        flash("Error loading policy history", "error")
+        return redirect(url_for("existing_policies.list_all"))
 
 
 @renewal_bp.route('/renewal_page/<int:policy_id>')
@@ -557,12 +623,16 @@ def update_policy_payment_api():
         client = policy.get('clients', {})
         member = policy.get('members', {})
 
-        # Update the policy with payment
+        # Update the policy with payment (pass current user email for audit trail)
+        from flask_login import current_user
+        archived_by = current_user.email if current_user and current_user.is_authenticated else None
+        
         success, message, updated_policy = update_policy_payment(
             policy_id=int(policy_id),
             paid_file=paid_file,
             new_expiry_date=new_expiry_date if new_expiry_date else None,
-            new_policy_number=new_policy_number if new_policy_number else None
+            new_policy_number=new_policy_number if new_policy_number else None,
+            archived_by=archived_by
         )
 
         if success:
@@ -670,3 +740,203 @@ def send_reminder(policy_id):
     except Exception as e:
         print(f"Error in send_reminder route: {e}")
         return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
+
+
+@renewal_bp.route('/renewal_export')
+@login_required
+def renewal_export_page():
+    """Page for exporting renewal data by month"""
+    try:
+        return render_template("renewal_export.html")
+    except Exception as e:
+        logger.error(f"Error loading renewal export page: {e}")
+        flash("Error loading renewal export page", "error")
+        return redirect(url_for("dashboard.index"))
+
+
+@renewal_bp.route('/api/get_renewal_data/<year>/<month>')
+@login_required
+def get_renewal_data_api(year, month):
+    """API endpoint to get policies expiring in a specific month"""
+    try:
+        # Validate year and month
+        try:
+            year = int(year)
+            month = int(month)
+            if month < 1 or month > 12:
+                return jsonify({'success': False, 'message': 'Invalid month'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid year or month format'}), 400
+
+        # Calculate the start and end dates for the month
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = datetime(year, month + 1, 1) - timedelta(days=1)
+
+        # Format dates for database query
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
+
+        # Query policies expiring in the selected month
+        query = """
+        SELECT 
+            p.policy_id,
+            p.policy_number,
+            p.policy_to as expiry_date,
+            p.group_name,
+            p.subgroup_name,
+            p.insurance_company,
+            p.remarks,
+            c.name as client_name,
+            m.member_name
+        FROM policies p
+        LEFT JOIN clients c ON p.client_id = c.client_id
+        LEFT JOIN members m ON p.member_id = m.member_id
+        WHERE p.policy_to >= %s AND p.policy_to <= %s
+        ORDER BY p.policy_to ASC, c.name ASC
+        """
+
+        # Execute query using Supabase
+        result = supabase.table("policies").select(
+            "policy_id, policy_number, policy_to, group_name, subgroup_name, insurance_company, remarks, "
+            "clients!policies_client_id_fkey(name), members!policies_member_id_fkey(member_name)"
+        ).gte("policy_to", start_date_str).lte("policy_to", end_date_str).order("policy_to").execute()
+
+        policies = []
+        for policy in result.data:
+            client = policy.get('clients', {}) or {}
+            member = policy.get('members', {}) or {}
+            
+            policies.append({
+                'policy_id': policy.get('policy_id'),
+                'policy_number': policy.get('policy_number', 'N/A'),
+                'expiry_date': policy.get('policy_to'),
+                'client_name': client.get('name', 'N/A'),
+                'member_name': member.get('member_name', 'N/A'),
+                'group_name': policy.get('group_name', 'N/A'),
+                'subgroup_name': policy.get('subgroup_name', 'N/A'),
+                'insurance_company': policy.get('insurance_company', 'N/A'),
+                'remarks': policy.get('remarks', '')
+            })
+
+        return jsonify({
+            'success': True,
+            'policies': policies,
+            'count': len(policies)
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting renewal data: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route('/api/export_renewal_excel/<year>/<month>')
+@login_required
+def export_renewal_excel(year, month):
+    """Export renewal data to Excel file"""
+    try:
+        # Validate year and month
+        try:
+            year = int(year)
+            month = int(month)
+            if month < 1 or month > 12:
+                return jsonify({'success': False, 'message': 'Invalid month'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Invalid year or month format'}), 400
+
+        # Calculate the start and end dates for the month
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = datetime(year, month + 1, 1) - timedelta(days=1)
+
+        # Format dates for database query
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        end_date_str = end_date.strftime('%Y-%m-%d')
+
+        # Query policies expiring in the selected month
+        result = supabase.table("policies").select(
+            "policy_id, policy_number, policy_to, group_name, subgroup_name, insurance_company, remarks, "
+            "clients!policies_client_id_fkey(name), members!policies_member_id_fkey(member_name)"
+        ).gte("policy_to", start_date_str).lte("policy_to", end_date_str).order("policy_to").execute()
+
+        # Prepare data for Excel
+        excel_data = []
+        for policy in result.data:
+            client = policy.get('clients', {}) or {}
+            member = policy.get('members', {}) or {}
+            
+            # Convert expiry date to DD/MM/YYYY format
+            expiry_date = policy.get('policy_to', '')
+            if expiry_date:
+                try:
+                    date_obj = datetime.strptime(expiry_date, '%Y-%m-%d')
+                    expiry_date = date_obj.strftime('%d/%m/%Y')
+                except ValueError:
+                    pass  # Keep original format if conversion fails
+
+            excel_data.append({
+                'Date': expiry_date,
+                'Name': client.get('name', 'N/A'),
+                'Status_1': '',  # Empty column for manual filling
+                'Status_2': '',  # Empty column for manual filling
+                'Policy': policy.get('policy_number', 'N/A'),
+                'Group': policy.get('group_name', 'N/A'),
+                'Sub - Group': policy.get('subgroup_name', 'N/A'),
+                'Company': policy.get('insurance_company', 'N/A'),
+                'Remarks': policy.get('remarks', '')
+            })
+
+        # Create DataFrame
+        df = pd.DataFrame(excel_data)
+
+        # Create Excel file in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Renewal Data', index=False)
+            
+            # Get the workbook and worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Renewal Data']
+            
+            # Merge Status columns to create the effect shown in the image
+            worksheet.merge_cells('C1:D1')
+            worksheet['C1'] = 'Status'
+            
+            # Add headers for the merged Status columns
+            worksheet['C2'] = ''  # Sub-column 1
+            worksheet['D2'] = 'R'  # Sub-column 2 (as shown in image)
+            
+            # Adjust column widths
+            worksheet.column_dimensions['A'].width = 12  # Date
+            worksheet.column_dimensions['B'].width = 30  # Name
+            worksheet.column_dimensions['C'].width = 8   # Status 1
+            worksheet.column_dimensions['D'].width = 8   # Status 2
+            worksheet.column_dimensions['E'].width = 20  # Policy
+            worksheet.column_dimensions['F'].width = 15  # Group
+            worksheet.column_dimensions['G'].width = 15  # Sub-Group
+            worksheet.column_dimensions['H'].width = 15  # Company
+            worksheet.column_dimensions['I'].width = 30  # Remarks
+
+        output.seek(0)
+
+        # Generate filename
+        month_names = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+        filename = f"Renewal_Export_{month_names[month-1]}_{year}.xlsx"
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting renewal Excel: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

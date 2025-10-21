@@ -313,6 +313,47 @@ class ExcelSyncService:
                 df_factory = pd.DataFrame(factory_details.data)
                 if not df_factory.empty:
                     df_factory.to_excel(writer, sheet_name="Factory Insurance Details", index=False)
+                
+                # Policy History
+                policy_history = self.supabase.table("policy_history").select("*").execute()
+                df_history = pd.DataFrame(policy_history.data)
+                if not df_history.empty:
+                    # Reorder columns for better readability
+                    history_cols = df_history.columns.tolist()
+                    
+                    # Define preferred column order
+                    preferred_order = [
+                        'history_id', 'original_policy_id', 'client_id', 'member_id',
+                        'insurance_company', 'product_name', 'policy_number',
+                        'policy_from', 'policy_to', 'net_premium', 'gross_premium',
+                        'sum_insured', 'agent_name', 'archived_at', 'archived_reason', 'archived_by'
+                    ]
+                    
+                    # Reorder columns based on preference, keeping any extra columns at the end
+                    ordered_cols = []
+                    for col in preferred_order:
+                        if col in history_cols:
+                            ordered_cols.append(col)
+                            history_cols.remove(col)
+                    
+                    # Add remaining columns
+                    ordered_cols.extend(history_cols)
+                    df_history = df_history[ordered_cols]
+                    
+                    # Format dates for better readability
+                    date_columns = ['policy_from', 'policy_to', 'payment_date', 'archived_at', 'created_at', 'renewed_at']
+                    for col in date_columns:
+                        if col in df_history.columns:
+                            df_history[col] = pd.to_datetime(df_history[col], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Format currency columns
+                    currency_columns = ['net_premium', 'gross_premium', 'addon_premium', 'tp_tr_premium', 
+                                      'commission_amount', 'sum_insured']
+                    for col in currency_columns:
+                        if col in df_history.columns:
+                            df_history[col] = pd.to_numeric(df_history[col], errors='coerce').round(2)
+                    
+                    df_history.to_excel(writer, sheet_name="Policy History", index=False)
             
             # Apply formatting
             self._format_excel(self.local_excel_path)
@@ -404,6 +445,138 @@ class ExcelSyncService:
         except Exception as e:
             logger.error(f"Error getting shareable link: {e}")
             return None
+
+    def export_policy_history_report(self, policy_id=None, client_id=None, date_from=None, date_to=None):
+        """
+        Create a detailed policy history report with enhanced formatting
+        
+        Args:
+            policy_id (int): Specific policy ID to filter by (optional)
+            client_id (str): Specific client ID to filter by (optional)
+            date_from (str): Start date for archived_at filter (optional)
+            date_to (str): End date for archived_at filter (optional)
+        
+        Returns:
+            str: Path to the generated Excel file
+        """
+        try:
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"policy_history_report_{timestamp}.xlsx"
+            report_path = os.path.join(os.getcwd(), filename)
+            
+            logger.info(f"Generating policy history report: {filename}")
+            
+            with pd.ExcelWriter(report_path, engine='openpyxl') as writer:
+                # Build query for policy history
+                query = self.supabase.table("policy_history").select("*")
+                
+                # Apply filters
+                if policy_id:
+                    query = query.eq("original_policy_id", policy_id)
+                if client_id:
+                    query = query.eq("client_id", client_id)
+                if date_from:
+                    query = query.gte("archived_at", date_from)
+                if date_to:
+                    query = query.lte("archived_at", date_to)
+                
+                # Execute query
+                history_result = query.order("archived_at", desc=True).execute()
+                df_history = pd.DataFrame(history_result.data)
+                
+                if not df_history.empty:
+                    # Enhanced column ordering and formatting
+                    preferred_order = [
+                        'history_id', 'original_policy_id', 'client_id', 'member_id',
+                        'insurance_company', 'product_name', 'policy_number',
+                        'policy_from', 'policy_to', 'net_premium', 'gross_premium', 'sum_insured',
+                        'agent_name', 'business_type', 'group_name', 'subgroup_name',
+                        'commission_percentage', 'commission_amount', 'payment_date',
+                        'archived_at', 'archived_reason', 'archived_by', 'remarks'
+                    ]
+                    
+                    # Reorder columns
+                    available_cols = df_history.columns.tolist()
+                    ordered_cols = [col for col in preferred_order if col in available_cols]
+                    remaining_cols = [col for col in available_cols if col not in ordered_cols]
+                    final_cols = ordered_cols + remaining_cols
+                    
+                    df_history = df_history[final_cols]
+                    
+                    # Format data for better readability
+                    # Format dates
+                    date_columns = ['policy_from', 'policy_to', 'payment_date', 'archived_at', 'created_at', 'renewed_at']
+                    for col in date_columns:
+                        if col in df_history.columns:
+                            df_history[col] = pd.to_datetime(df_history[col], errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    # Format currency columns
+                    currency_columns = ['net_premium', 'gross_premium', 'addon_premium', 'tp_tr_premium', 
+                                      'commission_amount', 'sum_insured']
+                    for col in currency_columns:
+                        if col in df_history.columns:
+                            df_history[col] = pd.to_numeric(df_history[col], errors='coerce').round(2)
+                    
+                    # Add summary information
+                    summary_data = {
+                        'Total Historical Records': len(df_history),
+                        'Unique Policies': df_history['original_policy_id'].nunique() if 'original_policy_id' in df_history.columns else 0,
+                        'Unique Clients': df_history['client_id'].nunique() if 'client_id' in df_history.columns else 0,
+                        'Date Range': f"{df_history['archived_at'].min()} to {df_history['archived_at'].max()}" if 'archived_at' in df_history.columns else 'N/A',
+                        'Report Generated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    
+                    # Create summary sheet
+                    df_summary = pd.DataFrame(list(summary_data.items()), columns=['Metric', 'Value'])
+                    df_summary.to_excel(writer, sheet_name="Summary", index=False)
+                    
+                    # Main history data
+                    df_history.to_excel(writer, sheet_name="Policy History Details", index=False)
+                    
+                    # Group by policy for analysis
+                    if 'original_policy_id' in df_history.columns:
+                        policy_summary = df_history.groupby('original_policy_id').agg({
+                            'history_id': 'count',
+                            'archived_at': ['min', 'max'],
+                            'net_premium': ['first', 'last'] if 'net_premium' in df_history.columns else 'count',
+                            'insurance_company': lambda x: ' → '.join(x.unique()) if len(x.unique()) > 1 else x.iloc[0]
+                        }).round(2)
+                        
+                        # Flatten column names
+                        policy_summary.columns = ['_'.join(col).strip() if isinstance(col, tuple) else col for col in policy_summary.columns]
+                        policy_summary = policy_summary.reset_index()
+                        
+                        # Rename columns for clarity
+                        column_mapping = {
+                            'history_id_count': 'Total_Versions',
+                            'archived_at_min': 'First_Archived',
+                            'archived_at_max': 'Last_Archived',
+                            'net_premium_first': 'Original_Premium',
+                            'net_premium_last': 'Latest_Premium',
+                            'insurance_company_<lambda>': 'Company_Changes'
+                        }
+                        
+                        for old_name, new_name in column_mapping.items():
+                            if old_name in policy_summary.columns:
+                                policy_summary.rename(columns={old_name: new_name}, inplace=True)
+                        
+                        policy_summary.to_excel(writer, sheet_name="Policy Summary", index=False)
+                
+                else:
+                    # Create empty sheet with message
+                    df_empty = pd.DataFrame({'Message': ['No policy history records found with the specified criteria']})
+                    df_empty.to_excel(writer, sheet_name="Policy History Details", index=False)
+            
+            # Apply enhanced formatting
+            self._format_excel(report_path)
+            logger.info(f"Policy history report generated successfully: {filename}")
+            
+            return report_path
+            
+        except Exception as e:
+            logger.error(f"Error generating policy history report: {e}")
+            raise
 
 
 # Global instance for use across the application

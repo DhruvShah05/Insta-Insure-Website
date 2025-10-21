@@ -197,3 +197,94 @@ def refresh_excel_data():
             'success': False,
             'message': f"Refresh failed: {str(e)}"
         }), 500
+
+
+@excel_bp.route('/api/excel/policy-history-report', methods=['POST'])
+@login_required
+def generate_policy_history_report():
+    """Generate a detailed policy history Excel report"""
+    try:
+        if excel_sync is None:
+            return jsonify({
+                'success': False,
+                'message': 'Excel service is not available. Please install required dependencies.'
+            }), 500
+        
+        # Get filter parameters from request
+        data = request.get_json() or {}
+        policy_id = data.get('policy_id')
+        client_id = data.get('client_id')
+        date_from = data.get('date_from')
+        date_to = data.get('date_to')
+        
+        logger.info(f"Policy history report requested by user: {current_user.email}")
+        logger.info(f"Filters - Policy ID: {policy_id}, Client ID: {client_id}, Date range: {date_from} to {date_to}")
+        
+        # Generate the report
+        report_path = excel_sync.export_policy_history_report(
+            policy_id=policy_id,
+            client_id=client_id,
+            date_from=date_from,
+            date_to=date_to
+        )
+        
+        if os.path.exists(report_path):
+            logger.info(f"Policy history report generated successfully for user: {current_user.email}")
+            return jsonify({
+                'success': True,
+                'message': 'Policy history report generated successfully',
+                'report_path': report_path,
+                'filename': os.path.basename(report_path),
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            logger.error(f"Policy history report file not found: {report_path}")
+            return jsonify({
+                'success': False,
+                'message': 'Report generation failed - file not created'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Policy history report error for user {current_user.email}: {e}")
+        return jsonify({
+            'success': False,
+            'message': f"Report generation failed: {str(e)}"
+        }), 500
+
+
+@excel_bp.route('/api/excel/download-history-report/<filename>')
+@login_required
+def download_history_report(filename):
+    """Download a generated policy history report"""
+    try:
+        # Security check - ensure filename is safe
+        if not filename.endswith('.xlsx') or '..' in filename or '/' in filename:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid filename'
+            }), 400
+        
+        report_path = os.path.join(os.getcwd(), filename)
+        
+        if not os.path.exists(report_path):
+            return jsonify({
+                'success': False,
+                'message': 'Report file not found'
+            }), 404
+        
+        logger.info(f"Policy history report download: {filename} by user: {current_user.email}")
+        
+        from flask import send_file
+        return send_file(
+            report_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        logger.error(f"Policy history report download error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f"Download failed: {str(e)}"
+        }), 500
