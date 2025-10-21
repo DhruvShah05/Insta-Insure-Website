@@ -143,6 +143,14 @@ def renew_policy_api():
             logger.error(f"No member data found for policy {policy_id}")
             return jsonify({'success': False, 'message': 'Member information not found'}), 404
 
+        # Convert date format if provided
+        converted_expiry_date = None
+        if new_expiry_date:
+            converted_expiry_date = convert_date_format(new_expiry_date)
+            if converted_expiry_date is None:
+                logger.error(f"Invalid expiry date format for policy {policy_id}: {new_expiry_date}")
+                return jsonify({'success': False, 'message': f'Invalid expiry date format: {new_expiry_date}. Please use DD/MM/YYYY format.'}), 400
+
         # Renew the policy (pass current user email for audit trail)
         from flask_login import current_user
         archived_by = current_user.email if current_user and current_user.is_authenticated else None
@@ -150,7 +158,7 @@ def renew_policy_api():
         success, message, updated_policy = renew_policy(
             policy_id=int(policy_id),
             renewed_file=renewed_file,
-            new_expiry_date=new_expiry_date if new_expiry_date else None,
+            new_expiry_date=converted_expiry_date,
             new_policy_number=new_policy_number if new_policy_number else None,
             archived_by=archived_by
         )
@@ -623,6 +631,14 @@ def update_policy_payment_api():
         client = policy.get('clients', {})
         member = policy.get('members', {})
 
+        # Convert date format if provided
+        converted_expiry_date = None
+        if new_expiry_date:
+            converted_expiry_date = convert_date_format(new_expiry_date)
+            if converted_expiry_date is None:
+                logger.error(f"Invalid expiry date format for policy {policy_id}: {new_expiry_date}")
+                return jsonify({'success': False, 'message': f'Invalid expiry date format: {new_expiry_date}. Please use DD/MM/YYYY format.'}), 400
+
         # Update the policy with payment (pass current user email for audit trail)
         from flask_login import current_user
         archived_by = current_user.email if current_user and current_user.is_authenticated else None
@@ -630,7 +646,7 @@ def update_policy_payment_api():
         success, message, updated_policy = update_policy_payment(
             policy_id=int(policy_id),
             paid_file=paid_file,
-            new_expiry_date=new_expiry_date if new_expiry_date else None,
+            new_expiry_date=converted_expiry_date,
             new_policy_number=new_policy_number if new_policy_number else None,
             archived_by=archived_by
         )

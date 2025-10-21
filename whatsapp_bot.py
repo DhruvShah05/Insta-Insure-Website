@@ -104,11 +104,18 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
         return {"error": "Twilio not configured"}
     
     try:
-        # Validate that all variables have non-empty values (Twilio requirement)
+        # Validate that all variables have non-empty values and valid format (Twilio requirement)
         for key, value in variables.items():
             if not value or (isinstance(value, str) and value.strip() == ''):
                 logger.warning(f"Empty variable detected: {key} = '{value}', replacing with 'N/A'")
                 variables[key] = 'N/A'
+            elif isinstance(value, str):
+                # Clean up any problematic characters that might cause Twilio issues
+                # Remove any null bytes or control characters
+                cleaned_value = ''.join(char for char in value if ord(char) >= 32 or char in '\n\r\t')
+                if cleaned_value != value:
+                    logger.warning(f"Cleaned variable {key}: '{value}' -> '{cleaned_value}'")
+                    variables[key] = cleaned_value
         
         # Log the variables being sent for debugging
         logger.info(f"Sending content template {content_sid} with variables: {variables}")
@@ -749,6 +756,7 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
             template_variables["7"] = "test-policy.pdf"
         elif renewal_filename:
             # User uploaded a renewal document - it's already saved in static/renewals
+            # Filename should already be sanitized by the upload handler
             media_path = f"static/renewals/{renewal_filename}"
             template_variables["6"] = "Renewal document attached below."
             template_variables["7"] = media_path

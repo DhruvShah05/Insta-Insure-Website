@@ -217,12 +217,20 @@ def send_renewal_reminder_api():
             static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
             os.makedirs(static_renewals_dir, exist_ok=True)
             
-            # Save with original filename directly to static/renewals
-            renewal_filename = renewal_file.filename
-            static_file_path = os.path.join(static_renewals_dir, renewal_filename)
+            # Sanitize filename for URL safety (replace spaces and special chars)
+            import re
+            original_filename = renewal_file.filename
+            # Replace spaces with underscores and remove/replace problematic characters
+            safe_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
+            # Remove multiple consecutive underscores
+            safe_filename = re.sub(r'_+', '_', safe_filename)
+            
+            renewal_filename = safe_filename
+            static_file_path = os.path.join(static_renewals_dir, safe_filename)
             renewal_file.save(static_file_path)
             
             print(f"Renewal file saved: {static_file_path}")
+            print(f"Original filename: '{original_filename}' -> Sanitized: '{safe_filename}'")
 
         success, message = send_renewal_reminder(
             phone,
