@@ -258,6 +258,26 @@
             color: #92400e;
         }
 
+        .policy-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .policy-badge.expiring-soon {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .policy-badge.expired {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .policy-badge.unknown {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
         @media (max-width: 1200px) {
             .table th:nth-child(1), .table td:nth-child(1) { width: 10%; } /* Policy ID */
             .table th:nth-child(2), .table td:nth-child(2) { width: 20%; } /* Customer */
@@ -468,7 +488,7 @@
         <div class="table-container">
             {% if policies %}
             <div class="mb-4">
-                <span class="text-muted">Showing {{ policies|length }} policies expiring soon</span>
+                <span class="text-muted">Showing {{ policies|length }} policies requiring attention (expiring within 30 days)</span>
             </div>
             <div class="table-responsive">
                 <table class="table">
@@ -514,11 +534,8 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if policy.payment_date %}
-                                    <span class="policy-badge paid">Paid</span>
-                                {% else %}
-                                    <span class="policy-badge pending">Pending</span>
-                                {% endif %}
+                                {% set status_info = policy | policy_status %}
+                                <span class="policy-badge {{ status_info.class }}">{{ status_info.label }}</span>
                             </td>
                             <td>
                                 {% if policy.drive_url %}

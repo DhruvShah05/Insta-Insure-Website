@@ -433,8 +433,9 @@ class RealtimeExcelSync:
                 "Policy ID", "Client Name", "Member Name", "Policy Number", "Insurance Company", 
                 "Product Type", "Agent Name", "Policy Start Date", "Policy End Date", "Payment Date",
                 "Business Type", "Group", "Subgroup", "Remarks", "Sum Insured", "Net Premium", 
-                "Gross Premium", "TP/TR Premium", "Commission %", "Commission Amount", "Commission Received", 
-                "One Time Insurance", "Payment Details", "File Path", "Drive URL", "Created At", "Updated At"
+                "Addon Premium", "TP/TR Premium", "GST %", "Gross Premium", "Commission %", "Commission Amount", 
+                "Commission Received", "One Time Insurance", "Payment Details", "File Path", "Drive File ID", 
+                "Drive Path", "Drive URL", "Last Reminder Sent", "Renewed At", "Created At", "Updated At"
             ]
             
             # Add health insurance headers if applicable
@@ -500,15 +501,21 @@ class RealtimeExcelSync:
                     policy.get('remarks', ''),
                     policy.get('sum_insured', ''),
                     policy.get('net_premium', ''),
-                    policy.get('gross_premium', ''),
+                    policy.get('addon_premium', ''),
                     policy.get('tp_tr_premium', ''),
+                    policy.get('gst_percentage', ''),
+                    policy.get('gross_premium', ''),
                     policy.get('commission_percentage', ''),
                     commission_amount,
                     'Yes' if policy.get('commission_received') else 'No',
                     'Yes' if policy.get('one_time_insurance') else 'No',
                     policy.get('payment_details', ''),
                     policy.get('file_path', ''),
+                    policy.get('drive_file_id', ''),
+                    policy.get('drive_path', ''),
                     policy.get('drive_url', ''),
+                    self._convert_date_for_display(policy.get('last_reminder_sent')),
+                    self._convert_date_for_display(policy.get('renewed_at')),
                     self._convert_date_for_display(policy.get('created_at')),
                     self._convert_date_for_display(policy.get('updated_at'))
                 ]

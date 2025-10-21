@@ -186,31 +186,31 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">Net Premium/OD:</span>
-                <span class="detail-value">{{ policy.net_premium if policy.net_premium else 'N/A' }}</span>
+                <span class="detail-value">{{ policy.net_premium | currency }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Addon Premium:</span>
-                <span class="detail-value">{{ policy.addon_premium if policy.addon_premium else 'N/A' }}</span>
+                <span class="detail-value">{{ policy.addon_premium | currency }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">TP/TR Premium:</span>
-                <span class="detail-value">{{ policy.tp_tr_premium if policy.tp_tr_premium else 'N/A' }}</span>
+                <span class="detail-value">{{ policy.tp_tr_premium | currency }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">GST %:</span>
-                <span class="detail-value">{{ policy.gst_percentage if policy.gst_percentage else 'N/A' }}</span>
+                <span class="detail-value">{% if policy.gst_percentage %}{{ policy.gst_percentage }}%{% else %}N/A{% endif %}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Gross Premium:</span>
-                <span class="detail-value">{{ policy.gross_premium if policy.gross_premium else 'N/A' }}</span>
+                <span class="detail-value">{{ policy.gross_premium | currency }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Commission %:</span>
-                <span class="detail-value">{{ policy.commission_percentage if policy.commission_percentage else 'N/A' }}</span>
+                <span class="detail-value">{% if policy.commission_percentage %}{{ policy.commission_percentage }}%{% else %}N/A{% endif %}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Commission Amount:</span>
-                <span class="detail-value">{{ policy.commission_amount if policy.commission_amount is not none else 'N/A' }}</span>
+                <span class="detail-value">{{ policy.commission_amount | currency }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Commission Received:</span>
@@ -227,6 +227,32 @@
             <div class="detail-row">
                 <span class="detail-label">Subgroup:</span>
                 <span class="detail-value">{{ policy.subgroup_name or 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Sum Insured:</span>
+                <span class="detail-value">{{ policy.sum_insured | currency }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Remarks:</span>
+                <span class="detail-value">{{ policy.remarks or 'N/A' }}</span>
+            </div>
+
+            <h5 class="mt-4">Timeline Information</h5>
+            <div class="detail-row">
+                <span class="detail-label">Created At:</span>
+                <span class="detail-value">{{ policy.created_at | indian_date if policy.created_at else 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Last Updated:</span>
+                <span class="detail-value">{{ policy.updated_at | indian_date if policy.updated_at else 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Last Renewed:</span>
+                <span class="detail-value">{{ policy.renewed_at | indian_date if policy.renewed_at else 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Last Reminder Sent:</span>
+                <span class="detail-value">{{ policy.last_reminder_sent | indian_date if policy.last_reminder_sent else 'Never' }}</span>
             </div>
 
             <h5 class="mt-4">Customer Information</h5>
@@ -257,6 +283,10 @@
             <div class="detail-row">
                 <span class="detail-label">Drive Path:</span>
                 <span class="detail-value">{{ policy.drive_path or 'N/A' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Drive File ID:</span>
+                <span class="detail-value">{{ policy.drive_file_id or 'N/A' }}</span>
             </div>
             {% if policy.drive_url %}
             <div class="detail-row">

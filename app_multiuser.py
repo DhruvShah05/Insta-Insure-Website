@@ -165,6 +165,69 @@ def indian_date_filter(date_string):
         logger.error(f"Error formatting date {date_string}: {e}")
         return str(date_string)
 
+# Custom filter for standardized N/A display
+@app.template_filter('display_value')
+def display_value_filter(value, default='N/A'):
+    """Standardized display for values - shows default (N/A) for empty/null values"""
+    if value is None or value == '' or value == 0:
+        return default
+    return str(value)
+
+# Custom filter for currency display
+@app.template_filter('currency')
+def currency_filter(value):
+    """Format currency values with proper display"""
+    if value is None or value == '' or value == 0:
+        return 'N/A'
+    try:
+        return f"₹{float(value):,.2f}"
+    except (ValueError, TypeError):
+        return str(value)
+
+# Custom filter for policy status
+@app.template_filter('policy_status')
+def policy_status_filter(policy):
+    """Determine policy status based on expiry date and payment status"""
+    from datetime import datetime, timedelta
+    
+    # If no payment date, it's pending payment
+    if not policy.get('payment_date'):
+        return {'status': 'pending', 'label': 'Pending Payment', 'class': 'pending'}
+    
+    # If policy has expired
+    policy_to = policy.get('policy_to')
+    if policy_to:
+        try:
+            # Handle different date formats
+            if isinstance(policy_to, str):
+                if '-' in policy_to:
+                    expiry_date = datetime.strptime(policy_to, '%Y-%m-%d').date()
+                else:
+                    expiry_date = datetime.strptime(policy_to, '%d/%m/%Y').date()
+            else:
+                expiry_date = policy_to
+            
+            today = datetime.today().date()
+            days_until_expiry = (expiry_date - today).days
+            
+            # Policy has expired
+            if days_until_expiry < 0:
+                return {'status': 'expired', 'label': 'Expired', 'class': 'expired'}
+            
+            # Policy expiring within 30 days
+            elif days_until_expiry <= 30:
+                return {'status': 'expiring_soon', 'label': 'Expiring Soon', 'class': 'expiring-soon'}
+            
+            # Policy is active (more than 30 days until expiry)
+            else:
+                return {'status': 'active', 'label': 'Active', 'class': 'active'}
+                
+        except (ValueError, TypeError):
+            pass
+    
+    # Default fallback
+    return {'status': 'unknown', 'label': 'Unknown', 'class': 'unknown'}
+
 # Enhanced security headers for multi-user environment
 @app.after_request
 def after_request(response):
