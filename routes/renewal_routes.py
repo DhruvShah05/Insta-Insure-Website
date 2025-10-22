@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, send_file
 from flask_login import login_required
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 from database_pool import execute_query
 from email_service import send_renewal_reminder_email, indian_date_filter
 from renewal_service import (

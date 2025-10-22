@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Insta Insurances Portal</title>
+    <title>Dashboard - {{ config.PORTAL_TITLE }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='styles.css') }}?v=2.0" rel="stylesheet">
@@ -591,6 +591,14 @@
             </a>
 
             <div class="sidebar-nav-section">Account</div>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('settings.index') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+                </svg>
+                Settings
+            </a>
+            {% endif %}
             <a href="{{ url_for('auth.logout') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
@@ -609,8 +617,8 @@
                     <div class="hamburger-line"></div>
                 </div>
                 <a class="navbar-brand ms-3" href="{{ url_for('dashboard.index') }}">
-                    <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
-                    Insta Insurance Consultancy Portal
+                    <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
+                {{ config.PORTAL_NAME }}
                 </a>
             </div>
             <div class="d-flex align-items-center gap-3">
@@ -1057,7 +1065,9 @@
             // For now, just show a simple menu - you can expand this later
             const userOptions = [
                 { label: 'Profile', action: () => alert('Profile functionality coming soon') },
-                { label: 'Settings', action: () => alert('Settings functionality coming soon') },
+                {% if current_user.is_admin %}
+                { label: 'Settings', action: () => window.location.href = '{{ url_for("settings.index") }}' },
+                {% endif %}
                 { label: 'Logout', action: () => window.location.href = '{{ url_for("auth.logout") }}' }
             ];
 

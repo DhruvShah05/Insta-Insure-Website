@@ -1,12 +1,12 @@
 # routes/policies.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 import datetime, io
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2 import service_account
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 
 # Import WhatsApp functionality
 from whatsapp_bot import send_policy_to_customer, normalize_phone
@@ -108,7 +108,8 @@ def build_with_custom_ssl(creds):
 drive_service = get_drive_service()
 
 # Root folder in Google Drive where month folders exist
-ROOT_FOLDER_ID = "0AOc3bRLhlrgzUk9PVA"
+# Now loaded from settings/config instead of hardcoded
+ROOT_FOLDER_ID = Config.ROOT_FOLDER_ID or "0AOc3bRLhlrgzUk9PVA"  # Fallback to old value if not set
 
 
 def test_drive_connection():
@@ -861,4 +862,6 @@ def add_policy():
             flash(f"An error occurred: {str(e)}", "error")
             return redirect(url_for("policies.add_policy"))
 
-    return render_template("add_policy.html")
+    # Get default GST percentage from settings
+    default_gst = Config.DEFAULT_GST_PERCENTAGE
+    return render_template("add_policy.html", current_user=current_user, default_gst=default_gst)

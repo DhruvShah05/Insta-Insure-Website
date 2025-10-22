@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claims Management - Insta Insurance Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}?v=2.0" rel="stylesheet">
+    <style>
+        .claims-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
+        }
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-4);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-2);
+        }
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-PENDING { background-color: var(--warning-light); color: #92400e; }
+        .status-PROCESSING { background-color: var(--info-light); color: #1e40af; }
+        .status-APPROVED { background-color: #cce5ff; color: #004085; }
+        .status-SETTLED { background-color: var(--success-light); color: #065f46; }
+        .status-REJECTED { background-color: var(--danger-light); color: #991b1b; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
+                {{ config.PORTAL_NAME }}
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">All Clients</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="content-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Claims Management</h1>
+                    <p class="text-muted">Manage insurance claims and track their status.</p>
+                    {% if client_name %}
+                        <div class="mt-2">
+                            <span class="badge bg-info">Filtered by Client: {{ client_name }}</span>
+                            <a href="{{ url_for('claims.index') }}" class="btn btn-sm btn-outline-secondary ms-2">Clear Filter</a>
+                        </div>
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('claims.add_claim') }}" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="me-2"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Add New Claim
+                </a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Search and Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Search Claims</h5>
+                <form method="GET" action="{{ url_for('claims.index') }}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">General Search</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Search by claim number, member, client, or policy..." 
+                                   value="{{ current_search or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="clientSearch" class="form-label">Search by Client</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="clientSearch" 
+                                       placeholder="Type client name..." autocomplete="off">
+                                <input type="hidden" id="selectedClientId" name="client_id" value="{{ current_client_id or '' }}">
+                                <div id="clientResults" class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="policySelect" class="form-label">Select Policy</label>
+                            <select class="form-select" id="policySelect" name="policy_number" disabled>
+                                <option value="">Select a client first</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary me-2">Search</button>
+                            <a href="{{ url_for('claims.index') }}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="claims-stats">
+            <div class="stat-card"><div class="stat-number text-primary">{{ stats.total }}</div><div class="stat-label">Total Claims</div></div>
+            <div class="stat-card"><div class="stat-number" style="color:#f59e0b;">{{ stats.pending }}</div><div class="stat-label">Pending</div></div>
+            <div class="stat-card"><div class="stat-number" style="color:#3b82f6;">{{ stats.processing }}</div><div class="stat-label">Processing</div></div>
+            <div class="stat-card"><div class="stat-number" style="color:#8b5cf6;">{{ stats.approved }}</div><div class="stat-label">Approved</div></div>
+            <div class="stat-card"><div class="stat-number" style="color:#10b981;">{{ stats.settled }}</div><div class="stat-label">Settled</div></div>
+            <div class="stat-card"><div class="stat-number" style="color:#ef4444;">{{ stats.rejected }}</div><div class="stat-label">Rejected</div></div>
+        </div>
+
+        <div class="table-container">
+            {% if claims %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Claim Number</th>
+                            <th>Policy & Client</th>
+                            <th>Member</th>
+                            <th>Claim Type</th>
+                            <th>Claimed Amount</th>
+                            <th>Approved Amount</th>
+                            <th>Status</th>
+                            <th>Created On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                        <tr>
+                            <td><strong>{{ claim.claim_number or ('#' + claim.claim_id|string) }}</strong></td>
+                            <td>
+                                <div>{{ claim.policies.policy_number }}</div>
+                                <small class="text-muted">{{ claim.policies.clients.name }}</small>
+                            </td>
+                            <td>{{ claim.member_name }}</td>
+                            <td>
+                                <span class="badge rounded-pill bg-info text-dark">{{ claim.claim_type }}</span>
+                            </td>
+                            <td>
+                                {% if claim.claimed_amount %}
+                                    ₹{{ "{:,.2f}".format(claim.claimed_amount) }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if claim.approved_amount or claim.settled_amount %}
+                                    ₹{{ "{:,.2f}".format(claim.approved_amount or claim.settled_amount) }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ claim.status }}">{{ claim.status }}</span>
+                            </td>
+                            <td>{{ claim.created_at | indian_date if claim.created_at else '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('claims.view_claim', claim_id=claim.claim_id) }}" class="btn btn-sm btn-outline-primary">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="64" height="64" class="text-muted mb-3"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <h5>No Claims Found</h5>
+                <p>Start by adding the first insurance claim for a client.</p>
+                <a href="{{ url_for('claims.add_claim') }}" class="btn btn-primary mt-3">Add New Claim</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const clientSearchInput = document.getElementById('clientSearch');
+            const clientResults = document.getElementById('clientResults');
+            const selectedClientId = document.getElementById('selectedClientId');
+            const policySelect = document.getElementById('policySelect');
+            let searchTimeout;
+
+            // Initialize with current client if set
+            if (selectedClientId.value) {
+                loadClientPolicies(selectedClientId.value);
+                // Set the client name in the search input
+                const clientName = "{{ client_name|default('') }}";
+                if (clientName) {
+                    clientSearchInput.value = clientName;
+                }
+            }
+
+            // Client search functionality
+            clientSearchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim();
+                
+                clearTimeout(searchTimeout);
+                
+                if (searchTerm.length < 2) {
+                    clientResults.style.display = 'none';
+                    selectedClientId.value = '';
+                    resetPolicySelect();
+                    return;
+                }
+
+                searchTimeout = setTimeout(() => {
+                    fetch(`{{ url_for('claims.search_clients') }}?search=${encodeURIComponent(searchTerm)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            displayClientResults(data.clients || []);
+                        })
+                        .catch(error => {
+                            console.error('Error searching clients:', error);
+                            clientResults.style.display = 'none';
+                        });
+                }, 300);
+            });
+
+            // Hide results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!clientSearchInput.contains(e.target) && !clientResults.contains(e.target)) {
+                    clientResults.style.display = 'none';
+                }
+            });
+
+            function displayClientResults(clients) {
+                if (clients.length === 0) {
+                    clientResults.innerHTML = '<div class="p-2 text-muted">No clients found</div>';
+                } else {
+                    clientResults.innerHTML = clients.map(client => 
+                        `<div class="client-result p-2 border-bottom cursor-pointer" data-client-id="${client.client_id}" data-client-name="${client.name}">
+                            <strong>${client.name}</strong>
+                            <small class="text-muted d-block">ID: ${client.client_id}</small>
+                        </div>`
+                    ).join('');
+                }
+                clientResults.style.display = 'block';
+
+                // Add click handlers to results
+                clientResults.querySelectorAll('.client-result').forEach(result => {
+                    result.addEventListener('click', function() {
+                        const clientId = this.dataset.clientId;
+                        const clientName = this.dataset.clientName;
+                        
+                        clientSearchInput.value = clientName;
+                        selectedClientId.value = clientId;
+                        clientResults.style.display = 'none';
+                        
+                        loadClientPolicies(clientId);
+                    });
+                });
+            }
+
+            function loadClientPolicies(clientId) {
+                policySelect.disabled = true;
+                policySelect.innerHTML = '<option value="">Loading policies...</option>';
+
+                fetch(`{{ url_for('claims.get_client_policies') }}?client_id=${encodeURIComponent(clientId)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.policies && data.policies.length > 0) {
+                            const currentPolicyNumber = "{{ current_policy_number|default('') }}";
+                            policySelect.innerHTML = '<option value="">All policies for this client</option>' +
+                                data.policies.map(policy => 
+                                    `<option value="${policy.policy_number}" ${policy.policy_number === currentPolicyNumber ? 'selected' : ''}>
+                                        ${policy.policy_number} - ${policy.product_name}
+                                    </option>`
+                                ).join('');
+                        } else {
+                            policySelect.innerHTML = '<option value="">No policies found</option>';
+                        }
+                        policySelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error loading policies:', error);
+                        policySelect.innerHTML = '<option value="">Error loading policies</option>';
+                        policySelect.disabled = false;
+                    });
+            }
+
+            function resetPolicySelect() {
+                policySelect.innerHTML = '<option value="">Select a client first</option>';
+                policySelect.disabled = true;
+            }
+
+            // Clear client selection when input is cleared
+            clientSearchInput.addEventListener('blur', function() {
+                if (!this.value.trim()) {
+                    selectedClientId.value = '';
+                    resetPolicySelect();
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .client-result {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .client-result:hover {
+            background-color: #f8f9fa;
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+    </style>
+</body>
+</html>

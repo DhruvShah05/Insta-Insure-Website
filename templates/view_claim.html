@@ -46,8 +46,8 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid px-4">
             <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
-                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" class="me-2">
-                Insta Insurance Consultancy Portal
+                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
+                {{ config.PORTAL_NAME }}
             </a>
             <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Back to Claims</a>
         </div>

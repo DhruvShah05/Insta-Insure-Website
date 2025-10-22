@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from queue import Queue, Empty
 from supabase import create_client, Client
 import functools
-from config import Config
+from dynamic_config import Config
 
 logger = logging.getLogger(__name__)
 

@@ -7,7 +7,7 @@ from whatsapp_bot import (
 )
 from email_service import send_policy_email, send_renewal_reminder_email, indian_date_filter
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 import io
 from googleapiclient.http import MediaIoBaseDownload
 from whatsapp_bot import get_drive_service
@@ -330,7 +330,7 @@ def serve_drive_media(file_id, filename):
 def media_health_check():
     """Health check endpoint to verify media serving is working"""
     try:
-        from config import Config
+        from dynamic_config import Config
         return jsonify({
             'status': 'healthy',
             'base_url': Config.APP_BASE_URL,

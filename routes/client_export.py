@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 
 client_export_bp = Blueprint('client_export', __name__)
 

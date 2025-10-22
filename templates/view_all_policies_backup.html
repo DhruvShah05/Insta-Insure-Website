@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View All Policies - Insta Insurances Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}?v=2.0" rel="stylesheet">
+    <style>
+        .search-container {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-6);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-6);
+        }
+
+        .search-form {
+            display: flex;
+            gap: var(--spacing-3);
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .policies-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-4);
+        }
+
+        .policies-count {
+            color: var(--gray-600);
+            font-size: var(--font-size-sm);
+        }
+
+        .table-container {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            overflow: hidden;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            margin-bottom: 0;
+            min-width: 1200px;
+        }
+
+        .table th {
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+            font-weight: 600;
+            color: var(--gray-900);
+            padding: var(--spacing-4);
+        }
+
+        .table td {
+            padding: var(--spacing-4);
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background: var(--gray-25);
+        }
+
+        /* Column widths */
+        .table th:nth-child(1), .table td:nth-child(1) { width: 8%; }  /* Policy ID */
+        .table th:nth-child(2), .table td:nth-child(2) { width: 18%; } /* Member Name */
+        .table th:nth-child(3), .table td:nth-child(3) { width: 16%; } /* Insurance Company */
+        .table th:nth-child(4), .table td:nth-child(4) { width: 14%; } /* Product */
+        .table th:nth-child(5), .table td:nth-child(5) { width: 12%; } /* Policy Number */
+        .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* Policy From */
+        .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* Policy To */
+        .table th:nth-child(8), .table td:nth-child(8) { width: 8%; }  /* Status */
+        .table th:nth-child(9), .table td:nth-child(9) { width: 4%; }  /* Actions */
+
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-1);
+        }
+
+        .member-name {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        .member-contact {
+            font-size: var(--font-size-xs);
+            color: var(--gray-500);
+        }
+
+        .policy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-1);
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+        }
+
+        .policy-badge.paid {
+            background: var(--success-light);
+            color: #065f46;
+        }
+
+        .policy-badge.pending {
+            background: var(--warning-light);
+            color: #92400e;
+        }
+
+        .pagination-container {
+            padding: var(--spacing-4);
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .pagination {
+            margin: 0;
+            justify-content: center;
+        }
+
+        .pagination .page-link {
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+            padding: var(--spacing-2) var(--spacing-3);
+        }
+
+        .pagination .page-item.active .page-link {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: white;
+        }
+
+        .pagination .page-link:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-400);
+        }
+
+        .pagination-info {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: var(--spacing-3);
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-12) var(--spacing-6);
+            color: var(--gray-500);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: var(--spacing-4);
+            color: var(--gray-300);
+        }
+
+        .empty-state h5 {
+            color: var(--gray-700);
+            margin-bottom: var(--spacing-2);
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-input {
+                max-width: none;
+            }
+
+            .policies-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-3);
+            }
+
+            .table th, .table td {
+                padding: var(--spacing-2);
+                font-size: var(--font-size-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
+                {{ config.PORTAL_NAME }}
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Dashboard</a>
+                <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-outline">Pending Policies</a>
+                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">All Clients</a>
+                <a href="{{ url_for('claims.index') }}" class="btn btn-outline">Claims</a>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
+                <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-primary">Add Pending</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="page-title">View All Policies</h1>
+            <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Add New Policy
+            </a>
+        </div>
+
+        <!-- Search Container -->
+        <div class="search-container">
+            <form method="GET" class="search-form">
+                <div class="search-input">
+                    <input type="text" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Search by member name, insurance company, product, or policy number..." 
+                           value="{{ current_search }}"
+                           autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    Search
+                </button>
+                {% if current_search %}
+                <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                    Clear
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Policies Table -->
+        <div class="table-container">
+            <div class="policies-header p-4 border-bottom">
+                <div class="policies-count">
+                    {% if current_search %}
+                        Showing {{ policies|length }} of {{ total_policies }} policies matching "{{ current_search }}"
+                    {% else %}
+                        Showing {{ policies|length }} of {{ total_policies }} total policies
+                    {% endif %}
+                    {% if total_pages > 1 %}
+                        (Page {{ page }} of {{ total_pages }})
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if policies %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Policy ID</th>
+                            <th>Member Name</th>
+                            <th>Insurance Company</th>
+                            <th>Product</th>
+                            <th>Policy Number</th>
+                            <th>Policy From</th>
+                            <th>Policy To</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for policy in policies %}
+                        <tr>
+                            <td><strong>#{{ policy.policy_id }}</strong></td>
+                            <td>
+                                <div class="member-info">
+                                    <div class="member-name">{{ policy.member_name }}</div>
+                                    {% if policy.customer_phone %}
+                                    <div class="member-contact">{{ policy.customer_phone }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ policy.insurance_company or 'N/A' }}</td>
+                            <td>{{ policy.product_name or 'N/A' }}</td>
+                            <td>{{ policy.policy_number or 'N/A' }}</td>
+                            <td>
+                                {% if policy.policy_from %}
+                                    {{ policy.policy_from | indian_date }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if policy.policy_to %}
+                                    {{ policy.policy_to | indian_date }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if policy.payment_date %}
+                                    <span class="policy-badge paid">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                        </svg>
+                                        Paid
+                                    </span>
+                                {% else %}
+                                    <span class="policy-badge pending">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                        </svg>
+                                        Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('existing_policies.view_policy', policy_id=policy.policy_id) }}" 
+                                   class="btn btn-sm btn-outline" 
+                                   title="View Policy Details">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                    </svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <div>
+                        Showing {{ ((page - 1) * per_page + 1) }} to {{ (page * per_page) if (page * per_page) <= total_policies else total_policies }} of {{ total_policies }} policies
+                    </div>
+                </div>
+                <nav aria-label="Policies pagination">
+                    <ul class="pagination">
+                        {% if has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('dashboard.view_all_policies', page=prev_page, search=current_search) }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                                </svg>
+                                Previous
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in page_range %}
+                        <li class="page-item {% if page_num == page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('dashboard.view_all_policies', page=page_num, search=current_search) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% endfor %}
+
+                        {% if has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('dashboard.view_all_policies', page=next_page, search=current_search) }}">
+                                Next
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                                </svg>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                {% if current_search %}
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <h5>No policies found</h5>
+                <p>No policies match your search criteria "{{ current_search }}"</p>
+                <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline mt-3">Clear Search</a>
+                {% else %}
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h5>No policies found</h5>
+                <p>There are no policies in the system yet.</p>
+                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary mt-3">Add First Policy</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/performance.js') }}?v=2.0"></script>
+</body>
+</html>

@@ -2,9 +2,10 @@
 Multi-User Scaled Flask Application
 Integrates all scaling components for concurrent user handling
 """
-from flask import Flask, request, jsonify, render_template, g
+from flask import Flask, request, jsonify, render_template, g, session
 from flask_login import LoginManager
-from config import Config
+from datetime import timedelta
+from dynamic_config import Config
 from auth import auth_bp
 from routes.dashboard import dashboard_bp
 from routes.policies import policies_bp
@@ -15,6 +16,7 @@ from routes.whatsapp_logs_routes import whatsapp_logs_bp
 from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
 from routes.claims import claims_bp
+from routes.settings_routes import settings_bp
 import os
 import logging
 import time
@@ -43,6 +45,12 @@ except ImportError as e:
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Configure session to last until browser closes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)  # Fallback timeout
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS attacks
+app.config['SESSION_COOKIE_SECURE'] = Config.FLASK_ENV == 'production'  # HTTPS only in production
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+
 # Production-ready secret key
 app.secret_key = os.getenv('SECRET_KEY', os.urandom(24))
 
@@ -51,7 +59,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),  # Fallback timeout
     MAX_CONTENT_LENGTH=50 * 1024 * 1024,  # 50MB max file size
     
     # Performance optimizations for multi-user
@@ -99,21 +107,11 @@ def load_user(user_id):
     if user_id is None:
         return None
     
-    # Try to get user from cache first
-    try:
-        cached_user = cache_manager.get(f"user_{user_id}", value_type='json')
-        if cached_user:
-            return User.from_dict(cached_user)
-    except Exception as e:
-        logger.warning(f"Cache retrieval failed: {e}")
-    
-    # Load from database and cache
+    # TEMPORARY FIX: Always load fresh from database to fix admin role issue
+    # TODO: Re-enable caching after role issue is resolved
     user = User.get_or_create(user_id)
     if user:
-        try:
-            cache_manager.set(f"user_{user_id}", user.to_dict(), ttl=1800)
-        except Exception as e:
-            logger.warning(f"Cache storage failed: {e}")
+        logger.info(f"User loaded: {user.email} with role: {user.role} (is_admin: {user.is_admin})")
     
     return user
 
@@ -123,7 +121,11 @@ def inject_config():
     return {
         'config': {
             'CLERK_PUBLISHABLE_KEY': Config.CLERK_PUBLISHABLE_KEY,
-            'CLERK_FRONTEND_API': Config.CLERK_FRONTEND_API
+            'CLERK_FRONTEND_API': Config.CLERK_FRONTEND_API,
+            'PORTAL_NAME': Config.PORTAL_NAME,
+            'PORTAL_TITLE': Config.PORTAL_TITLE,
+            'LOGO_PATH': Config.LOGO_PATH,
+            'COMPANY_NAME': Config.COMPANY_NAME
         }
     }
 
@@ -251,6 +253,14 @@ def after_request(response):
     
     return response
 
+# Session management middleware
+@app.before_request
+def manage_session():
+    """Ensure sessions are properly managed"""
+    # Allow Flask-Login to manage session permanence
+    pass
+
+
 # Enhanced rate limiting middleware
 @app.before_request
 def enhanced_rate_limiting():
@@ -291,6 +301,7 @@ app.register_blueprint(whatsapp_logs_bp)
 app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)
 app.register_blueprint(claims_bp)
+app.register_blueprint(settings_bp)
 
 # Register health check blueprint
 health_bp = create_health_check_blueprint()

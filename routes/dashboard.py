@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 from datetime import datetime, timedelta
 import math
 
@@ -172,7 +172,8 @@ def view_all_policies():
                              prev_page=prev_page,
                              next_page=next_page,
                              page_range=page_range,
-                             per_page=per_page)
+                             per_page=per_page,
+                             current_user=current_user)
 
     except Exception as e:
         print(f"Error fetching policies: {e}")
@@ -188,4 +189,5 @@ def view_all_policies():
                              next_page=None,
                              page_range=[],
                              per_page=per_page,
+                             current_user=current_user,
                              error=str(e))

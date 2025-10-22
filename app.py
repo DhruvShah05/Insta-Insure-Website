@@ -1,6 +1,7 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 from flask_login import LoginManager
-from config import Config
+from datetime import timedelta
+from dynamic_config import Config
 from auth import auth_bp  # Remove create_oauth import
 from routes.dashboard import dashboard_bp
 from routes.policies import policies_bp
@@ -11,6 +12,7 @@ from routes.whatsapp_logs_routes import whatsapp_logs_bp
 from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
 from routes.claims import claims_bp
+from routes.settings_routes import settings_bp
 import os
 import logging
 import threading
@@ -36,6 +38,12 @@ except ImportError as e:
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Configure session to last until browser closes
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)  # Fallback timeout
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS attacks
+app.config['SESSION_COOKIE_SECURE'] = Config.FLASK_ENV == 'production'  # HTTPS only in production
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
+
 # Production-ready secret key
 app.secret_key = os.getenv('SECRET_KEY', os.urandom(24))
 
@@ -46,7 +54,7 @@ if Config.FLASK_ENV == "development":
         SESSION_COOKIE_SECURE=False,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE=None,  # Allow cross-origin for ngrok
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),  # Fallback timeout
         MAX_CONTENT_LENGTH=50 * 1024 * 1024,
     )
 else:
@@ -55,7 +63,7 @@ else:
         SESSION_COOKIE_SECURE=False,  # Keep False for HTTP ngrok
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE=None,  # Allow cross-origin for ngrok access
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),  # Fallback timeout
         MAX_CONTENT_LENGTH=50 * 1024 * 1024,
     )
 
@@ -84,6 +92,9 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Insurance Portal startup')
 
+# Setup logger for use in functions
+logger = logging.getLogger(__name__)
+
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -98,16 +109,39 @@ from models import User
 def load_user(user_id):
     if user_id is None:
         return None
-    return User.get_or_create(user_id)
+    
+    # TEMPORARY FIX: Always load fresh from database to fix admin role issue
+    # TODO: Re-enable caching after role issue is resolved
+    try:
+        from supabase import create_client
+        supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        result = supabase.table('users').select('*').eq('email', user_id).execute()
+        if result.data:
+            user_data = result.data[0]
+            user = User(
+                email=user_data['email'],
+                name=user_data.get('name'),
+                picture=user_data.get('picture'),
+                user_id=user_data.get('id'),
+                password_hash=user_data.get('password_hash'),
+                role=user_data.get('role', 'member')  # Include role parameter
+            )
+            logger.info(f"User loaded: {user.email} with role: {user.role} (is_admin: {user.is_admin})")
+            return user
+    except Exception as e:
+        logger.error(f"Error loading user: {e}")
+    return None
 
 
-# Make config available in templates for Clerk keys
+# Make config available in templates
 @app.context_processor
 def inject_config():
     return {
         'config': {
-            'CLERK_PUBLISHABLE_KEY': Config.CLERK_PUBLISHABLE_KEY,
-            'CLERK_FRONTEND_API': Config.CLERK_FRONTEND_API
+            'PORTAL_NAME': Config.PORTAL_NAME,
+            'PORTAL_TITLE': Config.PORTAL_TITLE,
+            'LOGO_PATH': Config.LOGO_PATH,
+            'COMPANY_NAME': Config.COMPANY_NAME
         }
     }
 
@@ -229,6 +263,19 @@ def after_request(response):
     return response
 
 
+# Session management middleware
+@app.before_request
+def manage_session():
+    """Ensure sessions are properly managed and non-permanent"""
+    # Force all sessions to be non-permanent
+    session.permanent = False
+    
+    # Clear session if it's somehow marked as permanent
+    if hasattr(session, '_permanent') and session._permanent:
+        session.clear()
+        session.permanent = False
+
+
 # Request monitoring and rate limiting
 request_counts = {}
 request_lock = threading.Lock()
@@ -271,6 +318,7 @@ app.register_blueprint(whatsapp_logs_bp)  # WhatsApp logs
 app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)  # Renewal routes
 app.register_blueprint(claims_bp)  
+app.register_blueprint(settings_bp)
 
 # Register Excel blueprint if available
 if excel_routes_available and excel_bp:
@@ -369,15 +417,15 @@ if __name__ == "__main__":
     else:
         print("⚠️  Excel functionality disabled - install: pip install pandas openpyxl numpy")
 
-    # Check Clerk configuration
-    print("✅ Clerk authentication enabled")
-    print(f"📝 Clerk Frontend: {Config.CLERK_FRONTEND_API}")
+    # Check authentication configuration
+    print("✅ Simple authentication enabled")
+    print(f"📝 Admin emails: {', '.join(Config.ADMIN_EMAILS)}")
 
     print("🚀 Starting Insurance Portal with Full Integration...")
     print("📱 WhatsApp webhook: http://localhost:5050/webhook")
     print("📊 Excel sync: Real-time database → Google Drive")
     print("🌐 Web portal: http://localhost:5050/")
-    print("🔐 Authentication: Clerk")
+    print("🔐 Authentication: Email/Password")
 
     # Production settings
     port = int(os.environ.get("PORT", 5050))

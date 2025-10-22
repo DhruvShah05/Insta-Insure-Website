@@ -1,8 +1,8 @@
 # routes/pending_policies.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 from datetime import datetime
 
 
@@ -81,12 +81,12 @@ def list_pending():
                 policy["customer_phone"] = ""
 
         print(f"Found {len(pending)} pending policies")
-        return render_template("pending_policies.html", pending_policies=pending)
+        return render_template("pending_policies.html", pending_policies=pending, current_user=current_user)
 
     except Exception as e:
         print(f"Error fetching pending policies: {e}")
         flash(f"Error loading pending policies: {str(e)}", "error")
-        return render_template("pending_policies.html", pending_policies=[])
+        return render_template("pending_policies.html", pending_policies=[], current_user=current_user)
 
 
 @pending_policies_bp.route("/add_pending", methods=["GET", "POST"])
@@ -344,7 +344,9 @@ def add_pending():
             flash(f"Error: {str(e)}", "error")
             return redirect(url_for("pending_policies.add_pending"))
 
-    return render_template("add_pending_policy.html")
+    # Get default GST percentage from settings
+    default_gst = Config.DEFAULT_GST_PERCENTAGE
+    return render_template("add_pending_policy.html", current_user=current_user, default_gst=default_gst)
 
 
 @pending_policies_bp.route("/complete_pending/<int:pending_id>", methods=["GET", "POST"])
@@ -659,7 +661,7 @@ def complete_pending(pending_id):
             # Use member name as the primary display name
             pending["customer_name"] = pending["members"].get("member_name", "")
 
-        return render_template("complete_pending.html", pending=pending)
+        return render_template("complete_pending.html", pending=pending, current_user=current_user)
 
     except Exception as e:
         print(f"Error fetching pending policy: {e}")

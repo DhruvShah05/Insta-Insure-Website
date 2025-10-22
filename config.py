@@ -24,15 +24,10 @@ class Config:
     if not SUPABASE_URL or not SUPABASE_KEY:
         raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
 
-    # Clerk Authentication (replaces Google OAuth)
-    CLERK_PUBLISHABLE_KEY = os.getenv("CLERK_PUBLISHABLE_KEY")
-    CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
-    CLERK_FRONTEND_API = os.getenv("CLERK_FRONTEND_API")  # e.g., teaching-pipefish-39.clerk.accounts.dev
+    # Simple Authentication (replaces Clerk)
+    # No external authentication service needed - using Supabase directly
 
-    if not CLERK_PUBLISHABLE_KEY or not CLERK_SECRET_KEY:
-        raise ValueError("Clerk credentials (CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY) must be set")
-
-    # Admin Emails (for Clerk user authorization)
+    # Admin Emails (for user authorization)
     ADMIN_EMAILS_STR = os.getenv("ADMIN_EMAILS", "")
     if not ADMIN_EMAILS_STR:
         raise ValueError("ADMIN_EMAILS must be set with comma-separated email addresses")

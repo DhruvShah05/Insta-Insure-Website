@@ -1,8 +1,8 @@
 # routes/existing_policies.py - Now handles client-centric view
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 
 existing_policies_bp = Blueprint("existing_policies", __name__)
 supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
@@ -90,13 +90,14 @@ def list_all():
             "view_all_clients.html",
             clients=clients_data,
             current_search=search_query,
-            total_clients=len(clients_data)
+            total_clients=len(clients_data),
+            current_user=current_user
         )
 
     except Exception as e:
         print(f"Error fetching clients: {e}")
         flash(f"Error loading clients: {str(e)}", "error")
-        return render_template("view_all_clients.html", clients=[], current_search="", total_clients=0)
+        return render_template("view_all_clients.html", clients=[], current_search="", total_clients=0, current_user=current_user)
 
 
 @existing_policies_bp.route("/view_policy/<int:policy_id>")
@@ -122,7 +123,7 @@ def view_policy(policy_id):
         if policy.get("members"):
             policy["member_name"] = policy["members"].get("member_name", "")
 
-        return render_template("view_policy.html", policy=policy)
+        return render_template("view_policy.html", policy=policy, current_user=current_user)
 
     except Exception as e:
         print(f"Error fetching policy: {e}")

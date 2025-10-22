@@ -66,7 +66,7 @@ class RealtimeCleanupService:
         try:
             # Get messages that are in transitional states (not final)
             from supabase import create_client
-            from config import Config
+            from dynamic_config import Config
             
             supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
             

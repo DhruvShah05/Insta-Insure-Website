@@ -16,7 +16,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 import hashlib
 import json
-from config import Config
+from dynamic_config import Config
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload

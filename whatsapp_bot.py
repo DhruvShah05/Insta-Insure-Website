@@ -2,7 +2,7 @@ from flask import request, jsonify
 import os
 import time
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 import tempfile
 import io
 from google.oauth2 import service_account
@@ -38,7 +38,7 @@ TWILIO_AUTH_TOKEN = Config.TWILIO_AUTH_TOKEN
 TWILIO_FROM = Config.TWILIO_WHATSAPP_FROM  # e.g., 'whatsapp:+14155238886'
 TWILIO_USE_CONTENT_TEMPLATE = Config.TWILIO_USE_CONTENT_TEMPLATE
 TWILIO_CONTENT_SID = Config.TWILIO_CONTENT_SID
-VERIFY_TOKEN = os.getenv('VERIFY_TOKEN', 'your_webhook_verify_token')
+VERIFY_TOKEN = Config.VERIFY_TOKEN
 twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) else None
 
 # Content Template SIDs - APPROVED TEMPLATES
@@ -46,10 +46,10 @@ POLICY_DOCUMENT_TEMPLATE_SID = "HX09943977f51524767ed93c7cc670fb47"  # Policy Is
 RENEWAL_REMINDER_TEMPLATE_SID = "HX169afdf8bae849bb296476c9d4e4db9d"   # Renewal Reminder Template
 
 # WhatsApp Media Configuration
-USE_CONTENT_TEMPLATES = os.getenv('USE_WHATSAPP_CONTENT_TEMPLATES', 'true').lower() == 'true'
+USE_CONTENT_TEMPLATES = Config.TWILIO_USE_CONTENT_TEMPLATE
 
 # Google Drive Configuration
-GOOGLE_CREDENTIALS_FILE = os.getenv('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
+GOOGLE_CREDENTIALS_FILE = Config.GOOGLE_CREDENTIALS_FILE
 
 # Store user sessions
 user_sessions = {}
@@ -264,7 +264,7 @@ Expiry Date: {expiry_date or 'N/A'}
 You can reply with *HI* anytime to view all your policy documents.
 
 Best regards,
-Insta Insurance Consultancy"""
+{Config.COMPANY_NAME}"""
 
             # Send with media attachment
             msg = twilio_client.messages.create(
@@ -604,7 +604,7 @@ def send_all_policies_to_customer(phone, policies):
                 
                 body = f"""Dear {customer_name},
 
-Thank you for using Insta Insurance Consultancy Portal! Please find all your insurance policy documents attached to this email.
+Thank you for using {Config.PORTAL_NAME}! Please find all your insurance policy documents attached to this email.
 
 Policy Summary:
 """
@@ -625,7 +625,7 @@ For any queries or assistance, please feel free to contact us.
 Thank you for choosing our services!
 
 Best regards,
-Insta Insurance Consultancy Portal"""
+{Config.PORTAL_NAME}"""
 
                 try:
                     from email_service import send_email
@@ -986,7 +986,7 @@ def handle_greeting(phone, page=0):
     # Greeting message for list picker
     page_info = f" (Page {page+1}/{total_pages})" if total_pages > 1 else ""
     greeting_msg = f"Hello {customer['name']}! 👋\n\n"
-    greeting_msg += f"Welcome to Insta Insurance Consultancy Portal. We found {total_policies} insurance policy/policies for you{page_info}.\n\n"
+    greeting_msg += f"Welcome to {Config.PORTAL_NAME}. We found {total_policies} insurance policy/policies for you{page_info}.\n\n"
     greeting_msg += "📋 Please select which document you'd like to receive:"
 
     # Send list picker message
@@ -1044,7 +1044,7 @@ def handle_policy_selection(phone, selection_id):
             send_whatsapp_message(phone,
                                   f"✅ All {len(policies)} policy documents sent successfully!\n\n"
                                   f"📧 All documents have been sent in one email for your convenience.\n\n"
-                                  f"Thank you for using Insta Insurance Consultancy Portal.\n\n"
+                                  f"Thank you for using {Config.PORTAL_NAME}.\n\n"
                                   f"Reply with *HI* anytime to access your documents again.")
         else:
             send_whatsapp_message(phone,
@@ -1077,7 +1077,7 @@ def handle_policy_selection(phone, selection_id):
                 send_whatsapp_message(phone,
                                       f"✅ {display_name} document sent successfully!\n\n"
                                       f"📧 Document has been sent via email and WhatsApp.\n\n"
-                                      f"Thank you for using Insta Insurance Consultancy Portal.\n\n"
+                                      f"Thank you for using {Config.PORTAL_NAME}.\n\n"
                                       f"Reply with *HI* anytime to access your documents again.")
             else:
                 send_whatsapp_message(phone, f"❌ Sorry, there was an error sending {display_name}: {msg}\n\nPlease try again by replying with *HI*.")
@@ -1150,7 +1150,7 @@ def setup_whatsapp_webhook(app):
                     selection_id = incoming_msg.strip()
                     handle_policy_selection(from_number, selection_id)
                 else:
-                    send_whatsapp_message(from_number, "👋 Welcome to Insta Insurance Consultancy Portal!\n\nReply with *HI* to get started and view your insurance policies.")
+                    send_whatsapp_message(from_number, f"👋 Welcome to {Config.PORTAL_NAME}!\n\nReply with *HI* to get started and view your insurance policies.")
 
             # Respond with empty TwiML (we're sending proactive messages via API)
             return str(MessagingResponse())

@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from config import Config
+from dynamic_config import Config
 import logging
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from datetime import datetime

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from supabase import create_client, Client
-from config import Config
+from dynamic_config import Config
 import io
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
@@ -163,13 +163,14 @@ def index():
                              current_client_id=client_id,
                              current_policy_number=policy_number,
                              current_search=search_query,
-                             client_name=client_name)
+                             client_name=client_name,
+                             current_user=current_user)
     except Exception as e:
         logger.error(f"Error fetching claims: {e}")
         flash(f"Error loading claims: {str(e)}", "error")
         return render_template('claims.html', claims=[], stats={}, 
                              current_client_id=None, current_policy_number=None, 
-                             current_search="", client_name=None)
+                             current_search="", client_name=None, current_user=current_user)
 
 @claims_bp.route('/api/document-types')
 @login_required
@@ -219,7 +220,7 @@ def add_claim():
         except:
             document_types = ['MEDICAL_BILL', 'DISCHARGE_SUMMARY', 'PRESCRIPTION', 'LAB_REPORT', 'OTHER']
         
-        return render_template('add_claim.html', document_types=document_types)
+        return render_template('add_claim.html', document_types=document_types, current_user=current_user)
     
     if request.method == 'POST':
         try:
@@ -320,7 +321,7 @@ def add_claim():
             flash(f"An unexpected error occurred while adding the claim: {str(e)}", "error")
             return redirect(url_for('claims.add_claim'))
 
-    return render_template('add_claim.html')
+    return render_template('add_claim.html', current_user=current_user)
 
 @claims_bp.route('/<int:claim_id>')
 @login_required
@@ -336,7 +337,7 @@ def view_claim(claim_id):
         docs_result = supabase.table("claim_documents").select("*").eq("claim_id", claim_id).order("uploaded_at", desc=True).execute()
         documents = docs_result.data or []
         
-        return render_template('view_claim.html', claim=claim, documents=documents)
+        return render_template('view_claim.html', claim=claim, documents=documents, current_user=current_user)
     except Exception as e:
         logger.error(f"Error fetching claim details for ID {claim_id}: {e}")
         flash(f"Error loading claim details: {str(e)}", "error")

@@ -6,7 +6,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 import logging
 from email_service import send_policy_email, indian_date_filter
 
@@ -735,10 +735,10 @@ Your updated policy document has been processed and is now active. The updated p
 
 For any queries or assistance, please feel free to contact us.
 
-Thank you for choosing our services.
+Thank you for choosing {Config.PORTAL_NAME}.
 
 Best regards,
-Insta Insurance Consultancy Portal"""
+{Config.PORTAL_NAME}"""
 
         # Download the policy file temporarily for email attachment
         temp_file_path = None
@@ -817,7 +817,7 @@ Reply with *HI* anytime to access your documents.
 
 Thank you for choosing our services!
 
-- Insta Insurance Consultancy Portal"""
+- {Config.PORTAL_NAME}"""
 
         result = send_whatsapp_message(phone, message)
         return bool(result and not result.get('error')), "WhatsApp sent successfully"
@@ -860,7 +860,7 @@ Thank you for continuing to trust us with your insurance needs.
 For any queries or assistance, please feel free to contact us.
 
 Best regards,
-Insta Insurance Consultancy Portal"""
+{Config.PORTAL_NAME}"""
 
         # Download the policy file temporarily for email attachment
         temp_file_path = None

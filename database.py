@@ -6,7 +6,7 @@ Optimized for multi-user concurrent access with connection pooling
 import threading
 import logging
 from supabase import create_client, Client
-from config import Config
+from dynamic_config import Config
 from typing import Optional
 import time
 

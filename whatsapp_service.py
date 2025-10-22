@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from supabase import create_client
-from config import Config
+from dynamic_config import Config
 from twilio.rest import Client as TwilioClient
 
 # Set up logging

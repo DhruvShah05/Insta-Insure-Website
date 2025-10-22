@@ -19,7 +19,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from googleapiclient.errors import HttpError
 
-from config import Config
+from dynamic_config import Config
 from database_pool import execute_query, batch_insert
 
 logger = logging.getLogger(__name__)
