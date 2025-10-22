@@ -33,20 +33,24 @@ except ImportError:
 supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
 # Twilio WhatsApp Configuration
+# Note: These are read dynamically from Config to support settings changes without restart
+def get_twilio_client():
+    """Get Twilio client with current credentials"""
+    account_sid = Config.TWILIO_ACCOUNT_SID
+    auth_token = Config.TWILIO_AUTH_TOKEN
+    return TwilioClient(account_sid, auth_token) if (account_sid and auth_token) else None
+
+# Initialize client
+twilio_client = get_twilio_client()
+
+# Legacy constants for backward compatibility - but use Config.* directly in functions
 TWILIO_ACCOUNT_SID = Config.TWILIO_ACCOUNT_SID
 TWILIO_AUTH_TOKEN = Config.TWILIO_AUTH_TOKEN
-TWILIO_FROM = Config.TWILIO_WHATSAPP_FROM  # e.g., 'whatsapp:+14155238886'
-TWILIO_USE_CONTENT_TEMPLATE = Config.TWILIO_USE_CONTENT_TEMPLATE
-TWILIO_CONTENT_SID = Config.TWILIO_CONTENT_SID
 VERIFY_TOKEN = Config.VERIFY_TOKEN
-twilio_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN) else None
 
 # Content Template SIDs - APPROVED TEMPLATES
 POLICY_DOCUMENT_TEMPLATE_SID = "HX09943977f51524767ed93c7cc670fb47"  # Policy Issued Template
 RENEWAL_REMINDER_TEMPLATE_SID = "HX169afdf8bae849bb296476c9d4e4db9d"   # Renewal Reminder Template
-
-# WhatsApp Media Configuration
-USE_CONTENT_TEMPLATES = Config.TWILIO_USE_CONTENT_TEMPLATE
 
 # Google Drive Configuration
 GOOGLE_CREDENTIALS_FILE = Config.GOOGLE_CREDENTIALS_FILE
@@ -86,16 +90,16 @@ def send_whatsapp_message(to_number, message_text):
     if not twilio_client:
         return {"error": "Twilio not configured"}
     try:
-        if TWILIO_USE_CONTENT_TEMPLATE and TWILIO_CONTENT_SID:
+        if Config.TWILIO_USE_CONTENT_TEMPLATE and Config.TWILIO_CONTENT_SID:
             msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(TWILIO_FROM),
-                content_sid=TWILIO_CONTENT_SID,
+                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
+                content_sid=Config.TWILIO_CONTENT_SID,
                 content_variables=json.dumps({"1": message_text}),
                 to=format_whatsapp_address(to_number)
             )
         else:
             msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(TWILIO_FROM),
+                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
                 body=message_text,
                 to=format_whatsapp_address(to_number)
             )
@@ -142,7 +146,7 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
         logger.info(f"Sending content template {content_sid} with variables: {variables}")
         
         message_params = {
-            'from_': format_whatsapp_address(TWILIO_FROM),
+            'from_': format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
             'content_sid': content_sid,
             'content_variables': json.dumps(variables),
             'to': format_whatsapp_address(to_number)
@@ -219,7 +223,7 @@ def send_policy_document_whatsapp(phone, policy, customer_name):
                 expiry_date = f"{parts[2]}/{parts[1]}/{parts[0]}"
         
         # Use approved Content Templates with dynamic media URLs
-        if USE_CONTENT_TEMPLATES:
+        if Config.TWILIO_USE_CONTENT_TEMPLATE:
             # Generate the media URL path for template variable {{7}}
             filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
             safe_filename = quote(filename, safe='')
@@ -264,11 +268,11 @@ Expiry Date: {expiry_date or 'N/A'}
 You can reply with *HI* anytime to view all your policy documents.
 
 Best regards,
-{Config.COMPANY_NAME}"""
+Insta Insurance Consultancy"""
 
             # Send with media attachment
             msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(TWILIO_FROM),
+                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
                 body=message_body,
                 media_url=[media_url],
                 to=format_whatsapp_address(phone)
@@ -326,7 +330,7 @@ def send_list_picker_message(to, body_text, button_text, items, variables=None):
             
             # Send message using the content template
             msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(TWILIO_FROM),
+                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
                 content_sid=content_sid,
                 content_variables=json.dumps(variables or {}),
                 to=format_whatsapp_address(to)
@@ -357,15 +361,15 @@ def send_interactive_list_fallback(to, body_text, button_text, items):
 
 def send_interactive_list(to, body_text, button_text, sections):
     """If content template is enabled, send with ContentSID and vars; else send a plain text menu."""
-    if TWILIO_USE_CONTENT_TEMPLATE and TWILIO_CONTENT_SID:
+    if Config.TWILIO_USE_CONTENT_TEMPLATE and Config.TWILIO_CONTENT_SID:
         # Flatten first 10 items as variables for a template like: 1) {{1}}, 2) {{2}}, ...
         rows = sections[0]['rows'] if sections else []
         variables = {str(i + 1): rows[i].get('title', '') for i in range(min(10, len(rows)))}
         variables['body'] = body_text
         try:
             msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(TWILIO_FROM),
-                content_sid=TWILIO_CONTENT_SID,
+                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
+                content_sid=Config.TWILIO_CONTENT_SID,
                 content_variables=json.dumps(variables),
                 to=format_whatsapp_address(to)
             )
@@ -392,7 +396,7 @@ def send_document(to, media_url, filename, caption=''):
         return {"error": "Twilio not configured"}
     try:
         msg = twilio_client.messages.create(
-            from_=format_whatsapp_address(TWILIO_FROM),
+            from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
             body=caption if caption else None,
             media_url=[media_url],
             to=format_whatsapp_address(to)
@@ -604,7 +608,7 @@ def send_all_policies_to_customer(phone, policies):
                 
                 body = f"""Dear {customer_name},
 
-Thank you for using {Config.PORTAL_NAME}! Please find all your insurance policy documents attached to this email.
+Thank you for using Insta Insurance Consultancy Portal! Please find all your insurance policy documents attached to this email.
 
 Policy Summary:
 """
@@ -625,7 +629,7 @@ For any queries or assistance, please feel free to contact us.
 Thank you for choosing our services!
 
 Best regards,
-{Config.PORTAL_NAME}"""
+Insta Insurance Consultancy"""
 
                 try:
                     from email_service import send_email
@@ -986,7 +990,7 @@ def handle_greeting(phone, page=0):
     # Greeting message for list picker
     page_info = f" (Page {page+1}/{total_pages})" if total_pages > 1 else ""
     greeting_msg = f"Hello {customer['name']}! 👋\n\n"
-    greeting_msg += f"Welcome to {Config.PORTAL_NAME}. We found {total_policies} insurance policy/policies for you{page_info}.\n\n"
+    greeting_msg += f"Welcome to Insta Insurance Consultancy Portal. We found {total_policies} insurance policy/policies for you{page_info}.\n\n"
     greeting_msg += "📋 Please select which document you'd like to receive:"
 
     # Send list picker message
@@ -1044,7 +1048,7 @@ def handle_policy_selection(phone, selection_id):
             send_whatsapp_message(phone,
                                   f"✅ All {len(policies)} policy documents sent successfully!\n\n"
                                   f"📧 All documents have been sent in one email for your convenience.\n\n"
-                                  f"Thank you for using {Config.PORTAL_NAME}.\n\n"
+                                  f"Thank you for using Insta Insurance Consultancy Portal.\n\n"
                                   f"Reply with *HI* anytime to access your documents again.")
         else:
             send_whatsapp_message(phone,
@@ -1077,7 +1081,7 @@ def handle_policy_selection(phone, selection_id):
                 send_whatsapp_message(phone,
                                       f"✅ {display_name} document sent successfully!\n\n"
                                       f"📧 Document has been sent via email and WhatsApp.\n\n"
-                                      f"Thank you for using {Config.PORTAL_NAME}.\n\n"
+                                      f"Thank you for using Insta Insurance Consultancy Portal.\n\n"
                                       f"Reply with *HI* anytime to access your documents again.")
             else:
                 send_whatsapp_message(phone, f"❌ Sorry, there was an error sending {display_name}: {msg}\n\nPlease try again by replying with *HI*.")
@@ -1150,7 +1154,7 @@ def setup_whatsapp_webhook(app):
                     selection_id = incoming_msg.strip()
                     handle_policy_selection(from_number, selection_id)
                 else:
-                    send_whatsapp_message(from_number, f"👋 Welcome to {Config.PORTAL_NAME}!\n\nReply with *HI* to get started and view your insurance policies.")
+                    send_whatsapp_message(from_number, f"👋 Welcome to Insta Insurance Consultancy Portal!\n\nReply with *HI* to get started and view your insurance policies.")
 
             # Respond with empty TwiML (we're sending proactive messages via API)
             return str(MessagingResponse())

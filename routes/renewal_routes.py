@@ -384,8 +384,12 @@ def update_policy_details_api():
             policy_updates['insurance_company'] = data['insurance_company']
         if 'product_name' in data:
             policy_updates['product_name'] = data['product_name']
+        if 'policy_number' in data:
+            policy_updates['policy_number'] = data['policy_number']
         if 'agent_name' in data:
             policy_updates['agent_name'] = data['agent_name']
+        if 'payment_details' in data:
+            policy_updates['payment_details'] = data['payment_details']
         if 'sum_insured' in data and data['sum_insured'] and str(data['sum_insured']).strip():
             try:
                 policy_updates['sum_insured'] = float(data['sum_insured'])
@@ -396,16 +400,40 @@ def update_policy_details_api():
                 policy_updates['net_premium'] = float(data['net_premium'])
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': 'Invalid net premium amount'}), 400
-        if 'gross_premium' in data and data['gross_premium'] and str(data['gross_premium']).strip():
+        if 'addon_premium' in data and data['addon_premium'] and str(data['addon_premium']).strip():
             try:
-                policy_updates['gross_premium'] = float(data['gross_premium'])
+                policy_updates['addon_premium'] = float(data['addon_premium'])
             except (ValueError, TypeError):
-                return jsonify({'success': False, 'message': 'Invalid gross premium amount'}), 400
+                return jsonify({'success': False, 'message': 'Invalid addon premium amount'}), 400
         if 'tp_tr_premium' in data and data['tp_tr_premium'] and str(data['tp_tr_premium']).strip():
             try:
                 policy_updates['tp_tr_premium'] = float(data['tp_tr_premium'])
             except (ValueError, TypeError):
                 return jsonify({'success': False, 'message': 'Invalid TP/TR premium amount'}), 400
+        if 'gst_percentage' in data and data['gst_percentage'] and str(data['gst_percentage']).strip():
+            try:
+                policy_updates['gst_percentage'] = float(data['gst_percentage'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid GST percentage'}), 400
+        if 'gross_premium' in data and data['gross_premium'] and str(data['gross_premium']).strip():
+            try:
+                policy_updates['gross_premium'] = float(data['gross_premium'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid gross premium amount'}), 400
+        if 'commission_percentage' in data and data['commission_percentage'] and str(data['commission_percentage']).strip():
+            try:
+                policy_updates['commission_percentage'] = float(data['commission_percentage'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid commission percentage'}), 400
+        if 'commission_amount' in data and data['commission_amount'] and str(data['commission_amount']).strip():
+            try:
+                policy_updates['commission_amount'] = float(data['commission_amount'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'message': 'Invalid commission amount'}), 400
+        if 'one_time_insurance' in data:
+            policy_updates['one_time_insurance'] = bool(data['one_time_insurance'])
+        if 'commission_received' in data:
+            policy_updates['commission_received'] = bool(data['commission_received'])
         if 'business_type' in data:
             policy_updates['business_type'] = data['business_type']
         if 'group_name' in data:

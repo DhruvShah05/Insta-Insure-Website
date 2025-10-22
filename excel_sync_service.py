@@ -744,14 +744,76 @@ class RealtimeExcelSync:
             logger.error(f"Error creating pending policies sheet: {e}")
 
     def _create_policy_history_sheet(self, workbook):
-        """Create policy history sheet"""
+        """Create policy history sheet with additional details (factory, health insurance)"""
         try:
             policy_history = self.supabase.table("policy_history").select("*").execute()
             if not policy_history.data:
                 logger.info("No policy history data found")
                 return
+            
+            # Get factory and health insurance history details
+            factory_history = {}
+            health_history = {}
+            health_members_history = {}
+            
+            try:
+                factory_data = self.supabase.table("policy_history_factory_details").select("*").execute()
+                for item in factory_data.data:
+                    factory_history[item['history_id']] = item
+            except Exception as e:
+                logger.warning(f"Could not fetch factory history details: {e}")
+            
+            try:
+                health_data = self.supabase.table("policy_history_health_details").select("*").execute()
+                for item in health_data.data:
+                    health_history[item['history_id']] = item
+                    
+                # Get health members
+                health_members_data = self.supabase.table("policy_history_health_members").select("*").execute()
+                for member in health_members_data.data:
+                    health_id = member['history_health_id']
+                    if health_id not in health_members_history:
+                        health_members_history[health_id] = []
+                    health_members_history[health_id].append(member)
+            except Exception as e:
+                logger.warning(f"Could not fetch health history details: {e}")
+            
+            # Enrich policy history with additional details
+            enriched_history = []
+            for record in policy_history.data:
+                history_id = record['history_id']
+                enriched_record = record.copy()
                 
-            df_history = pd.DataFrame(policy_history.data)
+                # Add factory details if available
+                if history_id in factory_history:
+                    factory = factory_history[history_id]
+                    enriched_record['factory_building'] = factory.get('building')
+                    enriched_record['factory_plant_machinery'] = factory.get('plant_machinery')
+                    enriched_record['factory_furniture_fittings'] = factory.get('furniture_fittings')
+                    enriched_record['factory_stocks'] = factory.get('stocks')
+                    enriched_record['factory_electrical_installations'] = factory.get('electrical_installations')
+                
+                # Add health details if available
+                if history_id in health_history:
+                    health = health_history[history_id]
+                    enriched_record['health_plan_type'] = health.get('plan_type')
+                    enriched_record['health_floater_sum_insured'] = health.get('floater_sum_insured')
+                    enriched_record['health_floater_bonus'] = health.get('floater_bonus')
+                    enriched_record['health_floater_deductible'] = health.get('floater_deductible')
+                    
+                    # Add health members as comma-separated string
+                    health_id = health.get('history_health_id')
+                    if health_id and health_id in health_members_history:
+                        members = health_members_history[health_id]
+                        member_details = []
+                        for m in members:
+                            details = f"{m['member_name']} (SI: {m.get('sum_insured', 'N/A')}, Bonus: {m.get('bonus', 'N/A')})"
+                            member_details.append(details)
+                        enriched_record['health_members'] = '; '.join(member_details)
+                
+                enriched_history.append(enriched_record)
+                
+            df_history = pd.DataFrame(enriched_history)
             
             # Convert DataFrame to sheet
             ws = workbook.create_sheet("Policy History")
@@ -791,9 +853,22 @@ class RealtimeExcelSync:
                 'last_reminder_sent': 'Last Reminder Sent',
                 'renewed_at': 'Renewed At',
                 'created_at': 'Created At',
+                'updated_at': 'Updated At',
                 'archived_at': 'Archived At',
                 'archived_reason': 'Archived Reason',
-                'archived_by': 'Archived By'
+                'archived_by': 'Archived By',
+                # Factory insurance fields
+                'factory_building': 'Factory - Building',
+                'factory_plant_machinery': 'Factory - Plant & Machinery',
+                'factory_furniture_fittings': 'Factory - Furniture & Fittings',
+                'factory_stocks': 'Factory - Stocks',
+                'factory_electrical_installations': 'Factory - Electrical Installations',
+                # Health insurance fields
+                'health_plan_type': 'Health - Plan Type',
+                'health_floater_sum_insured': 'Health - Floater Sum Insured',
+                'health_floater_bonus': 'Health - Floater Bonus',
+                'health_floater_deductible': 'Health - Floater Deductible',
+                'health_members': 'Health - Insured Members'
             }
             
             # Write headers with user-friendly names
@@ -810,7 +885,7 @@ class RealtimeExcelSync:
             for row_idx, (_, row) in enumerate(df_history.iterrows(), 2):
                 for col_idx, (col_name, value) in enumerate(row.items(), 1):
                     # Format dates for display
-                    if col_name in ['payment_date', 'policy_from', 'policy_to', 'last_reminder_sent', 'renewed_at', 'created_at', 'archived_at']:
+                    if col_name in ['payment_date', 'policy_from', 'policy_to', 'last_reminder_sent', 'renewed_at', 'created_at', 'updated_at', 'archived_at']:
                         value = self._convert_date_for_display(value)
                     # Format boolean values
                     elif col_name in ['one_time_insurance', 'commission_received']:

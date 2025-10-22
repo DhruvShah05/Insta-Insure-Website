@@ -373,6 +373,10 @@
                             <input type="text" class="form-control" id="editProductName" value="{{ policy.product_name or '' }}">
                         </div>
                         <div class="col-md-6">
+                            <label for="editPolicyNumber" class="form-label">Policy Number</label>
+                            <input type="text" class="form-control" id="editPolicyNumber" value="{{ policy.policy_number or '' }}">
+                        </div>
+                        <div class="col-md-6">
                             <label for="editAgentName" class="form-label">Agent Name</label>
                             <select class="form-select" id="editAgentName">
                                 <option value="">Select agent name...</option>
@@ -386,21 +390,60 @@
                                 <option value="ROLL OVER" {{ 'selected' if policy.business_type == 'ROLL OVER' else '' }}>Roll Over</option>
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-check" style="margin-top: 34px;">
+                                <input type="checkbox" class="form-check-input" id="editOneTimeInsurance" {{ 'checked' if policy.one_time_insurance else '' }}>
+                                <label class="form-check-label" for="editOneTimeInsurance">One-time insurance</label>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Premium and Financial Information -->
                     <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label for="editPaymentDetails" class="form-label">Payment Details</label>
+                            <input type="text" class="form-control" id="editPaymentDetails" value="{{ policy.payment_details or '' }}" placeholder="UPI/RTGS ref, etc.">
+                        </div>
                         <div class="col-md-4">
                             <label for="editSumInsured" class="form-label">Sum Insured</label>
                             <input type="number" class="form-control" id="editSumInsured" value="{{ policy.sum_insured or '' }}" step="0.01">
                         </div>
                         <div class="col-md-4">
-                            <label for="editNetPremium" class="form-label">Net Premium</label>
-                            <input type="number" class="form-control" id="editNetPremium" value="{{ policy.net_premium or '' }}" step="0.01">
+                            <label for="editNetPremium" class="form-label">Net Premium/OD</label>
+                            <input type="number" class="form-control" id="editNetPremium" value="{{ policy.net_premium or '' }}" step="0.01" onchange="calculateEditGrossPremium()">
                         </div>
                         <div class="col-md-4">
-                            <label for="editGrossPremium" class="form-label">Gross Premium</label>
-                            <input type="number" class="form-control" id="editGrossPremium" value="{{ policy.gross_premium or '' }}" step="0.01">
+                            <label for="editAddonPremium" class="form-label">Addon Premium</label>
+                            <input type="number" class="form-control" id="editAddonPremium" value="{{ policy.addon_premium or '' }}" step="0.01" onchange="calculateEditGrossPremium()">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editTpTrPremium" class="form-label">TP/TR Premium</label>
+                            <input type="number" class="form-control" id="editTpTrPremium" value="{{ policy.tp_tr_premium or '' }}" step="0.01" onchange="calculateEditGrossPremium()">
+                            <div class="form-help">Third Party/Transit Premium</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editGstPercentage" class="form-label">GST %</label>
+                            <input type="number" class="form-control" id="editGstPercentage" value="{{ policy.gst_percentage or '' }}" step="0.01" onchange="calculateEditGrossPremium()">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editGrossPremium" class="form-label">Gross Premium (Auto-calculated)</label>
+                            <input type="number" class="form-control" id="editGrossPremium" value="{{ policy.gross_premium or '' }}" step="0.01" readonly style="background-color: #f8f9fa;">
+                            <div class="form-help">Net + Addon + TP/TR + GST</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editCommissionPercentage" class="form-label">Commission %</label>
+                            <input type="number" class="form-control" id="editCommissionPercentage" value="{{ policy.commission_percentage or '' }}" step="0.01" onchange="calculateEditCommission()">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="editCommissionAmount" class="form-label">Commission Amount (Auto-calculated)</label>
+                            <input type="number" class="form-control" id="editCommissionAmount" value="{{ policy.commission_amount or '' }}" step="0.01" readonly style="background-color: #f8f9fa;">
+                            <div class="form-help">(Net + Addon) × Commission %</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check" style="margin-top: 34px;">
+                                <input type="checkbox" class="form-check-input" id="editCommissionReceived" {{ 'checked' if policy.commission_received else '' }}>
+                                <label class="form-check-label" for="editCommissionReceived">Commission received</label>
+                            </div>
                         </div>
                     </div>
                     
@@ -659,6 +702,34 @@
                 }
             });
         });
+        
+        // Calculation functions for edit form
+        function calculateEditGrossPremium() {
+            const netPremium = parseFloat(document.getElementById('editNetPremium').value) || 0;
+            const addonPremium = parseFloat(document.getElementById('editAddonPremium').value) || 0;
+            const tpTrPremium = parseFloat(document.getElementById('editTpTrPremium').value) || 0;
+            const gstPercentage = parseFloat(document.getElementById('editGstPercentage').value) || 0;
+            
+            const subtotal = netPremium + addonPremium + tpTrPremium;
+            const gstAmount = (subtotal * gstPercentage) / 100;
+            const grossPremium = subtotal + gstAmount;
+            
+            document.getElementById('editGrossPremium').value = Math.round(grossPremium);
+            
+            // Also recalculate commission when premium changes
+            calculateEditCommission();
+        }
+        
+        function calculateEditCommission() {
+            const netPremium = parseFloat(document.getElementById('editNetPremium').value) || 0;
+            const addonPremium = parseFloat(document.getElementById('editAddonPremium').value) || 0;
+            const commissionPercentage = parseFloat(document.getElementById('editCommissionPercentage').value) || 0;
+            
+            const commissionBase = netPremium + addonPremium;
+            const commissionAmount = (commissionBase * commissionPercentage) / 100;
+            
+            document.getElementById('editCommissionAmount').value = Math.round(commissionAmount);
+        }
     </script>
     <script>
         // Edit mode functions
@@ -709,11 +780,20 @@
                     policy_id: document.getElementById('editPolicyId').value,
                     insurance_company: document.getElementById('editInsuranceCompany').value,
                     product_name: document.getElementById('editProductName').value,
+                    policy_number: document.getElementById('editPolicyNumber').value,
                     agent_name: document.getElementById('editAgentName').value,
                     business_type: document.getElementById('editBusinessType').value,
+                    payment_details: document.getElementById('editPaymentDetails').value,
                     sum_insured: document.getElementById('editSumInsured').value,
                     net_premium: document.getElementById('editNetPremium').value,
+                    addon_premium: document.getElementById('editAddonPremium').value,
+                    tp_tr_premium: document.getElementById('editTpTrPremium').value,
+                    gst_percentage: document.getElementById('editGstPercentage').value,
                     gross_premium: document.getElementById('editGrossPremium').value,
+                    commission_percentage: document.getElementById('editCommissionPercentage').value,
+                    commission_amount: document.getElementById('editCommissionAmount').value,
+                    one_time_insurance: document.getElementById('editOneTimeInsurance').checked,
+                    commission_received: document.getElementById('editCommissionReceived').checked,
                     policy_from: document.getElementById('editPolicyFrom').value,
                     policy_to: document.getElementById('editPolicyTo').value,
                     payment_date: document.getElementById('editPaymentDate').value,

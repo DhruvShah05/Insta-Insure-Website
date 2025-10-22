@@ -68,7 +68,7 @@ class WhatsAppBotAsync:
             client_result = get_client_by_phone(phone)
             if not client_result or not client_result.data:
                 # Send welcome message for new users
-                welcome_msg = f"""👋 Welcome to {Config.COMPANY_NAME}!
+                welcome_msg = f"""👋 Welcome to Insta Insurance Consultancy!
 
 We don't have your details in our system yet. Please contact our team to get started with your insurance needs.
 
@@ -107,7 +107,7 @@ Please contact our team if you'd like to:
 • Check policy status
 • Get insurance quotes
 
-Thank you for choosing {Config.COMPANY_NAME}!"""
+Thank you for choosing Insta Insurance Consultancy!"""
                 
                 send_whatsapp_async(phone, no_policies_msg, priority=2)
                 return True
@@ -115,7 +115,7 @@ Thank you for choosing {Config.COMPANY_NAME}!"""
             # Send greeting message
             greeting_msg = f"""Hello {client['name']}! 👋
 
-Welcome to {Config.PORTAL_NAME}. I'll send you all your policy documents right away.
+Welcome to Insta Insurance Consultancy Portal. I'll send you all your policy documents right away.
 
 📄 Found {len(policies)} active policies for you."""
             
@@ -202,7 +202,7 @@ Please contact us to renew your policy and avoid any coverage gaps.
 📞 Contact our team for renewal assistance.
 
 Thank you!
-- {Config.COMPANY_NAME}"""
+- Insta Insurance Consultancy"""
                 
                 whatsapp_messages.append({
                     'phone': phone,
@@ -386,7 +386,7 @@ def handle_whatsapp_webhook_async(webhook_data):
 For policy documents, reply with *HI*
 For assistance, please contact our team.
 
-- {Config.COMPANY_NAME}"""
+- Insta Insurance Consultancy"""
                     
                     send_whatsapp_async(from_number, response_msg, priority=3)
         

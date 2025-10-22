@@ -735,10 +735,10 @@ Your updated policy document has been processed and is now active. The updated p
 
 For any queries or assistance, please feel free to contact us.
 
-Thank you for choosing {Config.PORTAL_NAME}.
+Thank you for choosing Insta Insurance Consultancy.
 
 Best regards,
-{Config.PORTAL_NAME}"""
+Insta Insurance Consultancy"""
 
         # Download the policy file temporarily for email attachment
         temp_file_path = None
@@ -817,7 +817,7 @@ Reply with *HI* anytime to access your documents.
 
 Thank you for choosing our services!
 
-- {Config.PORTAL_NAME}"""
+- Insta Insurance Consultancy"""
 
         result = send_whatsapp_message(phone, message)
         return bool(result and not result.get('error')), "WhatsApp sent successfully"
@@ -860,7 +860,7 @@ Thank you for continuing to trust us with your insurance needs.
 For any queries or assistance, please feel free to contact us.
 
 Best regards,
-{Config.PORTAL_NAME}"""
+Insta Insurance Consultancy"""
 
         # Download the policy file temporarily for email attachment
         temp_file_path = None

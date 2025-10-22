@@ -63,7 +63,11 @@ class DynamicConfig:
     @property
     def DEBUG(self):
         debug_setting = self._get_setting('app', 'debug', False)
-        return debug_setting if isinstance(debug_setting, bool) else self.FLASK_ENV == "development"
+        if isinstance(debug_setting, bool):
+            return debug_setting
+        if isinstance(debug_setting, str):
+            return debug_setting.lower() in ("1", "true", "yes")
+        return self.FLASK_ENV == "development"
     
     @property
     def SECRET_KEY(self):
@@ -173,7 +177,10 @@ class DynamicConfig:
         use_template = self._get_setting('twilio', 'use_content_template', False)
         if isinstance(use_template, bool):
             return use_template
-        # Handle string values from environment
+        # Handle string values from database or environment
+        if isinstance(use_template, str):
+            return use_template.lower() in ("1", "true", "yes")
+        # Final fallback to environment variable
         env_value = os.getenv("TWILIO_USE_CONTENT_TEMPLATE", "false")
         return env_value.lower() in ("1", "true", "yes")
     
@@ -217,11 +224,21 @@ class DynamicConfig:
     
     @property
     def ENABLE_EMAIL_NOTIFICATIONS(self):
-        return self._get_setting('notifications', 'enable_email_notifications', True)
+        enable_email = self._get_setting('notifications', 'enable_email_notifications', True)
+        if isinstance(enable_email, bool):
+            return enable_email
+        if isinstance(enable_email, str):
+            return enable_email.lower() in ("1", "true", "yes")
+        return True
     
     @property
     def ENABLE_WHATSAPP_NOTIFICATIONS(self):
-        return self._get_setting('notifications', 'enable_whatsapp_notifications', True)
+        enable_whatsapp = self._get_setting('notifications', 'enable_whatsapp_notifications', True)
+        if isinstance(enable_whatsapp, bool):
+            return enable_whatsapp
+        if isinstance(enable_whatsapp, str):
+            return enable_whatsapp.lower() in ("1", "true", "yes")
+        return True
     
     # File Upload Settings
     @property
