@@ -120,8 +120,6 @@ def load_user(user_id):
 def inject_config():
     return {
         'config': {
-            'CLERK_PUBLISHABLE_KEY': Config.CLERK_PUBLISHABLE_KEY,
-            'CLERK_FRONTEND_API': Config.CLERK_FRONTEND_API,
             'PORTAL_NAME': Config.PORTAL_NAME,
             'PORTAL_TITLE': Config.PORTAL_TITLE,
             'LOGO_PATH': Config.LOGO_PATH,

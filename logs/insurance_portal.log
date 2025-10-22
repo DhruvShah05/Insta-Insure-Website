@@ -2716,3 +2716,7 @@ TypeError: error() missing 1 required positional argument: 'msg'
 2025-10-22 14:07:04,059 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/styles.css?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:307]
 2025-10-22 14:07:04,060 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/ico.png - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:307]
 2025-10-22 14:07:04,069 INFO: 127.0.0.1 - GET http://127.0.0.1:5050/static/js/performance.js?v=2.0 - Active users: 1 [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:307]
+2025-10-22 14:30:12,168 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:93]
+2025-10-22 14:30:12,190 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:332]
+2025-10-22 14:32:34,989 INFO: Insurance Portal startup [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:93]
+2025-10-22 14:32:35,009 INFO: Excel sync service initialized [in /Users/dhruvshah/codes/insurance-saas/Insta-Insure-Website/app.py:332]
