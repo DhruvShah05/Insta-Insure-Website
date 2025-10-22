@@ -141,6 +141,23 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
                 if cleaned_value != value:
                     logger.warning(f"Cleaned variable {key}: '{value}' -> '{cleaned_value}'")
                     variables[key] = cleaned_value
+                
+                # Special validation for media paths (typically variable "7" in templates)
+                # Ensure no spaces or special characters that could cause 12300 errors
+                if 'static/' in value or '.pdf' in value.lower():
+                    import re
+                    if ' ' in value or re.search(r'[~!@#$%^&*()\[\]{}]', value):
+                        logger.error(f"Invalid media path in variable {key}: '{value}' - contains spaces or special chars")
+                        # Try to sanitize it
+                        sanitized = re.sub(r'[^a-zA-Z0-9\-_\./]', '_', value)
+                        sanitized = re.sub(r'_+', '_', sanitized)
+                        logger.warning(f"Sanitized media path: '{value}' -> '{sanitized}'")
+                        variables[key] = sanitized
+        
+        # Final validation: Check if any variable still has problematic content
+        for key, value in variables.items():
+            if isinstance(value, str) and len(value) > 200:
+                logger.warning(f"Variable {key} is very long ({len(value)} chars), may cause issues")
         
         # Log the variables being sent for debugging
         logger.info(f"Sending content template {content_sid} with variables: {variables}")
@@ -194,9 +211,8 @@ def send_content_template_message(to_number, content_sid, variables, media_url=N
 
 def send_policy_document_whatsapp(phone, policy, customer_name):
     """
-    Send policy document via WhatsApp using the appropriate method:
-    - Content Templates (for approved templates)
-    - Traditional media messages (for Google Drive files)
+    Send policy document via WhatsApp using Content Template (Policy Issued Template).
+    HARDCODED to always use content template - never sends freeform messages.
     """
     if not twilio_client:
         return {"error": "Twilio not configured"}
@@ -222,63 +238,30 @@ def send_policy_document_whatsapp(phone, policy, customer_name):
             if len(parts) == 3 and len(parts[0]) == 4:
                 expiry_date = f"{parts[2]}/{parts[1]}/{parts[0]}"
         
-        # Use approved Content Templates with dynamic media URLs
-        if Config.TWILIO_USE_CONTENT_TEMPLATE:
-            # Generate the media URL path for template variable {{7}}
-            filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
-            safe_filename = quote(filename, safe='')
-            media_path = f"media/drive/{file_id}/{safe_filename}"  # Path only, not full URL
-            
-            # Prepare template variables for approved template
-            # Ensure all variables have non-empty values (Twilio doesn't allow empty strings)
-            template_variables = {
-                "1": customer_name or "Customer",
-                "2": policy.get('product_name') or 'Insurance Policy',
-                "3": policy.get('policy_number') or 'N/A',
-                "4": policy.get('remarks') or 'N/A',
-                "5": coverage_start or 'N/A',
-                "6": expiry_date or 'N/A',
-                "7": media_path or 'test-policy.pdf'  # This will be used in template as: https://admin.instainsure.co.in/{{7}}
-            }
-            
-            return send_content_template_message(
-                phone, 
-                POLICY_DOCUMENT_TEMPLATE_SID, 
-                template_variables, 
-                None  # No separate media_url needed since it's in template
-            )
+        # ALWAYS use approved Content Template (Policy Issued Template)
+        # Generate the media URL path for template variable {{7}}
+        filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
+        safe_filename = quote(filename, safe='')
+        media_path = f"media/drive/{file_id}/{safe_filename}"  # Path only, not full URL
         
-        else:
-            # Fallback: Traditional approach with media URL (Google Drive files)
-            filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
-            safe_filename = quote(filename, safe='')
-            base_url = Config.APP_BASE_URL.rstrip('/')
-            media_url = f"{base_url}/media/drive/{file_id}/{safe_filename}"
-            
-            # Create message body using template format
-            message_body = f"""Hello {customer_name}!
-
-We're happy to inform you that your new *{policy.get('product_name', 'Insurance Policy')}* policy has been successfully issued.
-
-Company: {policy.get('insurance_company', '')}
-Policy Number: {policy.get('policy_number', 'N/A')}
-Coverage Start Date: {coverage_start or 'N/A'}
-Expiry Date: {expiry_date or 'N/A'}
-
-You can reply with *HI* anytime to view all your policy documents.
-
-Best regards,
-Insta Insurance Consultancy"""
-
-            # Send with media attachment
-            msg = twilio_client.messages.create(
-                from_=format_whatsapp_address(Config.TWILIO_WHATSAPP_FROM),
-                body=message_body,
-                media_url=[media_url],
-                to=format_whatsapp_address(phone)
-            )
-            
-            return {"sid": msg.sid}
+        # Prepare template variables for approved template
+        # Ensure all variables have non-empty values (Twilio doesn't allow empty strings)
+        template_variables = {
+            "1": customer_name or "Customer",
+            "2": policy.get('product_name') or 'Insurance Policy',
+            "3": policy.get('policy_number') or 'N/A',
+            "4": policy.get('remarks') or 'N/A',
+            "5": coverage_start or 'N/A',
+            "6": expiry_date or 'N/A',
+            "7": media_path or 'test-policy.pdf'  # This will be used in template as: https://admin.instainsure.co.in/{{7}}
+        }
+        
+        return send_content_template_message(
+            phone, 
+            POLICY_DOCUMENT_TEMPLATE_SID, 
+            template_variables, 
+            None  # No separate media_url needed since it's in template
+        )
             
     except Exception as e:
         logger.error(f"Error sending policy document via WhatsApp: {e}")

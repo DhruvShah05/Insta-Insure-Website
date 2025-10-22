@@ -72,15 +72,15 @@
     }
 
     /* Column widths */
-    .table th:nth-child(1), .table td:nth-child(1) { width: 8%; }  /* Policy ID */
-    .table th:nth-child(2), .table td:nth-child(2) { width: 18%; } /* Member Name */
-    .table th:nth-child(3), .table td:nth-child(3) { width: 16%; } /* Insurance Company */
-    .table th:nth-child(4), .table td:nth-child(4) { width: 14%; } /* Product */
-    .table th:nth-child(5), .table td:nth-child(5) { width: 12%; } /* Policy Number */
-    .table th:nth-child(6), .table td:nth-child(6) { width: 10%; } /* Policy From */
-    .table th:nth-child(7), .table td:nth-child(7) { width: 10%; } /* Policy To */
+    .table th:nth-child(1), .table td:nth-child(1) { width: 7%; }  /* Policy ID */
+    .table th:nth-child(2), .table td:nth-child(2) { width: 16%; } /* Member Name */
+    .table th:nth-child(3), .table td:nth-child(3) { width: 15%; } /* Insurance Company */
+    .table th:nth-child(4), .table td:nth-child(4) { width: 13%; } /* Product */
+    .table th:nth-child(5), .table td:nth-child(5) { width: 11%; } /* Policy Number */
+    .table th:nth-child(6), .table td:nth-child(6) { width: 9%; } /* Policy From */
+    .table th:nth-child(7), .table td:nth-child(7) { width: 9%; } /* Policy To */
     .table th:nth-child(8), .table td:nth-child(8) { width: 8%; }  /* Status */
-    .table th:nth-child(9), .table td:nth-child(9) { width: 4%; }  /* Actions */
+    .table th:nth-child(9), .table td:nth-child(9) { width: 12%; }  /* Actions */
 
     .member-info {
         display: flex;
@@ -256,8 +256,12 @@
                         <span class="policy-badge {{ status_info.class }}">{{ status_info.label }}</span>
                     </td>
                     <td>
-                        <a href="{{ url_for('existing_policies.view_policy', policy_id=policy.policy_id) }}" 
-                           class="btn btn-sm btn-outline">View</a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('existing_policies.view_policy', policy_id=policy.policy_id) }}" 
+                               class="btn btn-sm btn-outline">View</a>
+                            <a href="{{ url_for('policies.edit_policy', policy_id=policy.policy_id) }}" 
+                               class="btn btn-sm btn-primary">Edit</a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

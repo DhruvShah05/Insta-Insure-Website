@@ -865,3 +865,254 @@ def add_policy():
     # Get default GST percentage from settings
     default_gst = Config.DEFAULT_GST_PERCENTAGE
     return render_template("add_policy.html", current_user=current_user, default_gst=default_gst)
+
+
+@policies_bp.route("/edit_policy/<int:policy_id>", methods=["GET", "POST"])
+@login_required
+def edit_policy(policy_id):
+    if request.method == "POST":
+        print("\n" + "="*50)
+        print(f"EDIT POLICY {policy_id} FORM SUBMITTED")
+        print("="*50)
+        print(f"Form data received: {dict(request.form)}")
+        
+        try:
+            # Extract form data
+            insurance_company = request.form.get("insurance_company")
+            product_name = request.form.get("product_name")
+            policy_number = request.form.get("policy_number")
+            payment_date = request.form.get("payment_date")
+            agent_name = request.form.get("agent_name")
+            policy_from = request.form.get("policy_from")
+            policy_to = request.form.get("policy_to")
+            one_time_insurance = True if request.form.get("one_time_insurance") in ["on", "true", "1"] else False
+            payment_details = request.form.get("payment_details")
+            net_premium = request.form.get("net_premium")
+            addon_premium = request.form.get("addon_premium")
+            tp_tr_premium = request.form.get("tp_tr_premium")
+            gst_percentage = request.form.get("gst_percentage")
+            gross_premium = request.form.get("gross_premium")
+            commission_percentage = request.form.get("commission_percentage")
+            commission_amount = request.form.get("commission_amount")
+            commission_received = True if request.form.get("commission_received") in ["on", "true", "1"] else False
+            business_type = request.form.get("business_type")
+            group_name = request.form.get("group_name")
+            subgroup_name = request.form.get("subgroup_name")
+            remarks = request.form.get("remarks")
+            sum_insured = request.form.get("sum_insured")
+            
+            # Health insurance specific fields
+            health_plan_type = request.form.get("health_plan_type")
+            health_member_names = request.form.getlist("health_member_name[]")
+            health_member_sum_insureds = request.form.getlist("health_member_sum_insured[]")
+            health_member_bonuses = request.form.getlist("health_member_bonus[]")
+            health_member_deductibles = request.form.getlist("health_member_deductible[]")
+            
+            # Floater-specific fields
+            floater_sum_insured = request.form.get("floater_sum_insured")
+            floater_bonus = request.form.get("floater_bonus")
+            floater_deductible = request.form.get("floater_deductible")
+            
+            # Factory insurance specific fields
+            factory_building = request.form.get("factory_building")
+            factory_plant_machinery = request.form.get("factory_plant_machinery")
+            factory_furniture_fittings = request.form.get("factory_furniture_fittings")
+            factory_stocks = request.form.get("factory_stocks")
+            factory_electrical_installations = request.form.get("factory_electrical_installations")
+
+            # Build update data
+            policy_data = {
+                "insurance_company": insurance_company,
+                "product_name": product_name,
+                "policy_number": policy_number,
+                "one_time_insurance": one_time_insurance,
+                "commission_received": commission_received,
+            }
+
+            # Add optional fields
+            if payment_date:
+                policy_data["payment_date"] = convert_date_format(payment_date)
+            if agent_name:
+                policy_data["agent_name"] = agent_name
+            if policy_from:
+                policy_data["policy_from"] = convert_date_format(policy_from)
+            if policy_to:
+                policy_data["policy_to"] = convert_date_format(policy_to)
+            if payment_details:
+                policy_data["payment_details"] = payment_details
+            if net_premium:
+                policy_data["net_premium"] = float(net_premium)
+            if addon_premium:
+                policy_data["addon_premium"] = float(addon_premium)
+            if tp_tr_premium:
+                policy_data["tp_tr_premium"] = float(tp_tr_premium)
+            if gst_percentage:
+                policy_data["gst_percentage"] = float(gst_percentage)
+            if gross_premium:
+                policy_data["gross_premium"] = float(gross_premium)
+            if commission_percentage:
+                policy_data["commission_percentage"] = float(commission_percentage)
+            if commission_amount:
+                policy_data["commission_amount"] = float(commission_amount)
+            if business_type:
+                policy_data["business_type"] = business_type
+            if group_name:
+                policy_data["group_name"] = group_name
+            if subgroup_name:
+                policy_data["subgroup_name"] = subgroup_name
+            if remarks:
+                policy_data["remarks"] = remarks
+            if sum_insured:
+                policy_data["sum_insured"] = float(sum_insured)
+
+            # Update policy in database
+            result = supabase.table("policies").update(policy_data).eq("policy_id", policy_id).execute()
+            print(f"Policy updated successfully: {result.data}")
+            
+            # Handle health insurance details if applicable
+            if product_name and "HEALTH" in product_name.upper() and health_plan_type:
+                try:
+                    # Check if health details exist
+                    health_check = supabase.table("health_insurance_details").select("health_id").eq("policy_id", policy_id).execute()
+                    
+                    health_details = {
+                        "plan_type": health_plan_type
+                    }
+                    
+                    # Add floater-specific fields if it's a floater plan
+                    if health_plan_type in ["FLOATER", "TOPUP_FLOATER"]:
+                        if floater_sum_insured:
+                            health_details["floater_sum_insured"] = float(floater_sum_insured)
+                        if floater_bonus:
+                            health_details["floater_bonus"] = float(floater_bonus)
+                        if health_plan_type == "TOPUP_FLOATER" and floater_deductible:
+                            health_details["floater_deductible"] = float(floater_deductible)
+                    
+                    if health_check.data:
+                        # Update existing health details
+                        health_id = health_check.data[0]["health_id"]
+                        supabase.table("health_insurance_details").update(health_details).eq("health_id", health_id).execute()
+                        
+                        # Delete existing members and re-insert
+                        supabase.table("health_insured_members").delete().eq("health_id", health_id).execute()
+                    else:
+                        # Insert new health details
+                        health_details["policy_id"] = policy_id
+                        health_result = supabase.table("health_insurance_details").insert(health_details).execute()
+                        health_id = health_result.data[0]["health_id"]
+                    
+                    # Insert health insured members
+                    if health_member_names:
+                        for i, member_name in enumerate(health_member_names):
+                            if member_name.strip():
+                                member_data = {
+                                    "health_id": health_id,
+                                    "member_name": member_name.strip()
+                                }
+                                
+                                if health_plan_type in ["INDIVIDUAL", "TOPUP_INDIVIDUAL"]:
+                                    if i < len(health_member_sum_insureds) and health_member_sum_insureds[i]:
+                                        member_data["sum_insured"] = float(health_member_sum_insureds[i])
+                                    if i < len(health_member_bonuses) and health_member_bonuses[i]:
+                                        member_data["bonus"] = float(health_member_bonuses[i])
+                                    if health_plan_type == "TOPUP_INDIVIDUAL" and i < len(health_member_deductibles) and health_member_deductibles[i]:
+                                        member_data["deductible"] = float(health_member_deductibles[i])
+                                
+                                supabase.table("health_insured_members").insert(member_data).execute()
+                    
+                    print(f"Health insurance details updated for policy {policy_id}")
+                except Exception as e:
+                    print(f"Error updating health insurance details: {e}")
+            
+            # Handle factory insurance details if applicable
+            elif product_name and _is_factory_insurance(product_name):
+                try:
+                    # Check if factory details exist
+                    factory_check = supabase.table("factory_insurance_details").select("factory_id").eq("policy_id", policy_id).execute()
+                    
+                    factory_details = {}
+                    
+                    if factory_building:
+                        factory_details["building"] = float(factory_building)
+                    if factory_plant_machinery:
+                        factory_details["plant_machinery"] = float(factory_plant_machinery)
+                    if factory_furniture_fittings:
+                        factory_details["furniture_fittings"] = float(factory_furniture_fittings)
+                    if factory_stocks:
+                        factory_details["stocks"] = float(factory_stocks)
+                    if factory_electrical_installations:
+                        factory_details["electrical_installations"] = float(factory_electrical_installations)
+                    
+                    if factory_check.data:
+                        # Update existing factory details
+                        factory_id = factory_check.data[0]["factory_id"]
+                        if factory_details:
+                            supabase.table("factory_insurance_details").update(factory_details).eq("factory_id", factory_id).execute()
+                    else:
+                        # Insert new factory details
+                        if factory_details:
+                            factory_details["policy_id"] = policy_id
+                            supabase.table("factory_insurance_details").insert(factory_details).execute()
+                    
+                    print(f"Factory insurance details updated for policy {policy_id}")
+                except Exception as e:
+                    print(f"Error updating factory insurance details: {e}")
+
+            flash("Policy updated successfully!", "success")
+            return redirect(url_for("dashboard.view_all_policies"))
+
+        except Exception as e:
+            print(f"Error updating policy: {e}")
+            flash(f"Error updating policy: {str(e)}", "error")
+            return redirect(url_for("policies.edit_policy", policy_id=policy_id))
+
+    # GET request - load policy data
+    try:
+        # Fetch policy with client and member info
+        result = (
+            supabase.table("policies")
+            .select("*, clients(*), members(*)")
+            .eq("policy_id", policy_id)
+            .single()
+            .execute()
+        )
+        
+        policy = result.data
+        
+        # Fetch health insurance details if applicable
+        health_details = None
+        health_members = []
+        if policy.get("product_name") and "HEALTH" in policy["product_name"].upper():
+            health_result = supabase.table("health_insurance_details").select("*").eq("policy_id", policy_id).execute()
+            if health_result.data:
+                health_details = health_result.data[0]
+                health_id = health_details["health_id"]
+                
+                # Fetch health insured members
+                members_result = supabase.table("health_insured_members").select("*").eq("health_id", health_id).execute()
+                health_members = members_result.data
+        
+        # Fetch factory insurance details if applicable
+        factory_details = None
+        if policy.get("product_name") and _is_factory_insurance(policy["product_name"]):
+            factory_result = supabase.table("factory_insurance_details").select("*").eq("policy_id", policy_id).execute()
+            if factory_result.data:
+                factory_details = factory_result.data[0]
+        
+        # Get default GST percentage from settings
+        default_gst = Config.DEFAULT_GST_PERCENTAGE
+        
+        return render_template(
+            "edit_policy.html",
+            policy=policy,
+            health_details=health_details,
+            health_members=health_members,
+            factory_details=factory_details,
+            current_user=current_user,
+            default_gst=default_gst
+        )
+        
+    except Exception as e:
+        print(f"Error fetching policy: {e}")
+        flash(f"Error loading policy: {str(e)}", "error")
+        return redirect(url_for("dashboard.view_all_policies"))

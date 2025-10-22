@@ -217,13 +217,34 @@ def send_renewal_reminder_api():
             static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
             os.makedirs(static_renewals_dir, exist_ok=True)
             
-            # Sanitize filename for URL safety (replace spaces and special chars)
+            # Sanitize filename per Twilio guidelines:
+            # - No spaces
+            # - 20 characters or less (excluding extension)
+            # - Avoid special characters: ~ ! @ # $ % ^ & * ( ) [ ] { }
             import re
             original_filename = renewal_file.filename
-            # Replace spaces with underscores and remove/replace problematic characters
-            safe_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
+            
+            # Split filename and extension
+            name_parts = original_filename.rsplit('.', 1)
+            base_name = name_parts[0] if len(name_parts) > 1 else original_filename
+            extension = name_parts[1] if len(name_parts) > 1 else 'pdf'
+            
+            # Replace spaces and special characters with underscores
+            # Only allow alphanumeric, hyphens, and underscores
+            safe_base = re.sub(r'[^a-zA-Z0-9\-_]', '_', base_name)
+            
             # Remove multiple consecutive underscores
-            safe_filename = re.sub(r'_+', '_', safe_filename)
+            safe_base = re.sub(r'_+', '_', safe_base)
+            
+            # Remove leading/trailing underscores
+            safe_base = safe_base.strip('_')
+            
+            # Limit base name to 20 characters
+            if len(safe_base) > 20:
+                safe_base = safe_base[:20]
+            
+            # Reconstruct filename
+            safe_filename = f"{safe_base}.{extension}"
             
             renewal_filename = safe_filename
             static_file_path = os.path.join(static_renewals_dir, safe_filename)
@@ -307,10 +328,20 @@ def serve_drive_media(file_id, filename):
             as_attachment=False
         )
         
-        # Add additional headers for better compatibility
+        # Add Content-Disposition header (required by Twilio spec)
+        response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+        
+        # Ensure Content-Type is explicitly set
         response.headers['Content-Type'] = final_mime_type
-        response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
-        response.headers['Access-Control-Allow-Origin'] = '*'  # Allow cross-origin access
+        
+        # Add cache control headers to prevent Cloudflare issues
+        # Use no-cache to ensure Twilio always gets fresh headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        # Allow cross-origin access for Twilio
+        response.headers['Access-Control-Allow-Origin'] = '*'
         
         return response
         

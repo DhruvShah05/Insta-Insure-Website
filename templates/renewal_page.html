@@ -337,25 +337,90 @@
         </div>
         {% endif %}
 
-        <!-- Edit Policy Details Section -->
-        <div class="policy-card">
+        <!-- Upload Renewed Policy Section -->
+        <div class="form-section">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                </svg>
+                Step 1: Upload Renewed Policy Document
+            </h5>
+            <p class="text-muted mb-4">First, upload the new policy PDF. This will archive the old policy and enable editing of the renewed policy details.</p>
+            
+            <form id="renewalForm" enctype="multipart/form-data">
+                <input type="hidden" id="policyId" name="policy_id" value="{{ policy.policy_id }}">
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="renewedFile" class="form-label">New Policy PDF <span class="required-indicator">*</span></label>
+                        <input type="file" class="form-control" id="renewedFile" name="renewed_file" accept=".pdf" required>
+                        <div class="form-help">Upload the renewed policy document (PDF only, max 10MB)</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="newExpiryDate" class="form-label">New Expiry Date</label>
+                        <input type="text" class="form-control date-picker" id="newExpiryDate" name="new_expiry_date" placeholder="DD/MM/YYYY">
+                        <div class="form-help">Leave empty to keep current expiry date</div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="newPolicyNumber" class="form-label">New Policy Number</label>
+                        <input type="text" class="form-control" id="newPolicyNumber" name="new_policy_number" placeholder="Enter new policy number">
+                        <div class="form-help">Leave empty to keep current policy number</div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-check" style="padding: var(--spacing-4); background: var(--gray-50); border-radius: var(--radius-md); border: 1px solid var(--gray-200);">
+                            <input class="form-check-input" type="checkbox" id="sendNotification" name="send_notification" checked>
+                            <label class="form-check-label" for="sendNotification" style="font-weight: 500; color: var(--gray-900);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px; color: var(--primary-blue);">
+                                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                                </svg>
+                                Send WhatsApp & Email notification to customer
+                                <div class="form-help" style="margin-left: 20px; margin-top: 4px;">Customer will receive the renewed policy document via WhatsApp and Email</div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="warning-section">
+                    <div class="d-flex align-items-start gap-3">
+                        <svg class="warning-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                        </svg>
+                        <div>
+                            <strong>Important:</strong> Uploading the new document will archive the current policy data to history. 
+                            The old document will be moved to the Archive folder in Google Drive.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-3 mt-4">
+                    <button type="button" class="btn btn-renew" onclick="renewPolicy()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        Upload & Archive Old Policy
+                    </button>
+                    <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Edit Policy Details Section (Disabled until renewal) -->
+        <div class="policy-card" id="editPolicyCard" style="opacity: 0.6; pointer-events: none;">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4>
                     <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                     </svg>
-                    Edit Policy Details
+                    Step 2: Edit Renewed Policy Details
+                    <span class="badge bg-warning text-dark ms-2" id="editLockedBadge">Upload document first</span>
                 </h4>
-                <button type="button" class="btn btn-outline" id="toggleEditBtn" onclick="toggleEditMode()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                    Edit Details
-                </button>
             </div>
             
-            <div id="editDetailsSection" style="display: none;">
-                <p class="text-muted mb-4">Update policy information before renewal. Changes will be saved when you click "Save Changes".</p>
+            <div id="editDetailsSection">
+                <p class="text-muted mb-4">After uploading the new policy document, you can edit all the details for the renewed policy here.</p>
                 
                 <form id="policyDetailsForm">
                     <input type="hidden" id="editPolicyId" value="{{ policy.policy_id }}">
@@ -597,76 +662,17 @@
                     {% endif %}
                     
                     <div class="d-flex gap-3 mt-4">
-                        <button type="button" class="btn btn-success" onclick="saveDetailsChanges()">
+                        <button type="button" class="btn btn-success" onclick="saveDetailsChanges()" id="saveDetailsBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
                             </svg>
-                            Save Changes
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="cancelEdit()">
-                            Cancel
+                            Save Renewed Policy Details
                         </button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Renewal Form -->
-        <div class="form-section">
-            <h5>
-                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                </svg>
-                Upload Renewed Policy
-            </h5>
-            <p class="text-muted mb-4">Upload the new policy PDF document. This will replace the current policy document.</p>
-            
-            <form id="renewalForm" enctype="multipart/form-data">
-                <input type="hidden" id="policyId" name="policy_id" value="{{ policy.policy_id }}">
-                
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="renewedFile" class="form-label">New Policy PDF <span class="required-indicator">*</span></label>
-                        <input type="file" class="form-control" id="renewedFile" name="renewed_file" accept=".pdf" required>
-                        <div class="form-help">Upload the renewed policy document (PDF only, max 10MB)</div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <label for="newExpiryDate" class="form-label">New Expiry Date</label>
-                        <input type="text" class="form-control date-picker" id="newExpiryDate" name="new_expiry_date" placeholder="DD/MM/YYYY">
-                        <div class="form-help">Leave empty to keep current expiry date</div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <label for="newPolicyNumber" class="form-label">New Policy Number</label>
-                        <input type="text" class="form-control" id="newPolicyNumber" name="new_policy_number" placeholder="Enter new policy number">
-                        <div class="form-help">Leave empty to keep current policy number</div>
-                    </div>
-                </div>
-                
-                <div class="warning-section">
-                    <div class="d-flex align-items-start gap-3">
-                        <svg class="warning-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-                        </svg>
-                        <div>
-                            <strong>Important:</strong> This action will permanently replace the current policy document. 
-                            The old document will be deleted from Google Drive and cannot be recovered.
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="d-flex gap-3 mt-4">
-                    <button type="button" class="btn btn-renew" onclick="renewPolicy()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        Renew Policy
-                    </button>
-                    <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">Cancel</a>
-                </div>
-            </form>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -732,39 +738,22 @@
         }
     </script>
     <script>
-        // Edit mode functions
-        function toggleEditMode() {
-            const editSection = document.getElementById('editDetailsSection');
-            const toggleBtn = document.getElementById('toggleEditBtn');
+        // Enable edit section after successful renewal
+        function enableEditSection() {
+            const editCard = document.getElementById('editPolicyCard');
+            const editBadge = document.getElementById('editLockedBadge');
             
-            if (editSection.style.display === 'none') {
-                editSection.style.display = 'block';
-                toggleBtn.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                    </svg>
-                    Close Edit
-                `;
-            } else {
-                editSection.style.display = 'none';
-                toggleBtn.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                    Edit Details
-                `;
-            }
-        }
-        
-        function cancelEdit() {
-            // Reset form to original values
-            document.getElementById('editInsuranceCompany').value = '{{ policy.insurance_company or "" }}';
-            document.getElementById('editProductName').value = '{{ policy.product_name or "" }}';
-            document.getElementById('editAgentName').value = '{{ policy.agent_name or "" }}';
-            document.getElementById('editBusinessType').value = '{{ policy.business_type or "" }}';
+            // Enable the edit section
+            editCard.style.opacity = '1';
+            editCard.style.pointerEvents = 'auto';
             
-            // Close edit section
-            toggleEditMode();
+            // Update badge
+            editBadge.classList.remove('bg-warning', 'text-dark');
+            editBadge.classList.add('bg-success');
+            editBadge.textContent = 'Ready to edit';
+            
+            // Scroll to edit section
+            editCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
         async function saveDetailsChanges() {
@@ -825,8 +814,8 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Policy details updated successfully!');
-                    // Reload page to show updated information
+                    alert('Renewed policy details saved successfully!\n\nAll changes have been applied to the renewed policy.');
+                    // Optionally reload to show updated information
                     window.location.reload();
                 } else {
                     alert('Error: ' + result.message);
@@ -1053,9 +1042,23 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('Policy renewed successfully!\n\n' + result.message);
-                    // Reload the page to show updated information
-                    window.location.reload();
+                    alert('Policy renewed successfully!\n\n' + result.message + '\n\nYou can now edit the renewed policy details below.');
+                    
+                    // Enable edit section
+                    enableEditSection();
+                    
+                    // Hide the upload form since renewal is complete
+                    const renewalForm = document.getElementById('renewalForm').parentElement;
+                    renewalForm.style.display = 'none';
+                    
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'alert alert-success';
+                    successDiv.innerHTML = `
+                        <strong>✓ Policy Renewed Successfully!</strong><br>
+                        Old policy has been archived to history. You can now edit the renewed policy details below.
+                    `;
+                    renewalForm.parentElement.insertBefore(successDiv, renewalForm);
                 } else {
                     alert('Error: ' + result.message);
                 }

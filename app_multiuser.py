@@ -502,8 +502,8 @@ def batch_operation_status(batch_id):
 # Route to serve renewal documents
 @app.route('/static/renewals/<filename>')
 def serve_renewal_document(filename):
-    """Serve renewal documents for WhatsApp"""
-    from flask import send_from_directory
+    """Serve renewal documents for WhatsApp with proper headers for Twilio"""
+    from flask import send_from_directory, make_response
     import os
     
     renewals_dir = os.path.join(app.root_path, 'static', 'renewals')
@@ -511,7 +511,26 @@ def serve_renewal_document(filename):
     if not os.path.exists(os.path.join(renewals_dir, filename)):
         return "File not found", 404
     
-    return send_from_directory(renewals_dir, filename, mimetype='application/pdf')
+    # Send file with proper Content-Type
+    response = make_response(
+        send_from_directory(renewals_dir, filename, mimetype='application/pdf')
+    )
+    
+    # Add Content-Disposition header (required by Twilio)
+    response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+    
+    # Ensure Content-Type is explicitly set
+    response.headers['Content-Type'] = 'application/pdf'
+    
+    # Add cache control headers to prevent Cloudflare from caching without headers
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    # Allow cross-origin access for Twilio
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    
+    return response
 
 # Error handlers with enhanced logging
 @app.errorhandler(404)

@@ -80,6 +80,7 @@ def renew_policy_api():
         renewed_file = request.files.get('renewed_file')
         new_expiry_date = request.form.get('new_expiry_date')
         new_policy_number = request.form.get('new_policy_number')
+        send_notification = request.form.get('send_notification') == 'on'  # Checkbox value
 
         if not policy_id:
             logger.error("Renewal attempt without policy ID")
@@ -166,10 +167,10 @@ def renew_policy_api():
         if success:
             logger.info(f"Policy {policy_id} renewed successfully")
             
-            # Send confirmation with the actual renewed policy document
+            # Send confirmation with the actual renewed policy document (only if checkbox is checked)
             notification_results = []
             
-            if client.get('email') or client.get('phone'):
+            if send_notification and (client.get('email') or client.get('phone')):
                 # Send via WhatsApp if phone available
                 if client.get('phone'):
                     try:
@@ -213,8 +214,10 @@ def renew_policy_api():
             # Combine results
             if notification_results:
                 message += " | " + " | ".join(notification_results)
-            else:
+            elif send_notification:
                 message += " | No contact information available for notifications"
+            else:
+                message += " | Notifications skipped (not requested)"
 
             return jsonify({
                 'success': True,
