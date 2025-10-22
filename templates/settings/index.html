@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=2.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         .settings-nav {
             border-right: 1px solid #dee2e6;
@@ -109,6 +110,9 @@
                         </button>
                         <button class="nav-link" data-bs-toggle="pill" data-bs-target="#user-management" type="button" role="tab">
                             <i class="fas fa-users me-2"></i>User Management
+                        </button>
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#system-monitoring" type="button" role="tab">
+                            <i class="fas fa-chart-area me-2"></i>System Monitoring
                         </button>
                     </div>
                 </div>
@@ -218,6 +222,133 @@
                             </div>
                             <div id="user-management-content">
                                 <!-- Users will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- System Monitoring -->
+                        <div class="tab-pane fade" id="system-monitoring" role="tabpanel">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4><i class="fas fa-chart-area me-2"></i>System Monitoring</h4>
+                                <div>
+                                    <span class="badge bg-success me-2" id="monitor-status">
+                                        <i class="fas fa-circle me-1"></i>Live
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="refreshMonitoring()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- System Metrics Cards -->
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-subtitle mb-2 text-muted">CPU Usage</h6>
+                                            <h2 class="card-title mb-0" id="cpu-usage">--</h2>
+                                            <small class="text-muted" id="cpu-cores">-- cores</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-subtitle mb-2 text-muted">Memory Usage</h6>
+                                            <h2 class="card-title mb-0" id="memory-usage">--</h2>
+                                            <small class="text-muted" id="memory-details">-- / -- GB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-subtitle mb-2 text-muted">Disk Usage</h6>
+                                            <h2 class="card-title mb-0" id="disk-usage">--</h2>
+                                            <small class="text-muted" id="disk-details">-- / -- GB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="card-subtitle mb-2 text-muted">Active Users</h6>
+                                            <h2 class="card-title mb-0" id="active-users-count">--</h2>
+                                            <small class="text-muted">concurrent sessions</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Charts Row -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-microchip me-2"></i>CPU Usage (Last 60s)</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="cpuChart" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-memory me-2"></i>Memory Usage (Last 60s)</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="memoryChart" height="200"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Users Table -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Active Users</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>User</th>
+                                                    <th>IP Address</th>
+                                                    <th>Last Activity</th>
+                                                    <th>Session Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="active-users-table">
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">
+                                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Process Information -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-server me-2"></i>Process Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <p class="mb-2"><strong>Process Memory:</strong> <span id="process-memory">--</span> MB</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-2"><strong>Process CPU:</strong> <span id="process-cpu">--</span>%</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <p class="mb-2"><strong>Threads:</strong> <span id="process-threads">--</span></p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -809,6 +940,278 @@
                 showAlert('Error deleting user: ' + error.message, 'danger');
             }
         }
+
+        // ==================== SYSTEM MONITORING ====================
+        let cpuChart = null;
+        let memoryChart = null;
+        let monitoringInterval = null;
+
+        // Initialize charts
+        function initMonitoringCharts() {
+            const cpuCtx = document.getElementById('cpuChart');
+            const memoryCtx = document.getElementById('memoryChart');
+
+            if (!cpuCtx || !memoryCtx) return;
+
+            // CPU Chart
+            cpuChart = new Chart(cpuCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU Usage %',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            display: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Memory Chart
+            memoryChart = new Chart(memoryCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Memory Usage %',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            display: false
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update monitoring data
+        async function updateMonitoringData() {
+            try {
+                const response = await fetch('/api/monitoring/full-status');
+                const result = await response.json();
+
+                if (!result.success) {
+                    console.error('Failed to fetch monitoring data:', result.error);
+                    return;
+                }
+
+                const data = result.data;
+
+                // Update metric cards
+                updateMetricCards(data.metrics);
+
+                // Update charts
+                updateCharts(data.history);
+
+                // Update active users table
+                updateActiveUsersTable(data.active_users);
+
+                // Update concurrent users count
+                document.getElementById('active-users-count').textContent = data.concurrent_users;
+
+            } catch (error) {
+                console.error('Error updating monitoring data:', error);
+                document.getElementById('monitor-status').innerHTML = '<i class="fas fa-exclamation-circle me-1"></i>Error';
+                document.getElementById('monitor-status').className = 'badge bg-danger me-2';
+            }
+        }
+
+        function updateMetricCards(metrics) {
+            // CPU
+            const cpuPercent = metrics.cpu.percent;
+            document.getElementById('cpu-usage').textContent = cpuPercent + '%';
+            document.getElementById('cpu-cores').textContent = metrics.cpu.count + ' cores @ ' + metrics.cpu.frequency + ' MHz';
+            
+            // Color code based on usage
+            const cpuCard = document.getElementById('cpu-usage').closest('.card');
+            if (cpuPercent > 80) {
+                cpuCard.style.borderLeft = '4px solid #dc3545';
+            } else if (cpuPercent > 60) {
+                cpuCard.style.borderLeft = '4px solid #ffc107';
+            } else {
+                cpuCard.style.borderLeft = '4px solid #28a745';
+            }
+
+            // Memory
+            const memPercent = metrics.memory.percent;
+            document.getElementById('memory-usage').textContent = memPercent + '%';
+            document.getElementById('memory-details').textContent = 
+                metrics.memory.used_gb + ' / ' + metrics.memory.total_gb + ' GB';
+            
+            const memCard = document.getElementById('memory-usage').closest('.card');
+            if (memPercent > 80) {
+                memCard.style.borderLeft = '4px solid #dc3545';
+            } else if (memPercent > 60) {
+                memCard.style.borderLeft = '4px solid #ffc107';
+            } else {
+                memCard.style.borderLeft = '4px solid #28a745';
+            }
+
+            // Disk
+            const diskPercent = metrics.disk.percent;
+            document.getElementById('disk-usage').textContent = diskPercent + '%';
+            document.getElementById('disk-details').textContent = 
+                metrics.disk.used_gb + ' / ' + metrics.disk.total_gb + ' GB';
+            
+            const diskCard = document.getElementById('disk-usage').closest('.card');
+            if (diskPercent > 80) {
+                diskCard.style.borderLeft = '4px solid #dc3545';
+            } else if (diskPercent > 60) {
+                diskCard.style.borderLeft = '4px solid #ffc107';
+            } else {
+                diskCard.style.borderLeft = '4px solid #28a745';
+            }
+
+            // Process info
+            document.getElementById('process-memory').textContent = metrics.process.memory_mb;
+            document.getElementById('process-cpu').textContent = metrics.process.cpu_percent;
+            document.getElementById('process-threads').textContent = metrics.process.threads;
+        }
+
+        function updateCharts(history) {
+            if (!cpuChart || !memoryChart) return;
+
+            // Update CPU chart
+            if (history.cpu_percent && history.cpu_percent.length > 0) {
+                const cpuData = history.cpu_percent.slice(-60); // Last 60 points
+                cpuChart.data.labels = cpuData.map((_, i) => i);
+                cpuChart.data.datasets[0].data = cpuData.map(d => d.value);
+                cpuChart.update('none'); // Update without animation for smooth real-time
+            }
+
+            // Update Memory chart
+            if (history.memory_percent && history.memory_percent.length > 0) {
+                const memData = history.memory_percent.slice(-60);
+                memoryChart.data.labels = memData.map((_, i) => i);
+                memoryChart.data.datasets[0].data = memData.map(d => d.value);
+                memoryChart.update('none');
+            }
+        }
+
+        function updateActiveUsersTable(users) {
+            const tbody = document.getElementById('active-users-table');
+            
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            <i class="fas fa-user-slash me-2"></i>No active users
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            users.forEach(user => {
+                const lastActivity = new Date(user.last_activity);
+                const formattedTime = lastActivity.toLocaleTimeString();
+                
+                html += `
+                    <tr>
+                        <td>
+                            <i class="fas fa-user me-2"></i>${user.email}
+                        </td>
+                        <td>
+                            <i class="fas fa-network-wired me-2"></i>${user.ip}
+                        </td>
+                        <td>
+                            <i class="fas fa-clock me-2"></i>${formattedTime}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">${user.active_duration}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function startMonitoring() {
+            // Initialize charts
+            initMonitoringCharts();
+
+            // Initial load
+            updateMonitoringData();
+
+            // Update every 3 seconds
+            monitoringInterval = setInterval(updateMonitoringData, 3000);
+        }
+
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+        }
+
+        function refreshMonitoring() {
+            updateMonitoringData();
+            showAlert('Monitoring data refreshed', 'info', 2000);
+        }
+
+        // Start monitoring when tab is shown
+        document.addEventListener('shown.bs.tab', function(event) {
+            if (event.target.getAttribute('data-bs-target') === '#system-monitoring') {
+                startMonitoring();
+            } else {
+                stopMonitoring();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopMonitoring();
+        });
     </script>
 </body>
 </html>

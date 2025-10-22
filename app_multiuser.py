@@ -17,6 +17,7 @@ from routes.renewal_routes import renewal_bp
 from routes.client_export import client_export_bp
 from routes.claims import claims_bp
 from routes.settings_routes import settings_bp
+from routes.monitoring_routes import monitoring_bp
 import os
 import logging
 import time
@@ -31,6 +32,7 @@ from batch_file_operations import batch_file_manager
 from monitoring import metrics_collector, monitor_requests, create_health_check_blueprint
 from whatsapp_bot_async import whatsapp_bot_async, handle_whatsapp_webhook_async
 from whatsapp_bot import setup_whatsapp_webhook
+from system_monitor import monitor
 
 # Try to import Excel routes
 try:
@@ -255,6 +257,18 @@ def after_request(response):
 @app.before_request
 def manage_session():
     """Ensure sessions are properly managed"""
+    # Track user activity for monitoring
+    from flask_login import current_user
+    if current_user and current_user.is_authenticated:
+        try:
+            monitor.track_user_activity(
+                user_id=current_user.id,
+                email=current_user.email,
+                ip_address=request.remote_addr
+            )
+        except Exception as e:
+            logger.error(f"Error tracking user activity: {e}")
+    
     # Allow Flask-Login to manage session permanence
     pass
 
@@ -300,6 +314,7 @@ app.register_blueprint(renewal_bp)
 app.register_blueprint(client_export_bp)
 app.register_blueprint(claims_bp)
 app.register_blueprint(settings_bp)
+app.register_blueprint(monitoring_bp)
 
 # Register health check blueprint
 health_bp = create_health_check_blueprint()
