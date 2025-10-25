@@ -194,6 +194,10 @@ def send_renewal_reminder_api():
 
         if not policy_id:
             return jsonify({'success': False, 'message': 'Policy ID required'}), 400
+        
+        # Require file upload for renewal reminders
+        if not renewal_file:
+            return jsonify({'success': False, 'message': 'Renewal document is required'}), 400
 
         # Fetch policy and customer info
         result = (

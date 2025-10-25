@@ -783,39 +783,41 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, renewal_premium=
             "7": "test-policy.pdf"  # Default media path for renewal reminders
         }
         
-        # Handle user-uploaded content - simplified approach
+        # Handle user-uploaded content - file is now mandatory
+        if not renewal_filename:
+            # This should not happen as API now requires file, but handle gracefully
+            logger.error("No renewal filename provided - file upload is required")
+            return False, "Renewal document is required"
+        
+        # User uploaded a renewal document - it's already saved in static/renewals
+        # Filename should already be sanitized by the upload handler
+        media_path = f"static/renewals/{renewal_filename}"
+        
+        # Set variable 6 based on whether renewal premium is provided
         if renewal_premium:
-            # Renewal premium provided - include in message
             template_variables["6"] = f"💰 *Renewal Premium:* ₹{renewal_premium}"
-            # Use default test PDF for media since we have renewal premium
-            template_variables["7"] = "test-policy.pdf"
-        elif renewal_filename:
-            # User uploaded a renewal document - it's already saved in static/renewals
-            # Filename should already be sanitized by the upload handler
-            media_path = f"static/renewals/{renewal_filename}"
-            template_variables["6"] = "Renewal document attached below."
-            template_variables["7"] = media_path
-            
-            logger.info(f"Using renewal document for WhatsApp: {media_path}")
-            
-            # Schedule cleanup after 1 hour (enough time for WhatsApp to fetch)
-            import threading
-            def cleanup_file():
-                time.sleep(3600)  # Wait 1 hour
-                try:
-                    static_file_path = os.path.join(os.path.dirname(__file__), 'static', 'renewals', renewal_filename)
-                    if os.path.exists(static_file_path):
-                        os.remove(static_file_path)
-                        logger.info(f"Cleaned up renewal document: {static_file_path}")
-                except Exception as e:
-                    logger.error(f"Error cleaning up renewal document: {e}")
-            
-            cleanup_thread = threading.Thread(target=cleanup_file, daemon=True)
-            cleanup_thread.start()
         else:
-            # No payment link or file - use default message and test PDF
-            template_variables["6"] = "Please contact us for renewal assistance."
-            template_variables["7"] = "test-policy.pdf"
+            template_variables["6"] = "Renewal document attached below."
+        
+        # Variable 7 always uses the uploaded file
+        template_variables["7"] = media_path
+        
+        logger.info(f"Using renewal document for WhatsApp: {media_path}")
+        
+        # Schedule cleanup after 1 hour (enough time for WhatsApp to fetch)
+        import threading
+        def cleanup_file():
+            time.sleep(3600)  # Wait 1 hour
+            try:
+                static_file_path = os.path.join(os.path.dirname(__file__), 'static', 'renewals', renewal_filename)
+                if os.path.exists(static_file_path):
+                    os.remove(static_file_path)
+                    logger.info(f"Cleaned up renewal document: {static_file_path}")
+            except Exception as e:
+                logger.error(f"Error cleaning up renewal document: {e}")
+        
+        cleanup_thread = threading.Thread(target=cleanup_file, daemon=True)
+        cleanup_thread.start()
         
         # Send using approved renewal reminder content template
         send_res = send_content_template_message(
