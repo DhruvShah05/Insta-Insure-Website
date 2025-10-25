@@ -773,15 +773,14 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, renewal_premium=
         
         # Prepare template variables for approved renewal template
         # Ensure all variables have non-empty values (Twilio doesn't allow empty strings)
-        template_variables = {
-            "1": member_name or "Customer",
-            "2": policy.get('policy_number') or 'N/A',
-            "3": policy.get('insurance_company') or 'N/A',
-            "4": policy.get('remarks') or 'N/A',
-            "5": expiry_date or 'N/A',
-            "6": "Please contact us for renewal assistance.",  # Default message
-            "7": "test-policy.pdf"  # Default media path for renewal reminders
-        }
+        # New Twilio Template Format:
+        # {{1}} = Member Name
+        # {{2}} = Policy Number (not ID)
+        # {{3}} = Insurance Company (Insurer)
+        # {{4}} = Remarks (Coverage Type)
+        # {{5}} = Expiry Date (Renewal Due Date)
+        # {{6}} = Renewal Premium Amount (plain number, template adds ₹ symbol)
+        # {{7}} = Media path (keep as is)
         
         # Handle user-uploaded content - file is now mandatory
         if not renewal_filename:
@@ -793,14 +792,19 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, renewal_premium=
         # Filename should already be sanitized by the upload handler
         media_path = f"static/renewals/{renewal_filename}"
         
-        # Set variable 6 based on whether renewal premium is provided
-        if renewal_premium:
-            template_variables["6"] = f"💰 *Renewal Premium:* ₹{renewal_premium}"
-        else:
-            template_variables["6"] = "Renewal document attached below."
+        # Set variable 6 to renewal premium amount (plain number for new template)
+        # Template already includes ₹ symbol: "Renewal Premium: ₹{{6}}"
+        renewal_premium_value = str(renewal_premium) if renewal_premium else "Contact us"
         
-        # Variable 7 always uses the uploaded file
-        template_variables["7"] = media_path
+        template_variables = {
+            "1": member_name or "Customer",
+            "2": policy.get('policy_number') or 'N/A',
+            "3": policy.get('insurance_company') or 'N/A',
+            "4": policy.get('remarks') or 'N/A',
+            "5": expiry_date or 'N/A',
+            "6": renewal_premium_value,
+            "7": media_path
+        }
         
         logger.info(f"Using renewal document for WhatsApp: {media_path}")
         
