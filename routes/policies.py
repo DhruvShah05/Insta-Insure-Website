@@ -1,7 +1,7 @@
 # routes/policies.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-import datetime, io
+import datetime, io, os, tempfile
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from google.oauth2 import service_account
@@ -10,6 +10,9 @@ from dynamic_config import Config
 
 # Import WhatsApp functionality
 from whatsapp_bot import send_policy_to_customer, normalize_phone
+
+# Import PDF conversion utility
+from utils.pdf_converter import convert_pdf_for_twilio
 
 
 def convert_date_format(date_string):
@@ -263,7 +266,7 @@ def find_or_create_folder(parent_folder_id, folder_name):
 
 
 def upload_policy_file(file, client_id, member_name):
-    """Upload file to Google Drive in client/member folder structure"""
+    """Upload file to Google Drive in client/member folder structure with PDF conversion"""
     print(f"\nUploading file: {file.filename}")
     print(f"   Client ID: {client_id}")
     print(f"   Member Name: {member_name}")
@@ -280,11 +283,45 @@ def upload_policy_file(file, client_id, member_name):
     file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'pdf'
     new_filename = f"{client_id} - {member_name} - {file.filename}"
 
-    # Step 4: Upload file to member folder
-    file_metadata = {"name": new_filename, "parents": [member_folder_id]}
-    file_content = file.read()
+    # Step 4: Convert PDF to Twilio-compatible format before uploading
+    file_content = None
+    converted_path = None
+    
+    try:
+        if file_extension.lower() == 'pdf':
+            print("   Converting PDF to Twilio-compatible format...")
+            
+            # Convert PDF using print-to-PDF approach
+            success, converted_path, error = convert_pdf_for_twilio(file)
+            
+            if success and converted_path:
+                # Read converted file
+                with open(converted_path, 'rb') as f:
+                    file_content = f.read()
+                print("   ✓ PDF converted successfully")
+            else:
+                print(f"   ⚠ PDF conversion failed: {error}, using original file")
+                file.seek(0)
+                file_content = file.read()
+        else:
+            # Not a PDF, use original content
+            file_content = file.read()
+    except Exception as e:
+        print(f"   ⚠ Error during PDF conversion: {e}, using original file")
+        file.seek(0)
+        file_content = file.read()
+    finally:
+        # Clean up temporary converted file
+        if converted_path and os.path.exists(converted_path):
+            try:
+                os.remove(converted_path)
+            except:
+                pass
 
-    media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype=file.mimetype, resumable=True)
+    # Step 5: Upload file to member folder
+    file_metadata = {"name": new_filename, "parents": [member_folder_id]}
+
+    media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype='application/pdf', resumable=True)
     uploaded_file = drive_service.files().create(
         body=file_metadata,
         media_body=media,

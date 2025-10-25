@@ -9,6 +9,7 @@ from supabase import create_client
 from dynamic_config import Config
 import logging
 from email_service import send_policy_email, indian_date_filter
+from utils.pdf_converter import convert_pdf_for_twilio
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -179,7 +180,8 @@ def delete_file_from_drive(file_id):
 
 
 def upload_renewed_policy_file(file, policy_id, client_id, member_name):
-    """Upload renewed policy file to Google Drive using client/member folder structure"""
+    """Upload renewed policy file to Google Drive using client/member folder structure with PDF conversion"""
+    converted_path = None
     try:
         drive_service = get_drive_service()
         if not drive_service:
@@ -206,19 +208,43 @@ def upload_renewed_policy_file(file, policy_id, client_id, member_name):
         else:
             new_filename = f"{client_id} - {member_name} - Policy{file_extension}"
 
-        # Step 4: Upload file to member folder
+        # Step 4: Convert PDF to Twilio-compatible format before uploading
+        file_content = None
+        
+        try:
+            if file_extension.lower() == '.pdf':
+                logger.info(f"Converting renewal PDF to Twilio-compatible format: {new_filename}")
+                
+                # Convert PDF using print-to-PDF approach
+                success, converted_path, error = convert_pdf_for_twilio(file)
+                
+                if success and converted_path:
+                    # Read converted file
+                    with open(converted_path, 'rb') as f:
+                        file_content = f.read()
+                    logger.info(f"✓ Renewal PDF converted successfully: {new_filename}")
+                else:
+                    logger.warning(f"⚠ PDF conversion failed: {error}, using original file")
+                    file.seek(0)
+                    file_content = file.read()
+            else:
+                # Not a PDF, use original content
+                file_content = file.read()
+        except Exception as e:
+            logger.warning(f"⚠ Error during PDF conversion: {e}, using original file")
+            file.seek(0)
+            file_content = file.read()
+
+        # Step 5: Upload file to member folder
         file_metadata = {
             "name": new_filename,
             "parents": [member_folder['id']]
         }
 
-        # Read file content
-        file_content = file.read()
-
         # Upload file
         media = MediaIoBaseUpload(
             io.BytesIO(file_content),
-            mimetype=file.mimetype,
+            mimetype='application/pdf',
             resumable=True
         )
 
@@ -244,6 +270,14 @@ def upload_renewed_policy_file(file, policy_id, client_id, member_name):
     except Exception as e:
         logger.error(f"Error uploading renewed policy file: {e}")
         return None, str(e)
+    finally:
+        # Clean up temporary converted file
+        if converted_path and os.path.exists(converted_path):
+            try:
+                os.remove(converted_path)
+                logger.info(f"Cleaned up temporary converted file: {converted_path}")
+            except Exception as e:
+                logger.warning(f"Could not clean up temp file: {e}")
 
 
 def archive_policy_to_history(policy_id, archived_by=None):

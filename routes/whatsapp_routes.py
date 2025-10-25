@@ -13,6 +13,8 @@ from googleapiclient.http import MediaIoBaseDownload
 from whatsapp_bot import get_drive_service
 import tempfile
 import os
+from utils.pdf_converter import convert_pdf_for_twilio
+import re
 
 whatsapp_bp = Blueprint("whatsapp", __name__)
 supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
@@ -210,48 +212,86 @@ def send_renewal_reminder_api():
 
         phone = normalize_phone(customer['phone'])
 
-        # Handle renewal file if provided - save directly to static/renewals
+        # Handle renewal file if provided - convert and save to static/renewals
         renewal_filename = None
+        converted_path = None
         if renewal_file:
-            # Ensure static renewals directory exists
-            static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
-            os.makedirs(static_renewals_dir, exist_ok=True)
-            
-            # Sanitize filename per Twilio guidelines:
-            # - No spaces
-            # - 20 characters or less (excluding extension)
-            # - Avoid special characters: ~ ! @ # $ % ^ & * ( ) [ ] { }
-            import re
-            original_filename = renewal_file.filename
-            
-            # Split filename and extension
-            name_parts = original_filename.rsplit('.', 1)
-            base_name = name_parts[0] if len(name_parts) > 1 else original_filename
-            extension = name_parts[1] if len(name_parts) > 1 else 'pdf'
-            
-            # Replace spaces and special characters with underscores
-            # Only allow alphanumeric, hyphens, and underscores
-            safe_base = re.sub(r'[^a-zA-Z0-9\-_]', '_', base_name)
-            
-            # Remove multiple consecutive underscores
-            safe_base = re.sub(r'_+', '_', safe_base)
-            
-            # Remove leading/trailing underscores
-            safe_base = safe_base.strip('_')
-            
-            # Limit base name to 20 characters
-            if len(safe_base) > 20:
-                safe_base = safe_base[:20]
-            
-            # Reconstruct filename
-            safe_filename = f"{safe_base}.{extension}"
-            
-            renewal_filename = safe_filename
-            static_file_path = os.path.join(static_renewals_dir, safe_filename)
-            renewal_file.save(static_file_path)
-            
-            print(f"Renewal file saved: {static_file_path}")
-            print(f"Original filename: '{original_filename}' -> Sanitized: '{safe_filename}'")
+            try:
+                # Ensure static renewals directory exists
+                static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
+                os.makedirs(static_renewals_dir, exist_ok=True)
+                
+                # Sanitize filename per Twilio guidelines:
+                # - No spaces
+                # - 20 characters or less (excluding extension)
+                # - Avoid special characters: ~ ! @ # $ % ^ & * ( ) [ ] { }
+                original_filename = renewal_file.filename
+                
+                # Split filename and extension
+                name_parts = original_filename.rsplit('.', 1)
+                base_name = name_parts[0] if len(name_parts) > 1 else original_filename
+                extension = name_parts[1] if len(name_parts) > 1 else 'pdf'
+                
+                # Replace spaces and special characters with underscores
+                # Only allow alphanumeric, hyphens, and underscores
+                safe_base = re.sub(r'[^a-zA-Z0-9\-_]', '_', base_name)
+                
+                # Remove multiple consecutive underscores
+                safe_base = re.sub(r'_+', '_', safe_base)
+                
+                # Remove leading/trailing underscores
+                safe_base = safe_base.strip('_')
+                
+                # Limit base name to 20 characters
+                if len(safe_base) > 20:
+                    safe_base = safe_base[:20]
+                
+                # Reconstruct filename
+                safe_filename = f"{safe_base}.{extension}"
+                renewal_filename = safe_filename
+                static_file_path = os.path.join(static_renewals_dir, safe_filename)
+                
+                # Convert PDF to Twilio-compatible format before saving
+                file_content = None
+                if extension.lower() == 'pdf':
+                    print(f"Converting renewal reminder PDF to Twilio-compatible format: {safe_filename}")
+                    
+                    # Convert PDF using print-to-PDF approach
+                    success, converted_path, error = convert_pdf_for_twilio(renewal_file)
+                    
+                    if success and converted_path:
+                        # Read converted file
+                        with open(converted_path, 'rb') as f:
+                            file_content = f.read()
+                        print(f"✓ Renewal reminder PDF converted successfully: {safe_filename}")
+                    else:
+                        print(f"⚠ PDF conversion failed: {error}, using original file")
+                        renewal_file.seek(0)
+                        file_content = renewal_file.read()
+                else:
+                    # Not a PDF, use original content
+                    file_content = renewal_file.read()
+                
+                # Save the file (converted or original)
+                with open(static_file_path, 'wb') as f:
+                    f.write(file_content)
+                
+                print(f"Renewal file saved: {static_file_path}")
+                print(f"Original filename: '{original_filename}' -> Sanitized: '{safe_filename}'")
+                
+            except Exception as e:
+                print(f"Error processing renewal file: {e}")
+                # Fall back to saving original file
+                renewal_file.seek(0)
+                static_file_path = os.path.join(static_renewals_dir, safe_filename)
+                renewal_file.save(static_file_path)
+            finally:
+                # Clean up temporary converted file
+                if converted_path and os.path.exists(converted_path):
+                    try:
+                        os.remove(converted_path)
+                    except:
+                        pass
 
         success, message = send_renewal_reminder(
             phone,
