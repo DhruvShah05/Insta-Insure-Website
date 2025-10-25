@@ -904,9 +904,10 @@
                         <input type="hidden" id="modalPolicyId" name="policy_id">
 
                         <div class="mb-3">
-                            <label for="paymentLink" class="form-label">Payment Link (Optional)</label>
-                            <input type="url" class="form-control" id="paymentLink" name="payment_link"
-                                   placeholder="https://payment-link.com">
+                            <label for="renewalPremium" class="form-label">Renewal Premium (Optional)</label>
+                            <input type="number" class="form-control" id="renewalPremium" name="renewal_premium"
+                                   placeholder="Enter renewal premium amount" step="0.01" min="0">
+                            <small class="text-muted">Enter the premium amount for renewal</small>
                         </div>
 
                         <div class="mb-3">

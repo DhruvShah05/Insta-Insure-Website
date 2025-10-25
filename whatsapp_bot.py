@@ -748,8 +748,8 @@ def send_policy_to_customer(phone, policy, send_email=True):
             delete_temp_file(temp_file_path)
 
 
-def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=None):
-    """Send renewal reminder with optional file or payment link via WhatsApp and email"""
+def send_renewal_reminder(phone, policy, renewal_filename=None, renewal_premium=None):
+    """Send renewal reminder with optional file or renewal premium via WhatsApp and email"""
     try:
         # Get member name for template (use member name instead of client name)
         try:
@@ -784,10 +784,10 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
         }
         
         # Handle user-uploaded content - simplified approach
-        if payment_link:
-            # Payment link provided - include in message
-            template_variables["6"] = f"💳 *Renew Now:* {payment_link}"
-            # Use default test PDF for media since we have payment link
+        if renewal_premium:
+            # Renewal premium provided - include in message
+            template_variables["6"] = f"💰 *Renewal Premium:* ₹{renewal_premium}"
+            # Use default test PDF for media since we have renewal premium
             template_variables["7"] = "test-policy.pdf"
         elif renewal_filename:
             # User uploaded a renewal document - it's already saved in static/renewals
@@ -847,7 +847,7 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, payment_link=Non
                 'asset': policy.get('remarks', 'N/A'),
                 'company': policy.get('insurance_company', 'N/A'),
                 'expiry_date': policy.get('policy_to', 'N/A'),
-                'payment_link': payment_link
+                'renewal_premium': renewal_premium
             }
             
             email_success, email_message = send_renewal_reminder_email(

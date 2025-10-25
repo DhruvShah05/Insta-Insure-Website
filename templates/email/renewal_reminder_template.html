@@ -37,6 +37,9 @@
                                         <li>Vehicle / Asset: <b>{{ asset }}</b></li>
                                         <li>Company: <b>{{ company }}</b></li>
                                         <li>Expiry Date: <b>{{ expiry_date }}</b></li>
+                                        {% if renewal_premium %}
+                                        <li>Renewal Premium: <b style="color:#059669;">₹{{ renewal_premium }}</b></li>
+                                        {% endif %}
                                     </ul>
 
                                     <p style="font-size:15px; color:#333; line-height:1.8; margin:0 0 20px 0;">

@@ -128,7 +128,7 @@ def send_renewal_reminder_email_api():
     """Send renewal reminder via email only"""
     try:
         policy_id = request.form.get('policy_id')
-        payment_link = request.form.get('payment_link', '')
+        renewal_premium = request.form.get('renewal_premium', '')
         renewal_file = request.files.get('renewal_file')
 
         if not policy_id:
@@ -163,7 +163,7 @@ def send_renewal_reminder_email_api():
             'asset': policy.get('remarks', 'N/A'),
             'company': policy.get('insurance_company', 'N/A'),
             'expiry_date': policy.get('policy_to', 'N/A'),
-            'payment_link': payment_link if payment_link else None
+            'renewal_premium': renewal_premium if renewal_premium else None
         }
         
         success, message = send_renewal_reminder_email(
@@ -189,7 +189,7 @@ def send_renewal_reminder_api():
     """Send renewal reminder via WhatsApp"""
     try:
         policy_id = request.form.get('policy_id')
-        payment_link = request.form.get('payment_link', '')
+        renewal_premium = request.form.get('renewal_premium', '')
         renewal_file = request.files.get('renewal_file')
 
         if not policy_id:
@@ -297,7 +297,7 @@ def send_renewal_reminder_api():
             phone,
             policy,
             renewal_filename=renewal_filename,
-            payment_link=payment_link if payment_link else None
+            renewal_premium=renewal_premium if renewal_premium else None
         )
 
         return jsonify({'success': success, 'message': message})
