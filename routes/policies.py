@@ -54,24 +54,77 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 SERVICE_ACCOUNT_FILE = "my-first-project-7fb14-715c168d62d2.json"
 
+# Global credentials object for refresh support
+_drive_credentials = None
+_drive_service = None
+
+
+def _init_drive_credentials():
+    """Initialize Google Drive credentials from service account file"""
+    global _drive_credentials
+    try:
+        _drive_credentials = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES
+        )
+        print("✅ Google Drive credentials initialized")
+        return _drive_credentials
+    except Exception as e:
+        print(f"❌ Failed to initialize Google Drive credentials: {e}")
+        raise Exception(f"Cannot initialize Google Drive credentials: {e}")
+
+
+def _refresh_drive_credentials():
+    """Refresh Google Drive credentials if expired"""
+    global _drive_credentials, _drive_service
+    
+    try:
+        if _drive_credentials is None:
+            print("Credentials not initialized, initializing...")
+            _init_drive_credentials()
+            return
+        
+        # Service account credentials don't expire in the traditional sense,
+        # but we should reinitialize if there are issues
+        if not _drive_credentials.valid:
+            print("Credentials invalid, reinitializing...")
+            _init_drive_credentials()
+            _drive_service = None  # Force service rebuild
+            
+    except Exception as e:
+        print(f"❌ Error refreshing credentials: {e}")
+        # Try to reinitialize from scratch
+        try:
+            _init_drive_credentials()
+            _drive_service = None
+        except Exception as reinit_error:
+            raise Exception(f"Failed to refresh/reinitialize credentials: {reinit_error}")
+
 
 def get_drive_service():
-    """Initialize and return Google Drive service with comprehensive SSL error handling"""
+    """Initialize and return Google Drive service with credential refresh support"""
+    global _drive_credentials, _drive_service
+    
     try:
         import ssl
         import httplib2
         from google.auth.transport.requests import Request
         
-        creds = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES
-        )
+        # Ensure credentials are initialized and valid
+        if _drive_credentials is None:
+            _init_drive_credentials()
+        else:
+            _refresh_drive_credentials()
         
-        # Try multiple connection methods
+        # Return existing service if valid
+        if _drive_service is not None:
+            return _drive_service
+        
+        # Build new service with fresh credentials
         connection_methods = [
-            ("Standard SSL", lambda: build("drive", "v3", credentials=creds)),
-            ("Disabled SSL Cert Validation", lambda: build("drive", "v3", credentials=creds, 
+            ("Standard SSL", lambda: build("drive", "v3", credentials=_drive_credentials)),
+            ("Disabled SSL Cert Validation", lambda: build("drive", "v3", credentials=_drive_credentials, 
                 http=httplib2.Http(disable_ssl_certificate_validation=True))),
-            ("Custom SSL Context", lambda: build_with_custom_ssl(creds))
+            ("Custom SSL Context", lambda: build_with_custom_ssl(_drive_credentials))
         ]
         
         for method_name, method_func in connection_methods:
@@ -79,17 +132,22 @@ def get_drive_service():
                 print(f"Attempting Google Drive connection using: {method_name}")
                 service = method_func()
                 print(f"✅ Google Drive connected successfully using: {method_name}")
+                _drive_service = service
                 return service
             except Exception as method_error:
                 print(f"❌ {method_name} failed: {method_error}")
                 continue
         
-        print("❌ All Google Drive connection methods failed")
-        return None
+        # All connection methods failed
+        error_msg = "All Google Drive connection methods failed. Please check credentials and network."
+        print(f"❌ {error_msg}")
+        raise Exception(error_msg)
             
     except Exception as e:
-        print(f"Error initializing Google Drive service: {e}")
-        return None
+        error_msg = f"Error initializing Google Drive service: {e}"
+        print(f"❌ {error_msg}")
+        raise Exception(error_msg)
+
 
 def build_with_custom_ssl(creds):
     """Build Google Drive service with custom SSL context"""
@@ -267,9 +325,19 @@ def find_or_create_folder(parent_folder_id, folder_name):
 
 def upload_policy_file(file, client_id, member_name):
     """Upload file to Google Drive in client/member folder structure with PDF conversion"""
+    global drive_service
+    
     print(f"\nUploading file: {file.filename}")
     print(f"   Client ID: {client_id}")
     print(f"   Member Name: {member_name}")
+
+    # Ensure Drive service is available with fresh credentials
+    try:
+        drive_service = get_drive_service()
+    except Exception as e:
+        error_msg = f"Google Drive is unavailable: {str(e)}"
+        print(f"❌ {error_msg}")
+        raise Exception(error_msg)
 
     # Step 1: Find or create client folder
     client_folder = find_or_create_folder(ROOT_FOLDER_ID, client_id)
@@ -701,45 +769,15 @@ def add_policy():
                 flash(f"Error retrieving client information: {str(e)}", "error")
                 return redirect(url_for("policies.add_policy"))
 
-            # Upload file to Google Drive with fallback
+            # Upload file to Google Drive - NO FALLBACK
             print("Uploading file to Google Drive...")
-            drive_file = None
             try:
                 drive_file = upload_policy_file(file, client_id_str, member_name_str)
                 print(f"File uploaded successfully: {drive_file}")
             except Exception as e:
-                print(f"Drive upload error: {e}")
-                
-                # Fallback: Save file locally and continue with policy creation
-                print("Attempting local file storage as fallback...")
-                try:
-                    import os
-                    from werkzeug.utils import secure_filename
-                    
-                    # Create local storage directory
-                    upload_folder = os.path.join(os.getcwd(), 'local_uploads', client_id_str, member_name_str)
-                    os.makedirs(upload_folder, exist_ok=True)
-                    
-                    # Save file locally
-                    filename = secure_filename(file.filename)
-                    local_path = os.path.join(upload_folder, filename)
-                    file.seek(0)  # Reset file pointer
-                    file.save(local_path)
-                    
-                    # Create fallback drive_file object
-                    drive_file = {
-                        "id": f"local_{client_id_str}_{member_name_str}_{filename}",
-                        "webViewLink": f"file://{local_path}",
-                        "drive_path": f"local/{client_id_str}/{member_name_str}/{filename}"
-                    }
-                    
-                    print(f"File saved locally: {local_path}")
-                    flash("File uploaded locally (Google Drive unavailable). Policy created successfully.", "warning")
-                    
-                except Exception as local_error:
-                    print(f"Local storage also failed: {local_error}")
-                    flash(f"Error uploading file: {str(e)}. Please try again or contact support.", "error")
-                    return redirect(url_for("policies.add_policy"))
+                print(f"❌ Drive upload error: {e}")
+                flash(f"Google Drive upload failed: {str(e)}. Policy NOT created. Please ensure Google Drive is accessible and try again.", "error")
+                return redirect(url_for("policies.add_policy"))
 
             # Insert policy metadata into Supabase
             print("Inserting policy into Supabase...")

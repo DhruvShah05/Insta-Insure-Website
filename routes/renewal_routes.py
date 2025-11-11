@@ -3,7 +3,7 @@ from flask_login import login_required
 from supabase import create_client
 from dynamic_config import Config
 from database_pool import execute_query
-from email_service import send_renewal_reminder_email, indian_date_filter
+from email_service import send_renewal_reminder_email, indian_date_filter, send_policy_email
 from renewal_service import (
     renew_policy,
     get_policy_renewal_history,
@@ -13,6 +13,7 @@ from renewal_service import (
     send_payment_confirmation_email,
     send_payment_confirmation_whatsapp
 )
+from whatsapp_bot import send_policy_document_whatsapp, get_customer_email, extract_file_id_from_url, download_file_from_drive
 import logging
 import os
 from datetime import datetime, timedelta
@@ -73,14 +74,13 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 @renewal_bp.route('/api/renew_policy', methods=['POST'])
 @login_required
 def renew_policy_api():
-    """API endpoint to renew a policy with new PDF"""
+    """API endpoint to renew a policy with new PDF OR create pending renewal"""
     try:
         # Input validation
         policy_id = request.form.get('policy_id')
         renewed_file = request.files.get('renewed_file')
-        new_expiry_date = request.form.get('new_expiry_date')
-        new_policy_number = request.form.get('new_policy_number')
         send_notification = request.form.get('send_notification') == 'on'  # Checkbox value
+        skip_pdf_upload = request.form.get('skip_pdf_upload') == 'on'  # NEW: Skip PDF checkbox
 
         if not policy_id:
             logger.error("Renewal attempt without policy ID")
@@ -90,6 +90,12 @@ def renew_policy_api():
             logger.error(f"Invalid policy ID format: {policy_id}")
             return jsonify({'success': False, 'message': 'Invalid policy ID format'}), 400
 
+        # NEW: If skip_pdf_upload is checked, create pending renewal instead
+        if skip_pdf_upload:
+            logger.info(f"Creating pending renewal for policy {policy_id} (no PDF)")
+            return create_pending_renewal(policy_id)
+
+        # Original flow: PDF is required
         if not renewed_file:
             logger.error(f"Renewal attempt for policy {policy_id} without file")
             return jsonify({'success': False, 'message': 'Renewed policy file is required'}), 400
@@ -144,14 +150,6 @@ def renew_policy_api():
             logger.error(f"No member data found for policy {policy_id}")
             return jsonify({'success': False, 'message': 'Member information not found'}), 404
 
-        # Convert date format if provided
-        converted_expiry_date = None
-        if new_expiry_date:
-            converted_expiry_date = convert_date_format(new_expiry_date)
-            if converted_expiry_date is None:
-                logger.error(f"Invalid expiry date format for policy {policy_id}: {new_expiry_date}")
-                return jsonify({'success': False, 'message': f'Invalid expiry date format: {new_expiry_date}. Please use DD/MM/YYYY format.'}), 400
-
         # Renew the policy (pass current user email for audit trail)
         from flask_login import current_user
         archived_by = current_user.email if current_user and current_user.is_authenticated else None
@@ -159,8 +157,8 @@ def renew_policy_api():
         success, message, updated_policy = renew_policy(
             policy_id=int(policy_id),
             renewed_file=renewed_file,
-            new_expiry_date=converted_expiry_date,
-            new_policy_number=new_policy_number if new_policy_number else None,
+            new_expiry_date=None,
+            new_policy_number=None,
             archived_by=archived_by
         )
 
@@ -229,6 +227,139 @@ def renew_policy_api():
 
     except Exception as e:
         logger.error(f"Error in renew_policy_api: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+def create_pending_renewal(policy_id):
+    """Create a pending renewal record without PDF upload"""
+    try:
+        from flask_login import current_user
+        
+        # Get current policy data
+        policy_result = (
+            supabase.table("policies")
+            .select("*")
+            .eq("policy_id", policy_id)
+            .single()
+            .execute()
+        )
+        
+        if not policy_result.data:
+            return jsonify({'success': False, 'message': 'Policy not found'}), 404
+        
+        policy = policy_result.data
+        
+        # Create pending renewal with current policy data (excluding Drive fields)
+        pending_data = {
+            "policy_id": int(policy_id),
+            "client_id": policy["client_id"],
+            "member_id": policy["member_id"],
+            "policy_number": policy.get("policy_number"),
+            "payment_date": policy.get("payment_date"),
+            "insurance_company": policy["insurance_company"],
+            "agent_name": policy.get("agent_name"),
+            "policy_from": policy.get("policy_from"),
+            "policy_to": policy.get("policy_to"),
+            "one_time_insurance": policy.get("one_time_insurance", False),
+            "product_name": policy.get("product_name"),
+            "payment_details": policy.get("payment_details"),
+            "net_premium": policy.get("net_premium"),
+            "gross_premium": policy.get("gross_premium"),
+            "commission_percentage": policy.get("commission_percentage"),
+            "commission_received": policy.get("commission_received", False),
+            "remarks": policy.get("remarks"),
+            "business_type": policy.get("business_type"),
+            "group_name": policy.get("group_name"),
+            "subgroup_name": policy.get("subgroup_name"),
+            "tp_tr_premium": policy.get("tp_tr_premium"),
+            "sum_insured": policy.get("sum_insured"),
+            "addon_premium": policy.get("addon_premium"),
+            "gst_percentage": policy.get("gst_percentage"),
+            "commission_amount": policy.get("commission_amount"),
+            "created_by": current_user.email if current_user and current_user.is_authenticated else None
+        }
+        
+        # Insert pending renewal
+        result = supabase.table("pending_renewals").insert(pending_data).execute()
+        pending_renewal = result.data[0]
+        pending_renewal_id = pending_renewal["pending_renewal_id"]
+        
+        logger.info(f"Pending renewal created: {pending_renewal_id} for policy {policy_id}")
+        
+        # Copy health insurance details if they exist
+        try:
+            health_result = supabase.table("health_insurance_details").select("*").eq("policy_id", policy_id).execute()
+            if health_result.data:
+                health_details = health_result.data[0]
+                
+                # Insert pending health details
+                pending_health_data = {
+                    "pending_renewal_id": pending_renewal_id,
+                    "plan_type": health_details["plan_type"]
+                }
+                if health_details.get("floater_sum_insured"):
+                    pending_health_data["floater_sum_insured"] = health_details["floater_sum_insured"]
+                if health_details.get("floater_bonus"):
+                    pending_health_data["floater_bonus"] = health_details["floater_bonus"]
+                if health_details.get("floater_deductible"):
+                    pending_health_data["floater_deductible"] = health_details["floater_deductible"]
+                
+                pending_health_result = supabase.table("pending_renewal_health_insurance_details").insert(pending_health_data).execute()
+                pending_health_id = pending_health_result.data[0]["pending_renewal_health_id"]
+                
+                # Copy health insured members
+                members_result = supabase.table("health_insured_members").select("*").eq("health_id", health_details["health_id"]).execute()
+                for member in members_result.data:
+                    member_data = {
+                        "pending_renewal_health_id": pending_health_id,
+                        "member_name": member["member_name"]
+                    }
+                    if member.get("sum_insured"):
+                        member_data["sum_insured"] = member["sum_insured"]
+                    if member.get("bonus"):
+                        member_data["bonus"] = member["bonus"]
+                    if member.get("deductible"):
+                        member_data["deductible"] = member["deductible"]
+                    
+                    supabase.table("pending_renewal_health_insured_members").insert(member_data).execute()
+                
+                logger.info(f"Health details copied to pending renewal {pending_renewal_id}")
+        except Exception as e:
+            logger.warning(f"No health details to copy or error: {e}")
+        
+        # Copy factory insurance details if they exist
+        try:
+            factory_result = supabase.table("factory_insurance_details").select("*").eq("policy_id", policy_id).execute()
+            if factory_result.data:
+                factory_details = factory_result.data[0]
+                
+                pending_factory_data = {"pending_renewal_id": pending_renewal_id}
+                if factory_details.get("building"):
+                    pending_factory_data["building"] = factory_details["building"]
+                if factory_details.get("plant_machinery"):
+                    pending_factory_data["plant_machinery"] = factory_details["plant_machinery"]
+                if factory_details.get("furniture_fittings"):
+                    pending_factory_data["furniture_fittings"] = factory_details["furniture_fittings"]
+                if factory_details.get("stocks"):
+                    pending_factory_data["stocks"] = factory_details["stocks"]
+                if factory_details.get("electrical_installations"):
+                    pending_factory_data["electrical_installations"] = factory_details["electrical_installations"]
+                
+                if len(pending_factory_data) > 1:
+                    supabase.table("pending_renewal_factory_insurance_details").insert(pending_factory_data).execute()
+                    logger.info(f"Factory details copied to pending renewal {pending_renewal_id}")
+        except Exception as e:
+            logger.warning(f"No factory details to copy or error: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Pending renewal created successfully. You can now edit details.',
+            'pending_renewal_id': pending_renewal_id,
+            'redirect_url': url_for('renewal.renewal_page', policy_id=policy_id, pending_renewal_id=pending_renewal_id)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating pending renewal: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -620,6 +751,123 @@ def update_policy_details_api():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@renewal_bp.route('/api/send_renewal_notification', methods=['POST'])
+@login_required
+def send_renewal_notification_api():
+    """API endpoint to send renewal notification via WhatsApp and/or Email"""
+    try:
+        data = request.get_json()
+        policy_id = data.get('policy_id')
+        send_whatsapp = data.get('send_whatsapp', False)
+        send_email = data.get('send_email', False)
+        
+        if not policy_id:
+            return jsonify({'success': False, 'message': 'Policy ID is required'}), 400
+        
+        if not send_whatsapp and not send_email:
+            return jsonify({'success': False, 'message': 'At least one notification method must be selected'}), 400
+        
+        # Fetch policy details with client information
+        policy_result = (
+            supabase.table("policies")
+            .select("*, clients!policies_client_id_fkey(client_id, name, email, phone)")
+            .eq("policy_id", policy_id)
+            .single()
+            .execute()
+        )
+        
+        if not policy_result.data:
+            return jsonify({'success': False, 'message': 'Policy not found'}), 404
+        
+        policy = policy_result.data
+        client = policy.get('clients', {})
+        
+        if not client:
+            return jsonify({'success': False, 'message': 'Client information not found'}), 404
+        
+        messages = []
+        whatsapp_success = False
+        email_success = False
+        
+        # Send via WhatsApp if requested
+        if send_whatsapp:
+            phone = client.get('phone')
+            if phone:
+                try:
+                    # Normalize phone number (remove spaces, dashes, etc.)
+                    phone = phone.strip().replace(' ', '').replace('-', '')
+                    
+                    # Send policy document via WhatsApp
+                    send_res = send_policy_document_whatsapp(phone, policy, client.get('name', 'Customer'))
+                    whatsapp_success = not send_res.get('error')
+                    
+                    if whatsapp_success:
+                        messages.append("WhatsApp: Document sent successfully")
+                        logger.info(f"Policy document sent via WhatsApp to {phone}: {send_res.get('sid')}")
+                    else:
+                        messages.append(f"WhatsApp: Failed - {send_res.get('error', 'Unknown error')}")
+                        logger.error(f"WhatsApp sending failed: {send_res.get('error')}")
+                except Exception as e:
+                    messages.append(f"WhatsApp: Failed - {str(e)}")
+                    logger.error(f"WhatsApp error: {e}")
+            else:
+                messages.append("WhatsApp: No phone number found")
+        
+        # Send via Email if requested
+        if send_email:
+            customer_email = client.get('email')
+            if customer_email:
+                try:
+                    # Prepare policy data for email template
+                    policy_data = {
+                        'client_name': client.get('name', 'Customer'),
+                        'policy_type': policy.get('product_name', 'Insurance'),
+                        'policy_no': policy.get('policy_number', 'N/A'),
+                        'asset': policy.get('remarks', 'N/A'),
+                        'start_date': indian_date_filter(policy.get('policy_from')),
+                        'expiry_date': indian_date_filter(policy.get('policy_to'))
+                    }
+                    
+                    # Download file from Google Drive for email attachment
+                    temp_file_path = None
+                    file_id = extract_file_id_from_url(policy.get('drive_url'))
+                    if file_id:
+                        filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
+                        temp_file_path = download_file_from_drive(file_id, filename)
+                    
+                    email_success, email_message = send_policy_email(
+                        customer_email, policy_data, temp_file_path
+                    )
+                    
+                    if email_success:
+                        messages.append("Email: Document sent successfully")
+                    else:
+                        messages.append(f"Email: Failed - {email_message}")
+                except Exception as e:
+                    messages.append(f"Email: Failed - {str(e)}")
+                    logger.error(f"Email error: {e}")
+            else:
+                messages.append("Email: No email address found")
+        
+        # Determine overall success
+        overall_success = (send_whatsapp and whatsapp_success) or (send_email and email_success)
+        
+        if overall_success:
+            return jsonify({
+                'success': True, 
+                'message': ' | '.join(messages)
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': ' | '.join(messages)
+            }), 400
+        
+    except Exception as e:
+        logger.error(f"Error sending renewal notification: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @renewal_bp.route('/api/update_policy_payment', methods=['POST'])
 @login_required
 def update_policy_payment_api():
@@ -985,4 +1233,51 @@ def export_renewal_excel(year, month):
 
     except Exception as e:
         logger.error(f"Error exporting renewal Excel: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@renewal_bp.route('/api/mark_pending_renewal', methods=['POST'])
+@login_required
+def mark_pending_renewal():
+    """Mark a policy as pending renewal with new from/to dates"""
+    try:
+        policy_id = request.form.get('policy_id')
+        new_policy_from = request.form.get('new_policy_from')
+        new_policy_to = request.form.get('new_policy_to')
+        
+        if not policy_id:
+            return jsonify({'success': False, 'message': 'Policy ID is required'}), 400
+        
+        if not new_policy_from or not new_policy_to:
+            return jsonify({'success': False, 'message': 'New policy dates are required'}), 400
+        
+        # Convert dates if needed
+        policy_from_converted = convert_date_format(new_policy_from)
+        policy_to_converted = convert_date_format(new_policy_to)
+        
+        if not policy_from_converted or not policy_to_converted:
+            return jsonify({'success': False, 'message': 'Invalid date format. Use DD/MM/YYYY'}), 400
+        
+        # Update policy with new dates and mark as pending renewal
+        update_data = {
+            'policy_from': policy_from_converted,
+            'policy_to': policy_to_converted,
+            'is_pending_renewal': True,
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        result = supabase.table("policies").update(update_data).eq("policy_id", policy_id).execute()
+        
+        if result.data:
+            logger.info(f"Policy {policy_id} marked as pending renewal with new dates: {policy_from_converted} to {policy_to_converted}")
+            return jsonify({
+                'success': True,
+                'message': 'Policy marked as pending renewal. Complete it from the Pending Renewals page when ready.',
+                'policy_id': policy_id
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Failed to update policy'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error marking policy as pending renewal: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

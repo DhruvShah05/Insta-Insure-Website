@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Renewals - {{ config.PORTAL_TITLE }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-6);
+    }
+
+    .page-title {
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+    }
+
+    .table-container {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table {
+        margin-bottom: 0;
+        min-width: 1200px;
+    }
+
+    .table th {
+        background: var(--gray-50);
+        border-bottom: 2px solid var(--gray-200);
+        font-weight: 600;
+        color: var(--gray-900);
+        padding: var(--spacing-4);
+    }
+
+    .table td {
+        padding: var(--spacing-4);
+        border-bottom: 1px solid var(--gray-100);
+        vertical-align: middle;
+    }
+
+    .table tbody tr:hover {
+        background: var(--gray-25);
+    }
+
+    .customer-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-1);
+    }
+
+    .customer-name {
+        font-weight: 500;
+        color: var(--gray-900);
+    }
+
+    .customer-contact {
+        font-size: var(--font-size-xs);
+        color: var(--gray-500);
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: var(--spacing-1) var(--spacing-2);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: var(--spacing-2);
+        flex-wrap: wrap;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--spacing-10);
+        color: var(--gray-500);
+    }
+
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: var(--spacing-4);
+        color: var(--gray-300);
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-4);
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Pending Renewals</h1>
+    <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+        Back to Policies
+    </a>
+</div>
+
+<div class="table-container">
+    {% if pending_renewals %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Policy ID</th>
+                    <th>Customer</th>
+                    <th>Insurance Company</th>
+                    <th>Product</th>
+                    <th>Policy Number</th>
+                    <th>New Expiry Date</th>
+                    <th>Days Pending</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for renewal in pending_renewals %}
+                <tr>
+                    <td><strong>#{{ renewal.policy_id }}</strong></td>
+                    <td>
+                        <div class="customer-info">
+                            <div class="customer-name">{{ renewal.member_name or 'Unknown' }}</div>
+                            <div class="customer-contact">{{ renewal.client_name }} ({{ renewal.client_id }})</div>
+                            {% if renewal.customer_phone %}
+                            <div class="customer-contact">{{ renewal.customer_phone }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ renewal.insurance_company }}</td>
+                    <td>{{ renewal.product_name }}</td>
+                    <td>{{ renewal.policy_number or 'N/A' }}</td>
+                    <td>
+                        {% if renewal.policy_to %}
+                        {{ renewal.policy_to | indian_date }}
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-warning">Pending</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{{ url_for('pending_renewals.complete_pending_renewal', policy_id=renewal.policy_id) }}" 
+                               class="btn btn-sm btn-success">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                </svg>
+                                Complete Renewal
+                            </a>
+                            <form method="POST" action="{{ url_for('pending_renewals.remove_from_pending', policy_id=renewal.policy_id) }}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to remove this from pending renewals?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                                    </svg>
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+        <h3>No Pending Renewals</h3>
+        <p>No policies are currently pending renewal. Mark a policy as pending from the dashboard when payment is received.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

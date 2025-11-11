@@ -417,7 +417,8 @@ def renew_policy(policy_id, renewed_file, new_expiry_date=None, new_policy_numbe
             "drive_url": file_details['webViewLink'],
             "drive_path": file_details['drive_path'],
             "last_reminder_sent": None,
-            "renewed_at": datetime.now().isoformat()
+            "renewed_at": datetime.now().isoformat(),
+            "is_pending_renewal": False  # Clear pending renewal flag
         }
 
         # Add optional fields if provided

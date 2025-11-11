@@ -10,6 +10,7 @@ from auth import auth_bp
 from routes.dashboard import dashboard_bp
 from routes.policies import policies_bp
 from routes.pending_policies import pending_policies_bp
+from routes.pending_renewals import pending_renewals_bp
 from routes.existing_policies import existing_policies_bp
 from routes.whatsapp_routes import whatsapp_bp
 from routes.whatsapp_logs_routes import whatsapp_logs_bp
@@ -231,6 +232,35 @@ def policy_status_filter(policy):
     # Default fallback
     return {'status': 'unknown', 'label': 'Unknown', 'class': 'unknown'}
 
+# Custom filter to convert string to datetime
+@app.template_filter('to_datetime')
+def to_datetime_filter(date_string):
+    """Convert ISO date string to datetime object"""
+    from datetime import datetime
+    if not date_string:
+        return None
+    try:
+        # Handle ISO format with timezone (e.g., '2025-11-08T11:51:37.28484+00:00')
+        if isinstance(date_string, str):
+            # Remove timezone info for simpler parsing
+            if '+' in date_string:
+                date_string = date_string.split('+')[0]
+            elif 'Z' in date_string:
+                date_string = date_string.replace('Z', '')
+            # Parse ISO format
+            return datetime.fromisoformat(date_string)
+        return date_string
+    except (ValueError, TypeError) as e:
+        logger.error(f"Error converting to datetime: {date_string}, error: {e}")
+        return None
+
+# Make now() function available in templates
+@app.context_processor
+def inject_now():
+    """Make now() function available in templates"""
+    from datetime import datetime
+    return {'now': datetime.now}
+
 # Enhanced security headers for multi-user environment
 @app.after_request
 def after_request(response):
@@ -307,6 +337,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(policies_bp)
 app.register_blueprint(pending_policies_bp)
+app.register_blueprint(pending_renewals_bp)
 app.register_blueprint(existing_policies_bp)
 app.register_blueprint(whatsapp_bp)
 app.register_blueprint(whatsapp_logs_bp)

@@ -416,45 +416,15 @@ def complete_pending(pending_id):
                 flash(f"Error retrieving client information: {str(e)}", "error")
                 return redirect(url_for("pending_policies.complete_pending", pending_id=pending_id))
 
-            # Upload file to Google Drive with fallback
+            # Upload file to Google Drive - NO FALLBACK
             print("Uploading file to Google Drive...")
-            drive_file = None
             try:
                 drive_file = upload_policy_file(file, client_id_str, member_name_str)
                 print(f"File uploaded successfully: {drive_file}")
             except Exception as e:
-                print(f"Drive upload error: {e}")
-                
-                # Fallback: Save file locally and continue with policy creation
-                print("Attempting local file storage as fallback...")
-                try:
-                    import os
-                    from werkzeug.utils import secure_filename
-                    
-                    # Create local storage directory
-                    upload_folder = os.path.join(os.getcwd(), 'local_uploads', client_id_str, member_name_str)
-                    os.makedirs(upload_folder, exist_ok=True)
-                    
-                    # Save file locally
-                    filename = secure_filename(file.filename)
-                    local_path = os.path.join(upload_folder, filename)
-                    file.seek(0)  # Reset file pointer
-                    file.save(local_path)
-                    
-                    # Create fallback drive_file object
-                    drive_file = {
-                        "id": f"local_{client_id_str}_{member_name_str}_{filename}",
-                        "webViewLink": f"file://{local_path}",
-                        "drive_path": f"local/{client_id_str}/{member_name_str}/{filename}"
-                    }
-                    
-                    print(f"File saved locally: {local_path}")
-                    flash("File uploaded locally (Google Drive unavailable). Policy completed successfully.", "warning")
-                    
-                except Exception as local_error:
-                    print(f"Local storage also failed: {local_error}")
-                    flash(f"Error uploading file: {str(e)}. Please try again or contact support.", "error")
-                    return redirect(url_for("pending_policies.complete_pending", pending_id=pending_id))
+                print(f" Drive upload error: {e}")
+                flash(f"Google Drive upload failed: {str(e)}. Pending policy NOT completed. Please ensure Google Drive is accessible and try again.", "error")
+                return redirect(url_for("pending_policies.complete_pending", pending_id=pending_id))
 
             # Create active policy
             policy_data = {

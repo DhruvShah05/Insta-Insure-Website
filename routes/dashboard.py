@@ -20,10 +20,11 @@ def index():
     next_month = (datetime.today() + timedelta(days=30)).strftime("%Y-%m-%d")
 
     try:
-        # Get policies expiring soon with customer information
+        # Get policies expiring soon with customer information (exclude pending renewals)
         policies_result = (
             supabase.table("policies")
             .select("*, clients(*), members(*)")
+            .eq("is_pending_renewal", False)  # Exclude pending renewals from dashboard
             .gte("policy_to", today)
             .lte("policy_to", next_month)
             .order("policy_to", desc=False)

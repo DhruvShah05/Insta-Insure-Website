@@ -22,14 +22,77 @@ ROOT_FOLDER_ID = "0AOc3bRLhlrgzUk9PVA" # Your main root folder ID from policies.
 
 claims_bp = Blueprint('claims', __name__, url_prefix='/claims')
 
-def get_drive_service():
-    """Initializes and returns the Google Drive service object."""
+# Global credentials object for refresh support
+_drive_credentials = None
+_drive_service = None
+
+
+def _init_drive_credentials():
+    """Initialize Google Drive credentials from service account file"""
+    global _drive_credentials
     try:
-        creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-        return build("drive", "v3", credentials=creds)
+        _drive_credentials = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES
+        )
+        logger.info("Google Drive credentials initialized")
+        return _drive_credentials
     except Exception as e:
-        logger.error(f"Failed to initialize Google Drive service: {e}")
-        return None
+        logger.error(f"Failed to initialize Google Drive credentials: {e}")
+        raise Exception(f"Cannot initialize Google Drive credentials: {e}")
+
+
+def _refresh_drive_credentials():
+    """Refresh Google Drive credentials if expired"""
+    global _drive_credentials, _drive_service
+    
+    try:
+        if _drive_credentials is None:
+            logger.info("Credentials not initialized, initializing...")
+            _init_drive_credentials()
+            return
+        
+        # Service account credentials don't expire in the traditional sense,
+        # but we should reinitialize if there are issues
+        if not _drive_credentials.valid:
+            logger.info("Credentials invalid, reinitializing...")
+            _init_drive_credentials()
+            _drive_service = None  # Force service rebuild
+            
+    except Exception as e:
+        logger.error(f"Error refreshing credentials: {e}")
+        # Try to reinitialize from scratch
+        try:
+            _init_drive_credentials()
+            _drive_service = None
+        except Exception as reinit_error:
+            raise Exception(f"Failed to refresh/reinitialize credentials: {reinit_error}")
+
+
+def get_drive_service():
+    """Initialize and return Google Drive service with credential refresh support"""
+    global _drive_credentials, _drive_service
+    
+    try:
+        # Ensure credentials are initialized and valid
+        if _drive_credentials is None:
+            _init_drive_credentials()
+        else:
+            _refresh_drive_credentials()
+        
+        # Return existing service if valid
+        if _drive_service is not None:
+            return _drive_service
+        
+        # Build new service with fresh credentials
+        _drive_service = build("drive", "v3", credentials=_drive_credentials)
+        logger.info("Google Drive service initialized successfully")
+        return _drive_service
+            
+    except Exception as e:
+        error_msg = f"Error initializing Google Drive service: {e}"
+        logger.error(error_msg)
+        raise Exception(error_msg)
+
 
 def find_or_create_folder(drive_service, parent_folder_id, folder_name):
     """Finds a folder by name within a parent folder, or creates it if it doesn't exist."""

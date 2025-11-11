@@ -32,8 +32,10 @@ class ExcelSyncService:
         self.local_excel_path = os.path.join(os.getcwd(), excel_filename)
         self.sync_lock = threading.Lock()
         
-        # Initialize Google Drive service
-        self.drive_service = self._init_google_drive()
+        # Initialize Google Drive service with credential refresh support
+        self.credentials = None
+        self.drive_service = None
+        self._init_google_drive()
         self.excel_file_id = None
         
         # Find or create Excel file in Google Drive root
@@ -42,21 +44,66 @@ class ExcelSyncService:
         logger.info(f"Excel sync service initialized for file: {excel_filename}")
 
     def _init_google_drive(self):
-        """Initialize Google Drive API service"""
+        """Initialize Google Drive API service with auto-refresh credentials"""
         try:
-            credentials = Credentials.from_service_account_file(
+            # Load credentials from service account file
+            self.credentials = Credentials.from_service_account_file(
                 Config.GOOGLE_CREDENTIALS_FILE,
                 scopes=['https://www.googleapis.com/auth/drive']
             )
-            service = build('drive', 'v3', credentials=credentials)
-            logger.info("Google Drive service initialized successfully")
-            return service
+            # Build service with credentials
+            self.drive_service = build('drive', 'v3', credentials=self.credentials)
+            logger.info("Google Drive service initialized with auto-refresh credentials")
         except Exception as e:
             logger.error(f"Failed to initialize Google Drive service: {e}")
-            raise
+            self.drive_service = None
+    
+    def _refresh_credentials(self):
+        """Refresh Google Drive credentials if expired"""
+        try:
+            if self.credentials is None:
+                logger.warning("Credentials not initialized, reinitializing...")
+                self._init_google_drive()
+                return
+            
+            # Check if credentials are expired or close to expiry
+            if not self.credentials.valid:
+                logger.info("Credentials expired, refreshing...")
+                from google.auth.transport.requests import Request
+                self.credentials.refresh(Request())
+                # Rebuild service with refreshed credentials
+                self.drive_service = build('drive', 'v3', credentials=self.credentials)
+                logger.info("Credentials refreshed successfully")
+            elif self.credentials.expired:
+                logger.info("Credentials marked as expired, refreshing...")
+                from google.auth.transport.requests import Request
+                self.credentials.refresh(Request())
+                self.drive_service = build('drive', 'v3', credentials=self.credentials)
+                logger.info("Credentials refreshed successfully")
+        except Exception as e:
+            logger.error(f"Error refreshing credentials: {e}")
+            # Try to reinitialize from scratch
+            logger.info("Attempting to reinitialize credentials from file...")
+            try:
+                self._init_google_drive()
+                logger.info("Credentials reinitialized successfully")
+            except Exception as reinit_error:
+                logger.error(f"Failed to reinitialize credentials: {reinit_error}")
+    
+    def _ensure_drive_service(self):
+        """Ensure Drive service is available and credentials are fresh"""
+        if self.drive_service is None:
+            logger.warning("Drive service not initialized, initializing...")
+            self._init_google_drive()
+        else:
+            # Refresh credentials if needed
+            self._refresh_credentials()
 
     def _setup_drive_excel_file(self):
         """Find or create Excel file in Google Drive root"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         try:
             # Search for existing Excel file in root
             query = f"name='{self.excel_filename}' and parents in 'root' and trashed=false"
@@ -302,6 +349,59 @@ class ExcelSyncService:
                     
                     df_pending.to_excel(writer, sheet_name="Pending Policies", index=False)
                 
+                # Pending Renewals - policies where is_pending_renewal = TRUE
+                pending_renewals = self.supabase.table("policies").select(
+                    "*, clients(name, phone, email), members(member_name)"
+                ).eq("is_pending_renewal", True).execute()
+                df_pending_renewals = pd.DataFrame(pending_renewals.data)
+                if not df_pending_renewals.empty:
+                    # Process join data
+                    if 'clients' in df_pending_renewals.columns:
+                        client_df = pd.json_normalize(df_pending_renewals['clients'])
+                        client_df.columns = ['client_' + col for col in client_df.columns]
+                        df_pending_renewals = pd.concat([df_pending_renewals.drop('clients', axis=1), client_df], axis=1)
+                    
+                    if 'members' in df_pending_renewals.columns:
+                        member_df = pd.json_normalize(df_pending_renewals['members'])
+                        member_df.columns = ['member_' + col for col in member_df.columns]
+                        df_pending_renewals = pd.concat([df_pending_renewals.drop('members', axis=1), member_df], axis=1)
+                    
+                    # Add commission amount calculation for pending renewals
+                    if 'net_premium' in df_pending_renewals.columns and 'commission_percentage' in df_pending_renewals.columns:
+                        net_premium = pd.to_numeric(df_pending_renewals['net_premium'], errors='coerce').fillna(0)
+                        addon_premium = pd.to_numeric(df_pending_renewals.get('addon_premium', 0), errors='coerce').fillna(0)
+                        commission_percentage = pd.to_numeric(df_pending_renewals['commission_percentage'], errors='coerce').fillna(0)
+                        
+                        # Calculate commission based on (Net + Addon) * Commission %
+                        commission_base = net_premium + addon_premium
+                        df_pending_renewals['calculated_commission_amount'] = (commission_base * commission_percentage / 100).round(2)
+                        
+                        # Use stored commission_amount if available, otherwise use calculated
+                        if 'commission_amount' not in df_pending_renewals.columns:
+                            df_pending_renewals['commission_amount'] = df_pending_renewals['calculated_commission_amount']
+                        else:
+                            # Fill missing commission_amount with calculated values
+                            df_pending_renewals['commission_amount'] = df_pending_renewals['commission_amount'].fillna(df_pending_renewals['calculated_commission_amount'])
+                        
+                        # Remove the temporary calculated column
+                        df_pending_renewals.drop('calculated_commission_amount', axis=1, inplace=True)
+                    
+                    # Reorder columns
+                    cols = df_pending_renewals.columns.tolist()
+                    if 'client_id' in cols and 'member_id' in cols:
+                        cols.remove('client_id')
+                        cols.remove('member_id')
+                        if 'policy_id' in cols:
+                            idx = cols.index('policy_id') + 1
+                            cols.insert(idx, 'client_id')
+                            cols.insert(idx + 1, 'member_id')
+                        else:
+                            cols.insert(0, 'client_id')
+                            cols.insert(1, 'member_id')
+                        df_pending_renewals = df_pending_renewals[cols]
+                    
+                    df_pending_renewals.to_excel(writer, sheet_name="Pending Renewals", index=False)
+                
                 # Health Insurance Details with floater fields
                 health_details = self.supabase.table("health_insurance_details").select("*").execute()
                 df_health = pd.DataFrame(health_details.data)
@@ -366,32 +466,50 @@ class ExcelSyncService:
     def export_to_drive(self):
         """Export current Supabase data to Google Drive Excel file"""
         with self.sync_lock:
-            try:
-                logger.info("Starting export to Google Drive...")
-                
-                # Create local Excel file with latest data
-                self._export_supabase_to_local_excel()
-                
-                # Upload to Google Drive
-                media = MediaFileUpload(
-                    self.local_excel_path,
-                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                )
-                
-                self.drive_service.files().update(
-                    fileId=self.excel_file_id,
-                    media_body=media
-                ).execute()
-                
-                logger.info("Excel file updated in Google Drive successfully")
-                return True, "Excel file updated successfully in Google Drive"
-                
-            except Exception as e:
-                logger.error(f"Error exporting to Drive: {e}")
-                return False, f"Export failed: {str(e)}"
+            # Ensure credentials are fresh before operation
+            self._ensure_drive_service()
+            
+            max_retries = 2
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Starting export to Google Drive (attempt {attempt + 1}/{max_retries})...")
+                    
+                    # Create local Excel file with latest data
+                    self._export_supabase_to_local_excel()
+                    
+                    # Upload to Google Drive
+                    media = MediaFileUpload(
+                        self.local_excel_path,
+                        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    )
+                    
+                    self.drive_service.files().update(
+                        fileId=self.excel_file_id,
+                        media_body=media
+                    ).execute()
+                    
+                    logger.info("Excel file updated in Google Drive successfully")
+                    return True, "Excel file updated successfully in Google Drive"
+                    
+                except Exception as e:
+                    logger.error(f"Error exporting to Drive (attempt {attempt + 1}/{max_retries}): {e}")
+                    
+                    # If this is not the last attempt, try refreshing credentials
+                    if attempt < max_retries - 1:
+                        logger.info("Attempting to refresh credentials and retry...")
+                        try:
+                            self._init_google_drive()  # Force reinitialize
+                            time.sleep(1)  # Brief pause before retry
+                        except Exception as refresh_error:
+                            logger.error(f"Failed to refresh credentials: {refresh_error}")
+                    else:
+                        return False, f"Export failed after {max_retries} attempts: {str(e)}"
 
     def download_from_drive(self):
         """Download Excel file from Google Drive"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         try:
             logger.info("Downloading Excel file from Google Drive...")
             
@@ -416,6 +534,9 @@ class ExcelSyncService:
 
     def get_drive_file_info(self):
         """Get information about the Excel file in Google Drive"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         try:
             file_info = self.drive_service.files().get(
                 fileId=self.excel_file_id,

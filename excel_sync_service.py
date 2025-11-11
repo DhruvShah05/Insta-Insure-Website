@@ -38,8 +38,10 @@ class RealtimeExcelSync:
         self.sync_thread = None
         self.stop_sync = False
         
-        # Initialize Google Drive
-        self.drive_service = self._init_google_drive()
+        # Initialize Google Drive with credential refresh support
+        self.credentials = None
+        self.drive_service = None
+        self._init_google_drive()
         self.drive_file_id = None
         
         # Create initial Excel file if it doesn't exist
@@ -157,21 +159,66 @@ class RealtimeExcelSync:
             return str(date_str) if date_str else ""
 
     def _init_google_drive(self):
-        """Initialize Google Drive API service (same as existing integration)"""
+        """Initialize Google Drive API service with auto-refresh credentials"""
         try:
-            credentials = Credentials.from_service_account_file(
+            # Load credentials from service account file
+            self.credentials = Credentials.from_service_account_file(
                 Config.GOOGLE_CREDENTIALS_FILE,
                 scopes=['https://www.googleapis.com/auth/drive']
             )
-            service = build('drive', 'v3', credentials=credentials)
-            logger.info("Google Drive service initialized for shared drives")
-            return service
+            # Build service with credentials
+            self.drive_service = build('drive', 'v3', credentials=self.credentials)
+            logger.info("Google Drive service initialized with auto-refresh credentials")
         except Exception as e:
             logger.error(f"Failed to initialize Google Drive: {e}")
-            return None
+            self.drive_service = None
+    
+    def _refresh_credentials(self):
+        """Refresh Google Drive credentials if expired"""
+        try:
+            if self.credentials is None:
+                logger.warning("Credentials not initialized, reinitializing...")
+                self._init_google_drive()
+                return
+            
+            # Check if credentials are expired or close to expiry
+            if not self.credentials.valid:
+                logger.info("Credentials expired, refreshing...")
+                from google.auth.transport.requests import Request
+                self.credentials.refresh(Request())
+                # Rebuild service with refreshed credentials
+                self.drive_service = build('drive', 'v3', credentials=self.credentials)
+                logger.info("Credentials refreshed successfully")
+            elif self.credentials.expired:
+                logger.info("Credentials marked as expired, refreshing...")
+                from google.auth.transport.requests import Request
+                self.credentials.refresh(Request())
+                self.drive_service = build('drive', 'v3', credentials=self.credentials)
+                logger.info("Credentials refreshed successfully")
+        except Exception as e:
+            logger.error(f"Error refreshing credentials: {e}")
+            # Try to reinitialize from scratch
+            logger.info("Attempting to reinitialize credentials from file...")
+            try:
+                self._init_google_drive()
+                logger.info("Credentials reinitialized successfully")
+            except Exception as reinit_error:
+                logger.error(f"Failed to reinitialize credentials: {reinit_error}")
+    
+    def _ensure_drive_service(self):
+        """Ensure Drive service is available and credentials are fresh"""
+        if self.drive_service is None:
+            logger.warning("Drive service not initialized, initializing...")
+            self._init_google_drive()
+        else:
+            # Refresh credentials if needed
+            self._refresh_credentials()
 
     def _setup_drive_file(self):
         """Find or create Excel file in Google Drive (using shared drive approach)"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         if not self.drive_service:
             logger.warning("Google Drive service not available")
             return
@@ -202,6 +249,9 @@ class RealtimeExcelSync:
 
     def _upload_to_drive(self):
         """Upload Excel file to Google Drive (using shared drive approach like existing code)"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         if not self.drive_service:
             return
             
@@ -250,25 +300,42 @@ class RealtimeExcelSync:
 
     def _update_drive_file(self):
         """Update existing file in Google Drive (using shared drive approach)"""
+        # Ensure credentials are fresh before operation
+        self._ensure_drive_service()
+        
         if not self.drive_service or not self.drive_file_id:
             return
             
-        try:
-            media = MediaFileUpload(
-                self.local_excel_path,
-                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            
-            self.drive_service.files().update(
-                fileId=self.drive_file_id,
-                media_body=media,
-                supportsAllDrives=True  # Essential for shared drives
-            ).execute()
-            
-            logger.info("Excel file updated in shared drive")
-            
-        except Exception as e:
-            logger.error(f"Error updating shared drive file: {e}")
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                media = MediaFileUpload(
+                    self.local_excel_path,
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                
+                self.drive_service.files().update(
+                    fileId=self.drive_file_id,
+                    media_body=media,
+                    supportsAllDrives=True  # Essential for shared drives
+                ).execute()
+                
+                logger.info("Excel file updated in shared drive")
+                return  # Success, exit function
+                
+            except Exception as e:
+                logger.error(f"Error updating shared drive file (attempt {attempt + 1}/{max_retries}): {e}")
+                
+                # If this is not the last attempt, try refreshing credentials
+                if attempt < max_retries - 1:
+                    logger.info("Attempting to refresh credentials and retry...")
+                    try:
+                        self._init_google_drive()  # Force reinitialize
+                        time.sleep(1)  # Brief pause before retry
+                    except Exception as refresh_error:
+                        logger.error(f"Failed to refresh credentials: {refresh_error}")
+                else:
+                    logger.error("Max retries reached, giving up on Drive update")
 
     def _initial_export(self):
         """Create initial Excel file from Supabase"""
@@ -399,6 +466,7 @@ class RealtimeExcelSync:
                 self._create_clients_sheet(wb)
                 self._create_members_sheet(wb)
                 self._create_pending_policies_sheet(wb)
+                self._create_pending_renewals_sheet(wb)
                 self._create_policy_history_sheet(wb)
                 
                 # Save workbook
@@ -742,6 +810,45 @@ class RealtimeExcelSync:
                         ws.cell(row=row_idx, column=col_idx, value=value)
         except Exception as e:
             logger.error(f"Error creating pending policies sheet: {e}")
+
+    def _create_pending_renewals_sheet(self, workbook):
+        """Create pending renewals sheet - policies where is_pending_renewal = TRUE"""
+        try:
+            # Get policies with is_pending_renewal = TRUE
+            pending_renewals = self.supabase.table("policies").select(
+                "*, clients(name, phone, email), members(member_name)"
+            ).eq("is_pending_renewal", True).execute()
+            
+            df_pending_renewals = pd.DataFrame(pending_renewals.data)
+            if not df_pending_renewals.empty:
+                # Process join data
+                if 'clients' in df_pending_renewals.columns:
+                    client_df = pd.json_normalize(df_pending_renewals['clients'])
+                    client_df.columns = ['client_' + col for col in client_df.columns]
+                    df_pending_renewals = pd.concat([df_pending_renewals.drop('clients', axis=1), client_df], axis=1)
+                
+                if 'members' in df_pending_renewals.columns:
+                    member_df = pd.json_normalize(df_pending_renewals['members'])
+                    member_df.columns = ['member_' + col for col in member_df.columns]
+                    df_pending_renewals = pd.concat([df_pending_renewals.drop('members', axis=1), member_df], axis=1)
+                
+                # Convert DataFrame to sheet
+                ws = workbook.create_sheet("Pending Renewals")
+                
+                # Write headers
+                for col, header in enumerate(df_pending_renewals.columns, 1):
+                    cell = ws.cell(row=1, column=col, value=header)
+                    cell.font = Font(bold=True, color="FFFFFF")
+                    cell.fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                
+                # Write data
+                for row_idx, (_, row) in enumerate(df_pending_renewals.iterrows(), 2):
+                    for col_idx, value in enumerate(row, 1):
+                        ws.cell(row=row_idx, column=col_idx, value=value)
+                
+                logger.info(f"Created Pending Renewals sheet with {len(df_pending_renewals)} policies")
+        except Exception as e:
+            logger.error(f"Error creating pending renewals sheet: {e}")
 
     def _create_policy_history_sheet(self, workbook):
         """Create policy history sheet with additional details (factory, health insurance)"""
