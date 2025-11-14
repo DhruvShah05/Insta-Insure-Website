@@ -56,3 +56,8 @@ prometheus-client
 
 # Production Server (Alternative)
 waitress
+
+bcrypt
+PyPDF2
+reportlab
+pikepdf

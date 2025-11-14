@@ -14,18 +14,19 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 @login_required
 def index():
     """
-    Dashboard showing policies expiring in the next 30 days and statistics
+    Dashboard showing policies expiring in the next 30 days and expired within last 30 days
     """
     today = datetime.today().strftime("%Y-%m-%d")
     next_month = (datetime.today() + timedelta(days=30)).strftime("%Y-%m-%d")
+    last_month = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
 
     try:
-        # Get policies expiring soon with customer information (exclude pending renewals)
+        # Get policies expiring soon OR expired within last 30 days (exclude pending renewals)
         policies_result = (
             supabase.table("policies")
             .select("*, clients(*), members(*)")
             .eq("is_pending_renewal", False)  # Exclude pending renewals from dashboard
-            .gte("policy_to", today)
+            .gte("policy_to", last_month)  # Include policies expired within last 30 days
             .lte("policy_to", next_month)
             .order("policy_to", desc=False)
             .execute()
@@ -46,7 +47,7 @@ def index():
                 policy["customer_email"] = ""
                 policy["customer_phone"] = ""
 
-        print(f"Found {len(policies)} policies expiring between {today} and {next_month}")
+        print(f"Found {len(policies)} policies between {last_month} and {next_month}")
 
         # Get total active policies count
         total_policies_result = supabase.table("policies").select("policy_id", count="exact").execute()

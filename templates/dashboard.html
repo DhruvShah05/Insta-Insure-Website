@@ -652,7 +652,7 @@
                     </svg>
                 </div>
                 <h3 class="stat-number">{{ policies|length if policies else 0 }}</h3>
-                <p class="stat-label">Policies Expiring Soon</p>
+                <p class="stat-label">Policies Requiring Attention</p>
             </div>
             <div class="stat-card">
                 <div class="stat-icon pending">
@@ -778,7 +778,7 @@
 
         <!-- Policies Expiring Soon Section -->
         <div class="section-header">
-            <h2 class="section-title">Policies Expiring Soon</h2>
+            <h2 class="section-title">Policies Requiring Attention</h2>
             <div class="d-flex gap-2">
                 <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
                 <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">View All Clients</a>
@@ -789,7 +789,7 @@
         <div class="table-container">
             {% if policies %}
             <div class="mb-4">
-                <span class="text-muted">Showing {{ policies|length }} policies requiring attention (expiring within 30 days)</span>
+                <span class="text-muted">Showing {{ policies|length }} policies requiring attention (expiring within 30 days or expired within last 30 days)</span>
             </div>
             <div class="table-responsive">
                 <table class="table">

@@ -20,7 +20,7 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
 # Google Drive setup
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = Config.GOOGLE_CREDENTIALS_FILE
+SERVICE_ACCOUNT_FILE = "my-first-project-7fb14-715c168d62d2.json"
 
 # Get Archive folder ID from config
 ARCHIVE_FOLDER_ID = Config.ARCHIVE_FOLDER_ID
