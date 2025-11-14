@@ -66,27 +66,91 @@
             font-weight: 500;
             border-radius: 8px;
         }
-        .customer-type-selector {
+        .add-customer-btn {
             display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-        .customer-type-btn {
-            flex: 1;
-            padding: 16px;
-            border: 2px solid #e2e8f0;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
             border-radius: 8px;
-            background: white;
             cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+            width: 100%;
+            justify-content: center;
         }
-        .customer-type-btn.active {
-            border-color: #667eea;
-            background: #f0f4ff;
+        
+        .add-customer-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
-        #existingCustomerSection, #newCustomerSection {
+        
+        .add-customer-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .new-customer-form {
             display: none;
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .new-customer-form.active {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .new-customer-form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .new-customer-form-header h6 {
+            margin: 0;
+            color: #667eea;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .close-new-customer {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .close-new-customer:hover {
+            background: #e5e7eb;
+            color: #374151;
         }
     </style>
 </head>
@@ -115,48 +179,41 @@
             {% endif %}
         {% endwith %}
 
-        <div class="customer-type-selector">
-            <div class="customer-type-btn" id="newCustomerBtn">
-                <input type="radio" name="customerType" id="newCustomer" value="new">
-                <label for="newCustomer">New Customer</label>
-            </div>
-            <div class="customer-type-btn" id="existingCustomerBtn">
-                <input type="radio" name="customerType" id="existingCustomer" value="existing">
-                <label for="existingCustomer">Existing Customer</label>
-            </div>
-        </div>
 
         <form action="{{ url_for('pending_policies.add_pending') }}" method="POST" onsubmit="console.log('Form submitted!'); return validatePendingForm()">
             <input type="hidden" name="customer_type" id="customerTypeInput">
             <input type="hidden" name="existing_client_id" id="existing_client_id">
             <input type="hidden" name="existing_member_id" id="existing_member_id">
 
-            <div id="existingCustomerSection">
-                <div class="mb-3">
-                    <label for="existing_client_select" class="form-label">Select Client</label>
-                    <select id="existing_client_select" class="form-select">
-                        <option value="">Choose a client...</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="existing_member_select" class="form-label">Select Member (optional)</label>
-                    <select id="existing_member_select" class="form-select">
-                        <option value="">Choose a member...</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="new_member_name" class="form-label">Or add new member</label>
-                    <input type="text" id="new_member_name" name="new_member_name" class="form-control" placeholder="Enter new member name">
-                </div>
-            </div>
+            <!-- Add New Customer Button -->
+            <button type="button" class="add-customer-btn" id="addNewCustomerBtn">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Add New Customer
+            </button>
 
-            <div id="newCustomerSection">
-                <div class="mb-3">
-                    <label for="customer_name" class="form-label">Customer Name</label>
-                    <input type="text" name="customer_name" id="customer_name" class="form-control">
+            <!-- New Customer Form (Initially Hidden) -->
+            <div class="new-customer-form" id="newCustomerForm">
+                <div class="new-customer-form-header">
+                    <h6>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                        New Customer Details
+                    </h6>
+                    <button type="button" class="close-new-customer" id="closeNewCustomerBtn" title="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="mb-3">
-                    <label for="client_prefix" class="form-label">Client Prefix</label>
+                    <label for="customer_name" class="form-label">Customer Name <span style="color: #e53e3e;">*</span></label>
+                    <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="Enter client name">
+                </div>
+                <div class="mb-3">
+                    <label for="client_prefix" class="form-label">Client Prefix <span style="color: #e53e3e;">*</span></label>
                     <input type="text" name="client_prefix" id="client_prefix" class="form-control" placeholder="e.g., DS" maxlength="10" style="text-transform: uppercase;">
                     <small class="text-muted">2-3 letter code for auto-generating client ID (e.g., DS01)</small>
                 </div>
@@ -166,12 +223,31 @@
                 </div>
                 <div class="mb-3">
                     <label for="customer_email" class="form-label">Customer Email</label>
-                    <input type="email" name="customer_email" id="customer_email" class="form-control">
+                    <input type="email" name="customer_email" id="customer_email" class="form-control" placeholder="client@example.com">
                 </div>
                 <div class="mb-3">
                     <label for="customer_phone" class="form-label">Customer Phone</label>
-                    <input type="tel" name="customer_phone" id="customer_phone" class="form-control">
+                    <input type="tel" name="customer_phone" id="customer_phone" class="form-control" placeholder="+91 98765 43210">
                 </div>
+            </div>
+
+            <!-- Existing Customer Selection -->
+            <div class="mb-3">
+                <label for="existing_client_select" class="form-label">Select Existing Client</label>
+                <select id="existing_client_select" class="form-select">
+                    <option value="">Search and select a client...</option>
+                </select>
+                <small class="text-muted">Or use the button above to add a new customer</small>
+            </div>
+            <div class="mb-3">
+                <label for="existing_member_select" class="form-label">Select Member (optional)</label>
+                <select id="existing_member_select" class="form-select">
+                    <option value="">Choose a member...</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="new_member_name" class="form-label">Or add new member</label>
+                <input type="text" id="new_member_name" name="new_member_name" class="form-control" placeholder="Enter new member name">
             </div>
 
             <div class="mb-3">
@@ -222,7 +298,7 @@
                 <input type="text" name="payment_details" id="payment_details" class="form-control" placeholder="UPI/RTGS ref, payment method, etc.">
             </div>
 
-            <div class="row g-3">
+            <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <label for="net_premium" class="form-label">Net Premium/OD</label>
                     <input type="number" name="net_premium" id="net_premium" class="form-control" step="0.01" onchange="calculateGrossPremium()">
@@ -240,6 +316,9 @@
                     <label for="gst_percentage" class="form-label">GST %</label>
                     <input type="number" name="gst_percentage" id="gst_percentage" class="form-control" step="0.01" value="{{ default_gst }}" onchange="calculateGrossPremium()">
                 </div>
+            </div>
+
+            <div class="row g-3">
                 <div class="col-md-4">
                     <label for="gross_premium" class="form-label">Gross Premium (Auto-calculated)</label>
                     <input type="number" name="gross_premium" id="gross_premium" class="form-control" step="0.01" readonly style="background-color: #f8f9fa;">
@@ -262,22 +341,22 @@
                 <small class="text-muted">General sum insured for non-health policies</small>
             </div>
 
-            <div class="row g-3 mt-1">
+            <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <div class="form-check" style="margin-top: 10px;">
+                    <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="one_time_insurance" name="one_time_insurance">
                         <label class="form-check-label" for="one_time_insurance">One-time Insurance</label>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="form-check" style="margin-top: 10px;">
+                    <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="commission_received" name="commission_received">
                         <label class="form-check-label" for="commission_received">Commission Received</label>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-3 mt-1">
+            <div class="row g-3 mb-3">
                 <div class="col-md-4">
                     <label for="business_type" class="form-label">Business Type</label>
                     <select name="business_type" id="business_type" class="form-select">
@@ -434,7 +513,7 @@
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary">Add Pending Policy</button>
                 <a href="{{ url_for('pending_policies.list_pending') }}" class="btn btn-secondary">Cancel</a>
             </div>
@@ -442,40 +521,46 @@
     </div>
 
     <script>
-        const newCustomerBtn = document.getElementById('newCustomerBtn');
-        const existingCustomerBtn = document.getElementById('existingCustomerBtn');
-        const newCustomerSection = document.getElementById('newCustomerSection');
-        const existingCustomerSection = document.getElementById('existingCustomerSection');
+        const addNewCustomerBtn = document.getElementById('addNewCustomerBtn');
+        const closeNewCustomerBtn = document.getElementById('closeNewCustomerBtn');
+        const newCustomerForm = document.getElementById('newCustomerForm');
         const customerTypeInput = document.getElementById('customerTypeInput');
+        const existingClientSelect = document.getElementById('existing_client_select');
 
-        function activateNewCustomer() {
-            document.getElementById('newCustomer').checked = true;
-            newCustomerBtn.classList.add('active');
-            existingCustomerBtn.classList.remove('active');
-            newCustomerSection.style.display = 'block';
-            existingCustomerSection.style.display = 'none';
+        // Toggle new customer form
+        addNewCustomerBtn.addEventListener('click', function() {
+            newCustomerForm.classList.add('active');
             customerTypeInput.value = 'new';
             document.getElementById('customer_name').required = true;
             document.getElementById('client_prefix').required = true;
-            document.getElementById('existing_client_select').required = false;
-            document.getElementById('existing_member_select').required = false;
-        }
+            existingClientSelect.required = false;
+            existingClientSelect.value = '';
+            document.getElementById('existing_client_id').value = '';
+            document.getElementById('existing_member_id').value = '';
+        });
 
-        function activateExistingCustomer() {
-            document.getElementById('existingCustomer').checked = true;
-            existingCustomerBtn.classList.add('active');
-            newCustomerBtn.classList.remove('active');
-            existingCustomerSection.style.display = 'block';
-            newCustomerSection.style.display = 'none';
+        // Close new customer form
+        closeNewCustomerBtn.addEventListener('click', function() {
+            newCustomerForm.classList.remove('active');
             customerTypeInput.value = 'existing';
-            document.getElementById('existing_client_select').required = true;
             document.getElementById('customer_name').required = false;
             document.getElementById('client_prefix').required = false;
-            loadClients();
-        }
+            document.getElementById('customer_name').value = '';
+            document.getElementById('client_prefix').value = '';
+            document.getElementById('member_name').value = '';
+            document.getElementById('customer_email').value = '';
+            document.getElementById('customer_phone').value = '';
+        });
 
-        newCustomerBtn.addEventListener('click', activateNewCustomer);
-        existingCustomerBtn.addEventListener('click', activateExistingCustomer);
+        // When existing client is selected, close new customer form and set to existing mode
+        existingClientSelect.addEventListener('change', function() {
+            if (this.value) {
+                newCustomerForm.classList.remove('active');
+                customerTypeInput.value = 'existing';
+                document.getElementById('customer_name').required = false;
+                document.getElementById('client_prefix').required = false;
+            }
+        });
 
         let clientsLoaded = false;
         
@@ -534,8 +619,9 @@
         
         // Consolidated DOMContentLoaded event listener
         document.addEventListener('DOMContentLoaded', function() {
-            // Default to New Customer on load so name fields show
-            activateNewCustomer();
+            // Load clients and default to existing customer mode
+            loadClients();
+            customerTypeInput.value = 'existing';
             
             // Initialize product dropdown
             initializeProductDropdown('product_name', handleProductChange);

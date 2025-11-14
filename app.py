@@ -7,6 +7,7 @@ from routes.dashboard import dashboard_bp
 from routes.policies import policies_bp
 from routes.pending_policies import pending_policies_bp
 from routes.pending_renewals import pending_renewals_bp
+from routes.pending import pending_bp
 from routes.existing_policies import existing_policies_bp
 from routes.whatsapp_routes import whatsapp_bp
 from routes.whatsapp_logs_routes import whatsapp_logs_bp
@@ -357,6 +358,7 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(policies_bp)
 app.register_blueprint(pending_policies_bp)
 app.register_blueprint(pending_renewals_bp)  # Pending renewals routes
+app.register_blueprint(pending_bp)  # Unified pending items (policies + renewals)
 app.register_blueprint(existing_policies_bp)
 app.register_blueprint(whatsapp_bp)  # WhatsApp routes
 app.register_blueprint(whatsapp_logs_bp)  # WhatsApp logs
