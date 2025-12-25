@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -189,9 +190,158 @@
             .user-name {
                 display: none;
             }
+
+            .global-search {
+                display: none;
+            }
+        }
+
+        /* Global Search Styles */
+        .global-search {
+            position: relative;
+            margin-right: 16px;
+        }
+
+        .global-search-input {
+            width: 280px;
+            padding: 8px 16px 8px 40px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+
+        .global-search-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            width: 320px;
+        }
+
+        .global-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #9ca3af;
+        }
+
+        .global-search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .global-search-results.active {
+            display: block;
+        }
+
+        .search-category {
+            padding: 8px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .search-result-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.2s;
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .search-result-item:hover {
+            background-color: #f3f4f6;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-title {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        .search-result-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .search-no-results {
+            padding: 16px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Breadcrumb Styles */
+        .breadcrumb-container {
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 0;
+        }
+
+        .breadcrumb {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breadcrumb-item a {
+            color: #6b7280;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item a:hover {
+            color: var(--primary-blue);
+        }
+
+        .breadcrumb-item.active {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            color: #d1d5db;
         }
     </style>
 </head>
+
 <body>
     <!-- Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -200,7 +350,8 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="d-flex align-items-center">
-                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" width="24" height="24" class="me-2">
+                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" width="24"
+                    height="24" class="me-2">
                 <span class="fw-bold">{{ config.COMPANY_NAME }}</span>
             </div>
             <button class="sidebar-close" id="sidebarClose">&times;</button>
@@ -209,25 +360,27 @@
             <div class="sidebar-nav-section">Main Actions</div>
             <a href="{{ url_for('policies.add_policy') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
                 Add Policy
             </a>
             <a href="{{ url_for('pending_policies.add_pending') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
                 Add Pending Policy
             </a>
             <a href="{{ url_for('dashboard.view_all_policies') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    <path
+                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                 </svg>
                 View All Policies
             </a>
             <a href="{{ url_for('claims.index') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    <path
+                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                 </svg>
                 Claims
             </a>
@@ -235,19 +388,22 @@
             <div class="sidebar-nav-section">Management</div>
             <a href="{{ url_for('pending.list_pending') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
                 </svg>
                 Pending Items
             </a>
             <a href="{{ url_for('existing_policies.list_all') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    <path
+                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                 </svg>
                 All Clients
             </a>
             <a href="{{ url_for('whatsapp_logs.whatsapp_logs') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    <path
+                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 WhatsApp Logs
             </a>
@@ -255,27 +411,35 @@
             <div class="sidebar-nav-section">Data & Reports</div>
             <a href="/excel" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                    <path d="M12 18v-6"/>
-                    <path d="m9 15 3 3 3-3"/>
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                    <polyline points="14,2 14,8 20,8" />
+                    <path d="M12 18v-6" />
+                    <path d="m9 15 3 3 3-3" />
                 </svg>
                 Excel Data
             </a>
             <a href="{{ url_for('renewal.renewal_export_page') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                    <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/>
-                    <path d="m14 15 2 2 4-4"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                    <polyline points="14,2 14,8 20,8" />
+                    <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+                    <path d="m14 15 2 2 4-4" />
                 </svg>
                 Renewal Export
             </a>
 
             <div class="sidebar-nav-section">Account</div>
+            <a href="{{ url_for('settings.index') }}" class="sidebar-nav-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+                </svg>
+                Settings
+            </a>
             <a href="{{ url_for('auth.logout') }}" class="sidebar-nav-item">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                    <path
+                        d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
                 </svg>
                 Logout
             </a>
@@ -291,11 +455,22 @@
                     <div class="hamburger-line"></div>
                 </div>
                 <a class="navbar-brand ms-3" href="{{ url_for('dashboard.index') }}">
-                    <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
+                    <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}"
+                        class="me-2">
                     {{ config.PORTAL_NAME }}
                 </a>
             </div>
             <div class="d-flex align-items-center gap-3">
+                <!-- Global Search -->
+                <div class="global-search" id="globalSearchContainer">
+                    <svg class="global-search-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                    <input type="text" class="global-search-input" id="globalSearchInput"
+                        placeholder="Search policies, clients, claims..." autocomplete="off">
+                    <div class="global-search-results" id="globalSearchResults"></div>
+                </div>
                 <div class="main-nav">
                     <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
                     <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-outline">Add Pending</a>
@@ -303,12 +478,18 @@
                     <a href="{{ url_for('claims.index') }}" class="btn btn-primary">Claims</a>
                 </div>
                 <div class="user-profile" onclick="toggleUserMenu()">
-                    <div class="user-avatar">{{ current_user.name[0].upper() if current_user and current_user.name else 'U' }}</div>
-                    <span class="user-name d-none d-md-inline">{{ current_user.name if current_user and current_user.name else 'User' }}</span>
+                    <div class="user-avatar">{{ current_user.name[0].upper() if current_user and current_user.name else
+                        'U' }}</div>
+                    <span class="user-name d-none d-md-inline">{{ current_user.name if current_user and
+                        current_user.name else 'User' }}</span>
                 </div>
             </div>
         </div>
     </nav>
+
+    <!-- Breadcrumb -->
+    {% block breadcrumb %}
+    {% endblock %}
 
     <div class="page-container">
         {% block content %}{% endblock %}
@@ -318,7 +499,7 @@
     {% block extra_js %}{% endblock %}
     <script>
         // Sidebar functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             initializeSidebar();
         });
 
@@ -372,7 +553,7 @@
             // For now, just show a simple menu - you can expand this later
             const userOptions = [
                 { label: 'Profile', action: () => alert('Profile functionality coming soon') },
-                { label: 'Settings', action: () => alert('Settings functionality coming soon') },
+                { label: 'Settings', action: () => window.location.href = '{{ url_for("settings.index") }}' },
                 { label: 'Logout', action: () => window.location.href = '{{ url_for("auth.logout") }}' }
             ];
 
@@ -430,6 +611,135 @@
                 });
             }, 100);
         }
+
+        // Global Search functionality
+        (function () {
+            const searchInput = document.getElementById('globalSearchInput');
+            const searchResults = document.getElementById('globalSearchResults');
+            let debounceTimer;
+
+            if (!searchInput || !searchResults) return;
+
+            searchInput.addEventListener('input', function () {
+                const query = this.value.trim();
+
+                clearTimeout(debounceTimer);
+
+                if (query.length < 2) {
+                    searchResults.classList.remove('active');
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`/api/global_search?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            renderSearchResults(data);
+                        })
+                        .catch(error => {
+                            console.error('Search error:', error);
+                        });
+                }, 300);
+            });
+
+            function renderSearchResults(data) {
+                const policies = data.policies || [];
+                const clients = data.clients || [];
+                const members = data.members || [];
+                const claims = data.claims || [];
+                const pending = data.pending || [];
+
+                const hasResults = policies.length > 0 || clients.length > 0 || members.length > 0 || claims.length > 0 || pending.length > 0;
+
+                if (!hasResults) {
+                    searchResults.innerHTML = '<div class="search-no-results">No results found</div>';
+                    searchResults.classList.add('active');
+                    return;
+                }
+
+                let html = '';
+
+                if (policies.length > 0) {
+                    html += '<div class="search-category">📋 Policies</div>';
+                    policies.forEach(policy => {
+                        html += `
+                            <a href="${policy.url}" class="search-result-item">
+                                <div class="search-result-title">${policy.member_name} - ${policy.insurance_company}</div>
+                                <div class="search-result-subtitle">${policy.product_name} ${policy.policy_number ? '• Policy #' + policy.policy_number : ''}</div>
+                            </a>
+                        `;
+                    });
+                }
+
+                if (clients.length > 0) {
+                    html += '<div class="search-category">👤 Clients</div>';
+                    clients.forEach(client => {
+                        html += `
+                            <a href="${client.url}" class="search-result-item">
+                                <div class="search-result-title">${client.name}</div>
+                                <div class="search-result-subtitle">${client.client_id} ${client.phone ? '• ' + client.phone : ''}</div>
+                            </a>
+                        `;
+                    });
+                }
+
+                if (members.length > 0) {
+                    html += '<div class="search-category">👥 Members</div>';
+                    members.forEach(member => {
+                        html += `
+                            <a href="${member.url}" class="search-result-item">
+                                <div class="search-result-title">${member.member_name}</div>
+                                <div class="search-result-subtitle">Client: ${member.client_name || 'N/A'}</div>
+                            </a>
+                        `;
+                    });
+                }
+
+                if (claims.length > 0) {
+                    html += '<div class="search-category">📝 Claims</div>';
+                    claims.forEach(claim => {
+                        html += `
+                            <a href="${claim.url}" class="search-result-item">
+                                <div class="search-result-title">Claim #${claim.claim_id}${claim.claim_number ? ' - ' + claim.claim_number : ''}</div>
+                                <div class="search-result-subtitle">${claim.client_name || 'Unknown'} • ${claim.status || 'Pending'}</div>
+                            </a>
+                        `;
+                    });
+                }
+
+                if (pending.length > 0) {
+                    html += '<div class="search-category">⏳ Pending Items</div>';
+                    pending.forEach(item => {
+                        html += `
+                            <a href="${item.url}" class="search-result-item">
+                                <div class="search-result-title">${item.customer_name} - ${item.insurance_company}</div>
+                                <div class="search-result-subtitle">${item.product_name} • Pending #${item.pending_id}</div>
+                            </a>
+                        `;
+                    });
+                }
+
+                searchResults.innerHTML = html;
+                searchResults.classList.add('active');
+            }
+
+            // Close search results when clicking outside
+            document.addEventListener('click', function (e) {
+                const searchContainer = document.getElementById('globalSearchContainer');
+                if (searchContainer && !searchContainer.contains(e.target)) {
+                    searchResults.classList.remove('active');
+                }
+            });
+
+            // Close on escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    searchResults.classList.remove('active');
+                    searchInput.blur();
+                }
+            });
+        })();
     </script>
 </body>
+
 </html>

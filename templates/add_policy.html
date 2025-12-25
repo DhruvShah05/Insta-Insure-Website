@@ -1,995 +1,1056 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Policy - {{ config.PORTAL_TITLE }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}?v=2.0" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <script src="{{ url_for('static', filename='product_manager.js') }}?v=2.0"></script>
-    <script src="{{ url_for('static', filename='dropdown_manager.js') }}?v=2.0"></script>
-    <style>
-        .form-header {
-            text-align: center;
-            margin-bottom: var(--spacing-8);
+{% extends "base.html" %}
+
+{% block title %}Add Policy - {{ config.PORTAL_TITLE }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="{{ url_for('static', filename='product_manager.js') }}?v=2.0"></script>
+<script src="{{ url_for('static', filename='dropdown_manager.js') }}?v=2.0"></script>
+<style>
+    .form-header {
+        text-align: center;
+        margin-bottom: var(--spacing-8);
+    }
+
+    .form-header h1 {
+        color: var(--gray-900);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .form-header p {
+        color: var(--gray-600);
+        font-size: var(--font-size-lg);
+    }
+
+    .add-customer-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        padding: var(--spacing-3) var(--spacing-4);
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        margin-bottom: var(--spacing-4);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .add-customer-btn:hover {
+        background: #5568d3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .add-customer-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .new-customer-form {
+        display: none;
+        background: var(--gray-50);
+        border: 2px dashed var(--primary-blue);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        margin-bottom: var(--spacing-4);
+        animation: slideDown 0.3s ease;
+    }
+
+    .new-customer-form.active {
+        display: block;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
         }
-        
-        .form-header h1 {
-            color: var(--gray-900);
-            margin-bottom: var(--spacing-2);
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
-        
-        .form-header p {
-            color: var(--gray-600);
-            font-size: var(--font-size-lg);
+    }
+
+    .new-customer-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .new-customer-form-header h6 {
+        margin: 0;
+        color: var(--primary-blue);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+    }
+
+    .close-new-customer {
+        background: none;
+        border: none;
+        color: var(--gray-500);
+        cursor: pointer;
+        padding: var(--spacing-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        transition: all 0.2s;
+    }
+
+    .close-new-customer:hover {
+        background: var(--gray-200);
+        color: var(--gray-700);
+    }
+
+    .form-section {
+        background: var(--gray-50);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        margin-bottom: var(--spacing-6);
+        border: 1px solid var(--gray-200);
+    }
+
+    .form-section h5 {
+        color: var(--gray-900);
+        margin-bottom: var(--spacing-4);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+    }
+
+    .section-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--primary-blue);
+    }
+
+    .whatsapp-section {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 2px solid #86efac;
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        margin: var(--spacing-6) 0;
+    }
+
+    .whatsapp-checkbox {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-3);
+    }
+
+    .whatsapp-checkbox input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #25D366;
+    }
+
+    .whatsapp-checkbox label {
+        font-weight: 600;
+        color: #166534;
+        cursor: pointer;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+    }
+
+    .whatsapp-icon {
+        width: 20px;
+        height: 20px;
+        color: #25D366;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-4);
+        justify-content: center;
+        margin-top: var(--spacing-8);
+    }
+
+    .required-indicator {
+        color: var(--danger);
+    }
+
+    .form-help {
+        font-size: var(--font-size-sm);
+        color: var(--gray-500);
+        margin-top: var(--spacing-1);
+    }
+
+    @media (max-width: 768px) {
+        .customer-type-selector {
+            grid-template-columns: 1fr;
         }
-        
-        .add-customer-btn {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-            padding: var(--spacing-3) var(--spacing-4);
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: var(--radius-lg);
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            margin-bottom: var(--spacing-4);
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .add-customer-btn:hover {
-            background: #5568d3;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .add-customer-btn svg {
-            width: 20px;
-            height: 20px;
-        }
-        
-        .new-customer-form {
-            display: none;
-            background: var(--gray-50);
-            border: 2px dashed var(--primary-blue);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-6);
-            margin-bottom: var(--spacing-4);
-            animation: slideDown 0.3s ease;
-        }
-        
-        .new-customer-form.active {
-            display: block;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .new-customer-form-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-4);
-        }
-        
-        .new-customer-form-header h6 {
-            margin: 0;
-            color: var(--primary-blue);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-        }
-        
-        .close-new-customer {
-            background: none;
-            border: none;
-            color: var(--gray-500);
-            cursor: pointer;
-            padding: var(--spacing-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: var(--radius-md);
-            transition: all 0.2s;
-        }
-        
-        .close-new-customer:hover {
-            background: var(--gray-200);
-            color: var(--gray-700);
-        }
-        
-        .form-section {
-            background: var(--gray-50);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-6);
-            margin-bottom: var(--spacing-6);
-            border: 1px solid var(--gray-200);
-        }
-        
-        .form-section h5 {
-            color: var(--gray-900);
-            margin-bottom: var(--spacing-4);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-        }
-        
-        .section-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--primary-blue);
-        }
-        
-        .whatsapp-section {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            border: 2px solid #86efac;
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-6);
-            margin: var(--spacing-6) 0;
-        }
-        
-        .whatsapp-checkbox {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-3);
-        }
-        
-        .whatsapp-checkbox input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            accent-color: #25D366;
-        }
-        
-        .whatsapp-checkbox label {
-            font-weight: 600;
-            color: #166534;
-            cursor: pointer;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-2);
-        }
-        
-        .whatsapp-icon {
-            width: 20px;
-            height: 20px;
-            color: #25D366;
-        }
-        
+
         .form-actions {
-            display: flex;
-            gap: var(--spacing-4);
-            justify-content: center;
-            margin-top: var(--spacing-8);
+            flex-direction: column;
         }
-        
-        .required-indicator {
-            color: var(--danger);
-        }
-        
-        .form-help {
-            font-size: var(--font-size-sm);
-            color: var(--gray-500);
-            margin-top: var(--spacing-1);
-        }
-        
-        @media (max-width: 768px) {
-            .customer-type-selector {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-actions {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
-                <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}" class="me-2">
-                {{ config.PORTAL_NAME }}
-            </a>
-            <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline">Back to Dashboard</a>
-        </div>
-    </nav>
+    }
+</style>
+{% endblock %}
 
-    <div class="form-container">
-        <div class="form-header">
-            <h1>Add New Policy</h1>
-            <p>Register a new insurance policy for your customer</p>
-        </div>
+{% block breadcrumb %}
+<div class="breadcrumb-container">
+    <div class="container-fluid px-4">
+        <nav class="breadcrumb">
+            <span class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></span>
+            <span class="breadcrumb-separator">›</span>
+            <span class="breadcrumb-item active">Add Policy</span>
+        </nav>
+    </div>
+</div>
+{% endblock %}
 
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-info">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-
-        <form action="{{ url_for('policies.add_policy') }}" method="POST" enctype="multipart/form-data" onsubmit="console.log('Form submit event triggered'); return validateForm()">
-            <input type="hidden" name="customer_type" id="customerTypeInput">
-            <input type="hidden" name="existing_client_id" id="existing_client_id">
-            <input type="hidden" name="existing_member_id" id="existing_member_id">
-
-            <!-- Customer Information Section -->
-            <div class="form-section">
-                <h5>
-                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                    </svg>
-                    Client Information
-                </h5>
-
-                <!-- Add New Customer Button -->
-                <button type="button" class="add-customer-btn" id="addNewCustomerBtn">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                    </svg>
-                    Add New Customer
-                </button>
-
-                <!-- New Customer Form (Initially Hidden) -->
-                <div class="new-customer-form" id="newCustomerForm">
-                    <div class="new-customer-form-header">
-                        <h6>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                            </svg>
-                            New Customer Details
-                        </h6>
-                        <button type="button" class="close-new-customer" id="closeNewCustomerBtn" title="Close">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="customer_name" class="form-label">Client Name <span class="required-indicator">*</span></label>
-                                <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="Enter client name">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="client_prefix" class="form-label">Client Prefix <span class="required-indicator">*</span></label>
-                                <input type="text" name="client_prefix" id="client_prefix" class="form-control" placeholder="e.g., DS" maxlength="10" style="text-transform: uppercase;">
-                                <div class="form-help">2-3 letter code for auto-generating client ID (e.g., DS01)</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="member_name" class="form-label">Member Name</label>
-                                <input type="text" name="member_name" id="member_name" class="form-control" placeholder="If different from client name">
-                                <div class="form-help">Leave empty to use client name</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="customer_email" class="form-label">Client Email</label>
-                                <input type="email" name="customer_email" id="customer_email" class="form-control" placeholder="client@example.com">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="customer_phone" class="form-label">Client Phone</label>
-                                <input type="tel" name="customer_phone" id="customer_phone" class="form-control" placeholder="+91 98765 43210">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Existing Customer Selection -->
-                <div class="mb-4">
-                    <label for="existing_client_select" class="form-label">Select Existing Client</label>
-                    <select id="existing_client_select" class="form-select">
-                        <option value="">Search and select a client...</option>
-                    </select>
-                    <div class="form-help">Or use the button above to add a new customer</div>
-                </div>
-                <div class="mb-4">
-                    <label for="existing_member_select" class="form-label">Select Member (optional)</label>
-                    <select id="existing_member_select" class="form-select">
-                        <option value="">Choose a member...</option>
-                    </select>
-                    <div class="form-help">Leave empty to auto-create a member using client name</div>
-                </div>
-                <div class="mb-4">
-                    <label for="new_member_name" class="form-label">Or add new member</label>
-                    <input type="text" id="new_member_name" name="new_member_name" class="form-control" placeholder="Enter new member name">
-                </div>
-            </div>
-
-            <!-- Policy Details Section -->
-            <div class="form-section">
-                <h5>
-                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                    </svg>
-                    Policy Details
-                </h5>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="insurance_company" class="form-label">Insurance Company <span class="required-indicator">*</span></label>
-                            <select name="insurance_company" id="insurance_company" class="form-select" required>
-                                <option value="">Select insurance company...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="product_name" class="form-label">Product <span class="required-indicator">*</span></label>
-                            <select name="product_name" id="product_name" class="form-select" required>
-                                <option value="">Select product type...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="policy_number" class="form-label">Policy Number <span class="required-indicator">*</span></label>
-                            <input type="text" name="policy_number" id="policy_number" class="form-control" placeholder="Enter policy number" required>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="policy_to" class="form-label">Policy To (Expiry) <span class="required-indicator">*</span></label>
-                            <input type="text" name="policy_to" id="policy_to" class="form-control date-picker" placeholder="DD/MM/YYYY" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="policy_from" class="form-label">Policy From</label>
-                            <input type="text" name="policy_from" id="policy_from" class="form-control date-picker" placeholder="DD/MM/YYYY">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="payment_date" class="form-label">Payment Date</label>
-                            <input type="text" name="payment_date" id="payment_date" class="form-control date-picker" placeholder="DD/MM/YYYY">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="agent_name" class="form-label">Agent Name</label>
-                            <select name="agent_name" id="agent_name" class="form-select">
-                                <option value="">Select agent name...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-check" style="margin-top: 34px;">
-                            <input type="checkbox" class="form-check-input" id="one_time_insurance" name="one_time_insurance">
-                            <label class="form-check-label" for="one_time_insurance">One-time insurance</label>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="payment_details" class="form-label">Payment Details</label>
-                            <input type="text" name="payment_details" id="payment_details" class="form-control" placeholder="UPI/RTGS ref, etc.">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="net_premium" class="form-label">Net Premium/OD</label>
-                            <input type="number" step="0.01" name="net_premium" id="net_premium" class="form-control" onchange="calculateGrossPremium()">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="addon_premium" class="form-label">Addon Premium</label>
-                            <input type="number" step="0.01" name="addon_premium" id="addon_premium" class="form-control" onchange="calculateGrossPremium()">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="tp_tr_premium" class="form-label">TP/TR Premium</label>
-                            <input type="number" step="0.01" name="tp_tr_premium" id="tp_tr_premium" class="form-control" onchange="calculateGrossPremium()">
-                            <div class="form-help">Third Party/Transit Premium</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="gst_percentage" class="form-label">GST %</label>
-                            <input type="number" step="0.01" name="gst_percentage" id="gst_percentage" class="form-control" value="{{ default_gst }}" onchange="calculateGrossPremium()">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="gross_premium" class="form-label">Gross Premium (Auto-calculated)</label>
-                            <input type="number" step="0.01" name="gross_premium" id="gross_premium" class="form-control" readonly style="background-color: #f8f9fa;">
-                            <div class="form-help">Net + Addon + TP/TR + GST</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="commission_percentage" class="form-label">Commission %</label>
-                            <input type="number" step="0.01" name="commission_percentage" id="commission_percentage" class="form-control" onchange="calculateCommission()">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="commission_amount" class="form-label">Commission Amount (Auto-calculated)</label>
-                            <input type="number" step="0.01" name="commission_amount" id="commission_amount" class="form-control" readonly style="background-color: #f8f9fa;">
-                            <div class="form-help">(Net + Addon) × Commission %</div>
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="sum_insured" class="form-label">Sum Insured</label>
-                            <input type="number" step="0.01" name="sum_insured" id="sum_insured" class="form-control" placeholder="Total coverage amount">
-                            <div class="form-help">General sum insured for non-health policies</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-check" style="margin-top: 34px;">
-                            <input type="checkbox" class="form-check-input" id="commission_received" name="commission_received">
-                            <label class="form-check-label" for="commission_received">Commission received</label>
-                        </div>
-                    </div>
-                    <div class="col-md-6"></div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="business_type" class="form-label">Business Type</label>
-                            <select name="business_type" id="business_type" class="form-select">
-                                <option value="">Select...</option>
-                                <option value="NEW">NEW</option>
-                                <option value="RENEWAL">RENEWAL</option>
-                                <option value="ROLL OVER">ROLL OVER</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="group_name" class="form-label">Group</label>
-                            <input type="text" name="group_name" id="group_name" class="form-control" placeholder="e.g., SAMEER SHAH">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="subgroup_name" class="form-label">Subgroup</label>
-                            <input type="text" name="subgroup_name" id="subgroup_name" class="form-control">
-                        </div>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <label for="remarks" class="form-label">Remarks</label>
-                            <input type="text" name="remarks" id="remarks" class="form-control" placeholder="e.g., Factory Insurance, Skoda MH02GJ2149">
-                            <div class="form-help">Add specific details or identifiers for this policy</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Health Insurance Details Section -->
-            <div class="form-section" id="healthInsuranceSection" style="display: none;">
-                <h5>
-                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
-                    </svg>
-                    Health Insurance Details
-                </h5>
-
-                <div class="mb-4">
-                    <label class="form-label">Plan Type <span class="required-indicator">*</span></label>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="health_plan_type" id="floater_plan" value="FLOATER">
-                                <label class="form-check-label" for="floater_plan">
-                                    <strong>Floater Plan</strong><br>
-                                    <small class="text-muted">Family floater with single sum insured and bonus for all members</small>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="health_plan_type" id="individual_plan" value="INDIVIDUAL">
-                                <label class="form-check-label" for="individual_plan">
-                                    <strong>Individual Plan</strong><br>
-                                    <small class="text-muted">Individual coverage with separate sum insured per member</small>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="health_plan_type" id="topup_floater_plan" value="TOPUP_FLOATER">
-                                <label class="form-check-label" for="topup_floater_plan">
-                                    <strong>Topup Floater Plan</strong><br>
-                                    <small class="text-muted">Family floater topup with single sum insured, bonus and deductible</small>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="health_plan_type" id="topup_individual_plan" value="TOPUP_INDIVIDUAL">
-                                <label class="form-check-label" for="topup_individual_plan">
-                                    <strong>Topup Individual Plan</strong><br>
-                                    <small class="text-muted">Individual topup with separate sum insured, bonus and deductible per member</small>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Floater-specific fields -->
-                <div id="floaterFieldsContainer" style="display: none;">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="floater_sum_insured" class="form-label">Floater Sum Insured <span class="required-indicator">*</span></label>
-                                <input type="number" step="0.01" name="floater_sum_insured" id="floater_sum_insured" class="form-control" placeholder="Total sum insured for all members">
-                                <small class="text-muted">This amount applies to all members in the floater policy</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label for="floater_bonus" class="form-label">Floater Bonus</label>
-                                <input type="number" step="0.01" name="floater_bonus" id="floater_bonus" class="form-control" placeholder="Total bonus for all members">
-                                <small class="text-muted">This bonus applies to all members in the floater policy</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4" id="floaterDeductibleContainer" style="display: none;">
-                            <div class="mb-3">
-                                <label for="floater_deductible" class="form-label">Floater Deductible <span class="required-indicator">*</span></label>
-                                <input type="number" step="0.01" name="floater_deductible" id="floater_deductible" class="form-control" placeholder="Total deductible for all members">
-                                <small class="text-muted">This deductible applies to all members in the floater topup policy</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="healthMembersContainer">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <label class="form-label mb-0">Insured Members <span class="required-indicator">*</span></label>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="addHealthMemberBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                            </svg>
-                            Add Member
-                        </button>
-                    </div>
-                    <div id="healthMembersList">
-                        <!-- Health members will be added here dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Factory Insurance Details Section -->
-            <div class="form-section" id="factoryInsuranceSection" style="display: none;">
-                <h5>
-                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,3L2,12H5V20H19V12H22L12,3M12,8.75A1.25,1.25 0 0,1 13.25,10A1.25,1.25 0 0,1 12,11.25A1.25,1.25 0 0,1 10.75,10A1.25,1.25 0 0,1 12,8.75M12,6.5A3.5,3.5 0 0,0 8.5,10A3.5,3.5 0 0,0 12,13.5A3.5,3.5 0 0,0 15.5,10A3.5,3.5 0 0,0 12,6.5Z"/>
-                    </svg>
-                    Factory Insurance Coverage Details
-                </h5>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="factory_building" class="form-label">Building</label>
-                            <input type="number" step="0.01" name="factory_building" id="factory_building" class="form-control" placeholder="Building coverage amount">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="factory_plant_machinery" class="form-label">Plant & Machinery</label>
-                            <input type="number" step="0.01" name="factory_plant_machinery" id="factory_plant_machinery" class="form-control" placeholder="P&M coverage amount">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="factory_furniture_fittings" class="form-label">Furniture, Fittings & Fixtures</label>
-                            <input type="number" step="0.01" name="factory_furniture_fittings" id="factory_furniture_fittings" class="form-control" placeholder="FFF coverage amount">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="factory_stocks" class="form-label">Stocks</label>
-                            <input type="number" step="0.01" name="factory_stocks" id="factory_stocks" class="form-control" placeholder="Stock coverage amount">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="factory_electrical_installations" class="form-label">Electrical Installations</label>
-                            <input type="number" step="0.01" name="factory_electrical_installations" id="factory_electrical_installations" class="form-control" placeholder="E.I. coverage amount">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Document Upload Section -->
-            <div class="form-section">
-                <h5>
-                    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                    </svg>
-                    Document Upload
-                </h5>
-
-                <div class="mb-4">
-                    <label for="policy_file" class="form-label">Upload Policy Document <span class="required-indicator">*</span></label>
-                    <input type="file" name="policy_file" id="policy_file" class="form-control" accept=".pdf,.doc,.docx" required>
-                    <div class="form-help">Accepted formats: PDF, DOC, DOCX (Maximum file size: 10MB)</div>
-                </div>
-            </div>
-
-            <!-- WhatsApp Notification Section -->
-            <div class="whatsapp-section">
-                <div class="whatsapp-checkbox">
-                    <input type="checkbox" name="send_via_whatsapp" id="send_via_whatsapp" value="yes">
-                    <label for="send_via_whatsapp">
-                        <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                        </svg>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 8px;">
-                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
-                        </svg>
-                        Send policy document to customer via WhatsApp & Email
-                    </label>
-                </div>
-                <div class="form-help">Will send via WhatsApp (if phone available) and Email (if email available)</div>
-            </div>
-
-            <!-- Error Display Area -->
-            <div id="errorDisplay" class="alert alert-danger" style="display: none;">
-                <strong>Please fix the following errors:</strong>
-                <ul id="errorList"></ul>
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="me-2">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                    </svg>
-                    Add Policy
-                </button>
-                <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary btn-lg">Cancel</a>
-            </div>
-        </form>
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Add New Policy</h1>
+        <p>Register a new insurance policy for your customer</p>
     </div>
 
-    <script>
-        const addNewCustomerBtn = document.getElementById('addNewCustomerBtn');
-        const closeNewCustomerBtn = document.getElementById('closeNewCustomerBtn');
-        const newCustomerForm = document.getElementById('newCustomerForm');
-        const customerTypeInput = document.getElementById('customerTypeInput');
-        const existingClientSelect = document.getElementById('existing_client_select');
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-info">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
 
-        // Toggle new customer form
-        addNewCustomerBtn.addEventListener('click', function() {
-            newCustomerForm.classList.add('active');
-            customerTypeInput.value = 'new';
-            document.getElementById('customer_name').required = true;
-            document.getElementById('client_prefix').required = true;
-            existingClientSelect.required = false;
-            existingClientSelect.value = '';
-            document.getElementById('existing_client_id').value = '';
-            document.getElementById('existing_member_id').value = '';
-        });
 
-        // Close new customer form
-        closeNewCustomerBtn.addEventListener('click', function() {
+    <form action="{{ url_for('policies.add_policy') }}" method="POST" enctype="multipart/form-data"
+        onsubmit="console.log('Form submit event triggered'); return validateForm()">
+        <input type="hidden" name="customer_type" id="customerTypeInput">
+        <input type="hidden" name="existing_client_id" id="existing_client_id">
+        <input type="hidden" name="existing_member_id" id="existing_member_id">
+
+        <!-- Customer Information Section -->
+        <div class="form-section">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                </svg>
+                Client Information
+            </h5>
+
+            <!-- Add New Customer Button -->
+            <button type="button" class="add-customer-btn" id="addNewCustomerBtn">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                Add New Customer
+            </button>
+
+            <!-- New Customer Form (Initially Hidden) -->
+            <div class="new-customer-form" id="newCustomerForm">
+                <div class="new-customer-form-header">
+                    <h6>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                        New Customer Details
+                    </h6>
+                    <button type="button" class="close-new-customer" id="closeNewCustomerBtn" title="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="customer_name" class="form-label">Client Name <span
+                                    class="required-indicator">*</span></label>
+                            <input type="text" name="customer_name" id="customer_name" class="form-control"
+                                placeholder="Enter client name">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="client_prefix" class="form-label">Client Prefix <span
+                                    class="required-indicator">*</span></label>
+                            <input type="text" name="client_prefix" id="client_prefix" class="form-control"
+                                placeholder="e.g., DS" maxlength="10" style="text-transform: uppercase;">
+                            <div class="form-help">2-3 letter code for auto-generating client ID (e.g., DS01)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="member_name" class="form-label">Member Name</label>
+                            <input type="text" name="member_name" id="member_name" class="form-control"
+                                placeholder="If different from client name">
+                            <div class="form-help">Leave empty to use client name</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="customer_email" class="form-label">Client Email</label>
+                            <input type="email" name="customer_email" id="customer_email" class="form-control"
+                                placeholder="client@example.com">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="customer_phone" class="form-label">Client Phone</label>
+                            <input type="tel" name="customer_phone" id="customer_phone" class="form-control"
+                                placeholder="+91 98765 43210">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing Customer Selection -->
+            <div class="mb-4">
+                <label for="existing_client_select" class="form-label">Select Existing Client</label>
+                <select id="existing_client_select" class="form-select">
+                    <option value="">Search and select a client...</option>
+                </select>
+                <div class="form-help">Or use the button above to add a new customer</div>
+            </div>
+            <div class="mb-4">
+                <label for="existing_member_select" class="form-label">Select Member (optional)</label>
+                <select id="existing_member_select" class="form-select">
+                    <option value="">Choose a member...</option>
+                </select>
+                <div class="form-help">Leave empty to auto-create a member using client name</div>
+            </div>
+            <div class="mb-4">
+                <label for="new_member_name" class="form-label">Or add new member</label>
+                <input type="text" id="new_member_name" name="new_member_name" class="form-control"
+                    placeholder="Enter new member name">
+            </div>
+        </div>
+
+        <!-- Policy Details Section -->
+        <div class="form-section">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+                Policy Details
+            </h5>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="insurance_company" class="form-label">Insurance Company <span
+                                class="required-indicator">*</span></label>
+                        <select name="insurance_company" id="insurance_company" class="form-select" required>
+                            <option value="">Select insurance company...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="product_name" class="form-label">Product <span
+                                class="required-indicator">*</span></label>
+                        <select name="product_name" id="product_name" class="form-select" required>
+                            <option value="">Select product type...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="policy_number" class="form-label">Policy Number <span
+                                class="required-indicator">*</span></label>
+                        <input type="text" name="policy_number" id="policy_number" class="form-control"
+                            placeholder="Enter policy number" required>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="policy_to" class="form-label">Policy To (Expiry) <span
+                                class="required-indicator">*</span></label>
+                        <input type="text" name="policy_to" id="policy_to" class="form-control date-picker"
+                            placeholder="DD/MM/YYYY" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="policy_from" class="form-label">Policy From</label>
+                        <input type="text" name="policy_from" id="policy_from" class="form-control date-picker"
+                            placeholder="DD/MM/YYYY">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Payment Date</label>
+                        <input type="text" name="payment_date" id="payment_date" class="form-control date-picker"
+                            placeholder="DD/MM/YYYY">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="agent_name" class="form-label">Agent Name</label>
+                        <select name="agent_name" id="agent_name" class="form-select">
+                            <option value="">Select agent name...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check" style="margin-top: 34px;">
+                        <input type="checkbox" class="form-check-input" id="one_time_insurance"
+                            name="one_time_insurance">
+                        <label class="form-check-label" for="one_time_insurance">One-time insurance</label>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label for="payment_details" class="form-label">Payment Details</label>
+                        <input type="text" name="payment_details" id="payment_details" class="form-control"
+                            placeholder="UPI/RTGS ref, etc.">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="net_premium" class="form-label">Net Premium/OD</label>
+                        <input type="number" step="0.01" name="net_premium" id="net_premium" class="form-control"
+                            onchange="calculateGrossPremium()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="addon_premium" class="form-label">Addon Premium</label>
+                        <input type="number" step="0.01" name="addon_premium" id="addon_premium" class="form-control"
+                            onchange="calculateGrossPremium()">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="tp_tr_premium" class="form-label">TP/TR Premium</label>
+                        <input type="number" step="0.01" name="tp_tr_premium" id="tp_tr_premium" class="form-control"
+                            onchange="calculateGrossPremium()">
+                        <div class="form-help">Third Party/Transit Premium</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="gst_percentage" class="form-label">GST %</label>
+                        <input type="number" step="0.01" name="gst_percentage" id="gst_percentage" class="form-control"
+                            value="{{ default_gst }}" onchange="calculateGrossPremium()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="gross_premium" class="form-label">Gross Premium (Auto-calculated)</label>
+                        <input type="number" step="0.01" name="gross_premium" id="gross_premium" class="form-control"
+                            readonly style="background-color: #f8f9fa;">
+                        <div class="form-help">Net + Addon + TP/TR + GST</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="commission_percentage" class="form-label">Commission %</label>
+                        <input type="number" step="0.01" name="commission_percentage" id="commission_percentage"
+                            class="form-control" onchange="calculateCommission()">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="commission_amount" class="form-label">Commission Amount (Auto-calculated)</label>
+                        <input type="number" step="0.01" name="commission_amount" id="commission_amount"
+                            class="form-control" readonly style="background-color: #f8f9fa;">
+                        <div class="form-help">(Net + Addon) × Commission %</div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label for="sum_insured" class="form-label">Sum Insured</label>
+                        <input type="number" step="0.01" name="sum_insured" id="sum_insured" class="form-control"
+                            placeholder="Total coverage amount">
+                        <div class="form-help">General sum insured for non-health policies</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check" style="margin-top: 34px;">
+                        <input type="checkbox" class="form-check-input" id="commission_received"
+                            name="commission_received">
+                        <label class="form-check-label" for="commission_received">Commission received</label>
+                    </div>
+                </div>
+                <div class="col-md-6"></div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="business_type" class="form-label">Business Type</label>
+                        <select name="business_type" id="business_type" class="form-select">
+                            <option value="">Select...</option>
+                            <option value="NEW">NEW</option>
+                            <option value="RENEWAL">RENEWAL</option>
+                            <option value="ROLL OVER">ROLL OVER</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="group_name" class="form-label">Group</label>
+                        <input type="text" name="group_name" id="group_name" class="form-control"
+                            placeholder="e.g., SAMEER SHAH">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="subgroup_name" class="form-label">Subgroup</label>
+                        <input type="text" name="subgroup_name" id="subgroup_name" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label for="remarks" class="form-label">Remarks</label>
+                        <input type="text" name="remarks" id="remarks" class="form-control"
+                            placeholder="e.g., Factory Insurance, Skoda MH02GJ2149">
+                        <div class="form-help">Add specific details or identifiers for this policy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Insurance Details Section -->
+        <div class="form-section" id="healthInsuranceSection" style="display: none;">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z" />
+                </svg>
+                Health Insurance Details
+            </h5>
+
+            <div class="mb-4">
+                <label class="form-label">Plan Type <span class="required-indicator">*</span></label>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="health_plan_type" id="floater_plan"
+                                value="FLOATER">
+                            <label class="form-check-label" for="floater_plan">
+                                <strong>Floater Plan</strong><br>
+                                <small class="text-muted">Family floater with single sum insured and bonus for all
+                                    members</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="health_plan_type" id="individual_plan"
+                                value="INDIVIDUAL">
+                            <label class="form-check-label" for="individual_plan">
+                                <strong>Individual Plan</strong><br>
+                                <small class="text-muted">Individual coverage with separate sum insured per
+                                    member</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="health_plan_type" id="topup_floater_plan"
+                                value="TOPUP_FLOATER">
+                            <label class="form-check-label" for="topup_floater_plan">
+                                <strong>Topup Floater Plan</strong><br>
+                                <small class="text-muted">Family floater topup with single sum insured, bonus and
+                                    deductible</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="health_plan_type"
+                                id="topup_individual_plan" value="TOPUP_INDIVIDUAL">
+                            <label class="form-check-label" for="topup_individual_plan">
+                                <strong>Topup Individual Plan</strong><br>
+                                <small class="text-muted">Individual topup with separate sum insured, bonus and
+                                    deductible per member</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floater-specific fields -->
+            <div id="floaterFieldsContainer" style="display: none;">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="floater_sum_insured" class="form-label">Floater Sum Insured <span
+                                    class="required-indicator">*</span></label>
+                            <input type="number" step="0.01" name="floater_sum_insured" id="floater_sum_insured"
+                                class="form-control" placeholder="Total sum insured for all members">
+                            <small class="text-muted">This amount applies to all members in the floater policy</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="floater_bonus" class="form-label">Floater Bonus</label>
+                            <input type="number" step="0.01" name="floater_bonus" id="floater_bonus"
+                                class="form-control" placeholder="Total bonus for all members">
+                            <small class="text-muted">This bonus applies to all members in the floater policy</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4" id="floaterDeductibleContainer" style="display: none;">
+                        <div class="mb-3">
+                            <label for="floater_deductible" class="form-label">Floater Deductible <span
+                                    class="required-indicator">*</span></label>
+                            <input type="number" step="0.01" name="floater_deductible" id="floater_deductible"
+                                class="form-control" placeholder="Total deductible for all members">
+                            <small class="text-muted">This deductible applies to all members in the floater topup
+                                policy</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="healthMembersContainer">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label mb-0">Insured Members <span class="required-indicator">*</span></label>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="addHealthMemberBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                        </svg>
+                        Add Member
+                    </button>
+                </div>
+                <div id="healthMembersList">
+                    <!-- Health members will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Factory Insurance Details Section -->
+        <div class="form-section" id="factoryInsuranceSection" style="display: none;">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12,3L2,12H5V20H19V12H22L12,3M12,8.75A1.25,1.25 0 0,1 13.25,10A1.25,1.25 0 0,1 12,11.25A1.25,1.25 0 0,1 10.75,10A1.25,1.25 0 0,1 12,8.75M12,6.5A3.5,3.5 0 0,0 8.5,10A3.5,3.5 0 0,0 12,13.5A3.5,3.5 0 0,0 15.5,10A3.5,3.5 0 0,0 12,6.5Z" />
+                </svg>
+                Factory Insurance Coverage Details
+            </h5>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="factory_building" class="form-label">Building</label>
+                        <input type="number" step="0.01" name="factory_building" id="factory_building"
+                            class="form-control" placeholder="Building coverage amount">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="factory_plant_machinery" class="form-label">Plant & Machinery</label>
+                        <input type="number" step="0.01" name="factory_plant_machinery" id="factory_plant_machinery"
+                            class="form-control" placeholder="P&M coverage amount">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="factory_furniture_fittings" class="form-label">Furniture, Fittings &
+                            Fixtures</label>
+                        <input type="number" step="0.01" name="factory_furniture_fittings"
+                            id="factory_furniture_fittings" class="form-control" placeholder="FFF coverage amount">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="factory_stocks" class="form-label">Stocks</label>
+                        <input type="number" step="0.01" name="factory_stocks" id="factory_stocks" class="form-control"
+                            placeholder="Stock coverage amount">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="factory_electrical_installations" class="form-label">Electrical
+                            Installations</label>
+                        <input type="number" step="0.01" name="factory_electrical_installations"
+                            id="factory_electrical_installations" class="form-control"
+                            placeholder="E.I. coverage amount">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Upload Section -->
+        <div class="form-section">
+            <h5>
+                <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+                Document Upload
+            </h5>
+
+            <div class="mb-4">
+                <label for="policy_file" class="form-label">Upload Policy Document <span
+                        class="required-indicator">*</span></label>
+                <input type="file" name="policy_file" id="policy_file" class="form-control" accept=".pdf,.doc,.docx"
+                    required>
+                <div class="form-help">Accepted formats: PDF, DOC, DOCX (Maximum file size: 10MB)</div>
+            </div>
+        </div>
+
+        <!-- WhatsApp Notification Section -->
+        <div class="whatsapp-section">
+            <div class="whatsapp-checkbox">
+                <input type="checkbox" name="send_via_whatsapp" id="send_via_whatsapp" value="yes">
+                <label for="send_via_whatsapp">
+                    <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 8px;">
+                        <path
+                            d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                    </svg>
+                    Send policy document to customer via WhatsApp & Email
+                </label>
+            </div>
+            <div class="form-help">Will send via WhatsApp (if phone available) and Email (if email available)</div>
+        </div>
+
+        <!-- Error Display Area -->
+        <div id="errorDisplay" class="alert alert-danger" style="display: none;">
+            <strong>Please fix the following errors:</strong>
+            <ul id="errorList"></ul>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" class="me-2">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                Add Policy
+            </button>
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    const addNewCustomerBtn = document.getElementById('addNewCustomerBtn');
+    const closeNewCustomerBtn = document.getElementById('closeNewCustomerBtn');
+    const newCustomerForm = document.getElementById('newCustomerForm');
+    const customerTypeInput = document.getElementById('customerTypeInput');
+    const existingClientSelect = document.getElementById('existing_client_select');
+
+    // Toggle new customer form
+    addNewCustomerBtn.addEventListener('click', function () {
+        newCustomerForm.classList.add('active');
+        customerTypeInput.value = 'new';
+        document.getElementById('customer_name').required = true;
+        document.getElementById('client_prefix').required = true;
+        existingClientSelect.required = false;
+        existingClientSelect.value = '';
+        document.getElementById('existing_client_id').value = '';
+        document.getElementById('existing_member_id').value = '';
+    });
+
+    // Close new customer form
+    closeNewCustomerBtn.addEventListener('click', function () {
+        newCustomerForm.classList.remove('active');
+        customerTypeInput.value = 'existing';
+        document.getElementById('customer_name').required = false;
+        document.getElementById('client_prefix').required = false;
+        document.getElementById('customer_name').value = '';
+        document.getElementById('client_prefix').value = '';
+        document.getElementById('member_name').value = '';
+        document.getElementById('customer_email').value = '';
+        document.getElementById('customer_phone').value = '';
+    });
+
+    // When existing client is selected, close new customer form and set to existing mode
+    existingClientSelect.addEventListener('change', function () {
+        if (this.value) {
             newCustomerForm.classList.remove('active');
             customerTypeInput.value = 'existing';
             document.getElementById('customer_name').required = false;
             document.getElementById('client_prefix').required = false;
-            document.getElementById('customer_name').value = '';
-            document.getElementById('client_prefix').value = '';
-            document.getElementById('member_name').value = '';
-            document.getElementById('customer_email').value = '';
-            document.getElementById('customer_phone').value = '';
-        });
+        }
+    });
 
-        // When existing client is selected, close new customer form and set to existing mode
-        existingClientSelect.addEventListener('change', function() {
-            if (this.value) {
-                newCustomerForm.classList.remove('active');
-                customerTypeInput.value = 'existing';
-                document.getElementById('customer_name').required = false;
-                document.getElementById('client_prefix').required = false;
-            }
-        });
+    let clientsLoaded = false;
 
-        let clientsLoaded = false;
-        
-        function loadClients() {
-            const clientSelect = document.getElementById('existing_client_select');
-            
-            // Prevent duplicate loading
-            if (clientsLoaded) return;
-            clientsLoaded = true;
+    function loadClients() {
+        const clientSelect = document.getElementById('existing_client_select');
 
-            fetch('/get_clients')
-                .then(response => response.json())
-                .then(clients => {
-                    // Clear existing options except the first placeholder
-                    clientSelect.innerHTML = '<option value="">Choose a client...</option>';
-                    
-                    clients.forEach(client => {
-                        const option = document.createElement('option');
-                        option.value = client.client_id;
-                        option.textContent = `${client.name}${client.email ? ' - ' + client.email : ''}`;
-                        clientSelect.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading clients:', error);
-                    clientsLoaded = false; // Reset on error so user can retry
+        // Prevent duplicate loading
+        if (clientsLoaded) return;
+        clientsLoaded = true;
+
+        fetch('/get_clients')
+            .then(response => response.json())
+            .then(clients => {
+                // Clear existing options except the first placeholder
+                clientSelect.innerHTML = '<option value="">Choose a client...</option>';
+
+                clients.forEach(client => {
+                    const option = document.createElement('option');
+                    option.value = client.client_id;
+                    option.textContent = `${client.name}${client.email ? ' - ' + client.email : ''}`;
+                    clientSelect.appendChild(option);
                 });
+            })
+            .catch(error => {
+                console.error('Error loading clients:', error);
+                clientsLoaded = false; // Reset on error so user can retry
+            });
+    }
+
+    const clientSelectEl = document.getElementById('existing_client_select');
+    const memberSelectEl = document.getElementById('existing_member_select');
+    clientSelectEl.addEventListener('change', () => {
+        document.getElementById('existing_client_id').value = clientSelectEl.value;
+        // load members for selected client
+        const memberSelect = document.getElementById('existing_member_select');
+        memberSelect.innerHTML = '<option value="">Choose a member...</option>';
+        if (!clientSelectEl.value) return;
+        fetch('/get_members?client_id=' + encodeURIComponent(clientSelectEl.value))
+            .then(r => r.json())
+            .then(members => {
+                members.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.member_id;
+                    opt.textContent = m.member_name;
+                    memberSelect.appendChild(opt);
+                });
+            })
+            .catch(err => console.error('Error loading members', err));
+    });
+    memberSelectEl.addEventListener('change', () => {
+        document.getElementById('existing_member_id').value = memberSelectEl.value;
+    });
+
+    // Load clients on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        loadClients();
+        // Default to existing customer mode
+        customerTypeInput.value = 'existing';
+    });
+
+    // Initialize product dropdown and conditional fields
+    let healthMemberCount = 0;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize product dropdown
+        initializeProductDropdown('product_name', handleProductChange);
+
+        // Initialize insurance company dropdown
+        initializeInsuranceCompanyDropdown('insurance_company');
+
+        // Initialize health plan type change handlers
+        initializeHealthPlanTypeHandlers();
+
+        // Initialize agent name dropdown
+        initializeAgentNameDropdown('agent_name');
+
+        // Setup health member management
+        document.getElementById('addHealthMemberBtn').addEventListener('click', addHealthMember);
+
+        // Add initial health member (but don't make it required initially since health section is hidden)
+        addHealthMember();
+
+        // Ensure health fields start as not required since section is initially hidden
+        updateHealthFieldsRequired(false);
+    });
+
+    function initializeHealthPlanTypeHandlers() {
+        const floaterPlan = document.getElementById('floater_plan');
+        const individualPlan = document.getElementById('individual_plan');
+        const topupFloaterPlan = document.getElementById('topup_floater_plan');
+        const topupIndividualPlan = document.getElementById('topup_individual_plan');
+
+        if (floaterPlan && individualPlan) {
+            floaterPlan.addEventListener('change', handleHealthPlanTypeChange);
+            individualPlan.addEventListener('change', handleHealthPlanTypeChange);
         }
 
-        const clientSelectEl = document.getElementById('existing_client_select');
-        const memberSelectEl = document.getElementById('existing_member_select');
-        clientSelectEl.addEventListener('change', () => {
-            document.getElementById('existing_client_id').value = clientSelectEl.value;
-            // load members for selected client
-            const memberSelect = document.getElementById('existing_member_select');
-            memberSelect.innerHTML = '<option value="">Choose a member...</option>';
-            if (!clientSelectEl.value) return;
-            fetch('/get_members?client_id=' + encodeURIComponent(clientSelectEl.value))
-                .then(r => r.json())
-                .then(members => {
-                    members.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.member_id;
-                        opt.textContent = m.member_name;
-                        memberSelect.appendChild(opt);
-                    });
-                })
-                .catch(err => console.error('Error loading members', err));
-        });
-        memberSelectEl.addEventListener('change', () => {
-            document.getElementById('existing_member_id').value = memberSelectEl.value;
-        });
-
-        // Load clients on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadClients();
-            // Default to existing customer mode
-            customerTypeInput.value = 'existing';
-        });
-
-        // Initialize product dropdown and conditional fields
-        let healthMemberCount = 0;
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize product dropdown
-            initializeProductDropdown('product_name', handleProductChange);
-            
-            // Initialize insurance company dropdown
-            initializeInsuranceCompanyDropdown('insurance_company');
-            
-            // Initialize health plan type change handlers
-            initializeHealthPlanTypeHandlers();
-            
-            // Initialize agent name dropdown
-            initializeAgentNameDropdown('agent_name');
-            
-            // Setup health member management
-            document.getElementById('addHealthMemberBtn').addEventListener('click', addHealthMember);
-            
-            // Add initial health member (but don't make it required initially since health section is hidden)
-            addHealthMember();
-            
-            // Ensure health fields start as not required since section is initially hidden
-            updateHealthFieldsRequired(false);
-        });
-        
-        function initializeHealthPlanTypeHandlers() {
-            const floaterPlan = document.getElementById('floater_plan');
-            const individualPlan = document.getElementById('individual_plan');
-            const topupFloaterPlan = document.getElementById('topup_floater_plan');
-            const topupIndividualPlan = document.getElementById('topup_individual_plan');
-            
-            if (floaterPlan && individualPlan) {
-                floaterPlan.addEventListener('change', handleHealthPlanTypeChange);
-                individualPlan.addEventListener('change', handleHealthPlanTypeChange);
-            }
-            
-            if (topupFloaterPlan && topupIndividualPlan) {
-                topupFloaterPlan.addEventListener('change', handleHealthPlanTypeChange);
-                topupIndividualPlan.addEventListener('change', handleHealthPlanTypeChange);
-            }
+        if (topupFloaterPlan && topupIndividualPlan) {
+            topupFloaterPlan.addEventListener('change', handleHealthPlanTypeChange);
+            topupIndividualPlan.addEventListener('change', handleHealthPlanTypeChange);
         }
-        
-        function handleHealthPlanTypeChange() {
-            const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
-            const floaterFieldsContainer = document.getElementById('floaterFieldsContainer');
-            const floaterDeductibleContainer = document.getElementById('floaterDeductibleContainer');
-            const healthMembersContainer = document.getElementById('healthMembersContainer');
-            const floaterSumInsured = document.getElementById('floater_sum_insured');
-            const floaterBonus = document.getElementById('floater_bonus');
-            const floaterDeductible = document.getElementById('floater_deductible');
-            
-            if (!selectedPlan) return;
-            
-            const planType = selectedPlan.value;
-            const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
-            const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
-            
-            if (isFloaterPlan) {
-                // Show floater fields, hide individual member sum_insured/bonus/deductible fields
-                floaterFieldsContainer.style.display = 'block';
-                floaterSumInsured.setAttribute('required', 'required');
-                
-                // Show/hide floater deductible based on topup plan
-                if (planType === 'TOPUP_FLOATER') {
-                    floaterDeductibleContainer.style.display = 'block';
-                    floaterDeductible.setAttribute('required', 'required');
-                } else {
-                    floaterDeductibleContainer.style.display = 'none';
-                    floaterDeductible.removeAttribute('required');
-                }
-                
-                // Hide sum_insured, bonus, and deductible fields for individual members
-                const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
-                const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
-                const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
-                
-                memberSumInsuredFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) colDiv.style.display = 'none';
-                    field.removeAttribute('required');
-                });
-                
-                memberBonusFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) colDiv.style.display = 'none';
-                });
-                
-                memberDeductibleFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) colDiv.style.display = 'none';
-                });
-                
+    }
+
+    function handleHealthPlanTypeChange() {
+        const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
+        const floaterFieldsContainer = document.getElementById('floaterFieldsContainer');
+        const floaterDeductibleContainer = document.getElementById('floaterDeductibleContainer');
+        const healthMembersContainer = document.getElementById('healthMembersContainer');
+        const floaterSumInsured = document.getElementById('floater_sum_insured');
+        const floaterBonus = document.getElementById('floater_bonus');
+        const floaterDeductible = document.getElementById('floater_deductible');
+
+        if (!selectedPlan) return;
+
+        const planType = selectedPlan.value;
+        const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
+        const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
+
+        if (isFloaterPlan) {
+            // Show floater fields, hide individual member sum_insured/bonus/deductible fields
+            floaterFieldsContainer.style.display = 'block';
+            floaterSumInsured.setAttribute('required', 'required');
+
+            // Show/hide floater deductible based on topup plan
+            if (planType === 'TOPUP_FLOATER') {
+                floaterDeductibleContainer.style.display = 'block';
+                floaterDeductible.setAttribute('required', 'required');
             } else {
-                // Hide floater fields, show individual member fields
-                floaterFieldsContainer.style.display = 'none';
                 floaterDeductibleContainer.style.display = 'none';
-                floaterSumInsured.removeAttribute('required');
                 floaterDeductible.removeAttribute('required');
-                
-                // Show sum_insured and bonus fields for individual members
-                const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
-                const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
-                const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
-                
-                memberSumInsuredFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) colDiv.style.display = 'block';
-                    field.setAttribute('required', 'required');
-                });
-                
-                memberBonusFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) colDiv.style.display = 'block';
-                });
-                
-                // Show/hide deductible fields based on topup plan
-                memberDeductibleFields.forEach(field => {
-                    const colDiv = field.closest('.col-md-3');
-                    if (colDiv) {
-                        if (planType === 'TOPUP_INDIVIDUAL') {
-                            colDiv.style.display = 'block';
-                        } else {
-                            colDiv.style.display = 'none';
-                        }
-                    }
-                });
             }
-            
-            // Update existing member fields visibility
-            updateExistingMemberFields();
-        }
-        
-        function updateExistingMemberFields() {
-            const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
-            if (!selectedPlan) return;
-            
-            const planType = selectedPlan.value;
-            const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
-            const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
-            
-            // Update all existing member items
-            const existingMembers = document.querySelectorAll('.health-member-item');
-            existingMembers.forEach(memberItem => {
-                const sumInsuredDiv = memberItem.querySelector('input[name="health_member_sum_insured[]"]')?.closest('.col-md-3');
-                const bonusDiv = memberItem.querySelector('input[name="health_member_bonus[]"]')?.closest('.col-md-3');
-                const deductibleDiv = memberItem.querySelector('input[name="health_member_deductible[]"]')?.closest('.col-md-3');
-                
-                if (sumInsuredDiv) {
-                    sumInsuredDiv.style.display = isFloaterPlan ? 'none' : 'block';
-                }
-                if (bonusDiv) {
-                    bonusDiv.style.display = isFloaterPlan ? 'none' : 'block';
-                }
-                if (deductibleDiv) {
-                    deductibleDiv.style.display = (isTopupPlan && !isFloaterPlan) ? 'block' : 'none';
+
+            // Hide sum_insured, bonus, and deductible fields for individual members
+            const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
+            const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
+            const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
+
+            memberSumInsuredFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) colDiv.style.display = 'none';
+                field.removeAttribute('required');
+            });
+
+            memberBonusFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) colDiv.style.display = 'none';
+            });
+
+            memberDeductibleFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) colDiv.style.display = 'none';
+            });
+
+        } else {
+            // Hide floater fields, show individual member fields
+            floaterFieldsContainer.style.display = 'none';
+            floaterDeductibleContainer.style.display = 'none';
+            floaterSumInsured.removeAttribute('required');
+            floaterDeductible.removeAttribute('required');
+
+            // Show sum_insured and bonus fields for individual members
+            const memberSumInsuredFields = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
+            const memberBonusFields = document.querySelectorAll('input[name="health_member_bonus[]"]');
+            const memberDeductibleFields = document.querySelectorAll('input[name="health_member_deductible[]"]');
+
+            memberSumInsuredFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) colDiv.style.display = 'block';
+                field.setAttribute('required', 'required');
+            });
+
+            memberBonusFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) colDiv.style.display = 'block';
+            });
+
+            // Show/hide deductible fields based on topup plan
+            memberDeductibleFields.forEach(field => {
+                const colDiv = field.closest('.col-md-3');
+                if (colDiv) {
+                    if (planType === 'TOPUP_INDIVIDUAL') {
+                        colDiv.style.display = 'block';
+                    } else {
+                        colDiv.style.display = 'none';
+                    }
                 }
             });
         }
-        
-        function handleProductChange(productName) {
-            const healthSection = document.getElementById('healthInsuranceSection');
-            const factorySection = document.getElementById('factoryInsuranceSection');
-            const sumInsuredField = document.getElementById('sum_insured');
-            
-            // Hide all conditional sections first
-            healthSection.style.display = 'none';
-            factorySection.style.display = 'none';
-            
-            // Remove required attributes from health fields when hiding
-            updateHealthFieldsRequired(false);
-            
-            if (!productName) return;
-            
-            const productType = window.productManager.getAdditionalFieldsType(productName);
-            
-            if (productType === 'health') {
-                healthSection.style.display = 'block';
-                sumInsuredField.parentElement.style.display = 'none'; // Hide general sum insured for health
-                // Make health plan type required
-                const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
-                if (!selectedPlan) {
-                    document.getElementById('floater_plan').click();
-                }
-                // Trigger health plan type change to show/hide appropriate fields
-                setTimeout(handleHealthPlanTypeChange, 100);
-                // Add required attributes to health fields when showing
-                updateHealthFieldsRequired(true);
-            } else if (productType === 'factory') {
-                factorySection.style.display = 'block';
-                sumInsuredField.parentElement.style.display = 'block';
-            } else {
-                sumInsuredField.parentElement.style.display = 'block';
+
+        // Update existing member fields visibility
+        updateExistingMemberFields();
+    }
+
+    function updateExistingMemberFields() {
+        const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
+        if (!selectedPlan) return;
+
+        const planType = selectedPlan.value;
+        const isFloaterPlan = planType === 'FLOATER' || planType === 'TOPUP_FLOATER';
+        const isTopupPlan = planType === 'TOPUP_FLOATER' || planType === 'TOPUP_INDIVIDUAL';
+
+        // Update all existing member items
+        const existingMembers = document.querySelectorAll('.health-member-item');
+        existingMembers.forEach(memberItem => {
+            const sumInsuredDiv = memberItem.querySelector('input[name="health_member_sum_insured[]"]')?.closest('.col-md-3');
+            const bonusDiv = memberItem.querySelector('input[name="health_member_bonus[]"]')?.closest('.col-md-3');
+            const deductibleDiv = memberItem.querySelector('input[name="health_member_deductible[]"]')?.closest('.col-md-3');
+
+            if (sumInsuredDiv) {
+                sumInsuredDiv.style.display = isFloaterPlan ? 'none' : 'block';
             }
-        }
-        
-        function addHealthMember() {
-            healthMemberCount++;
-            const membersList = document.getElementById('healthMembersList');
-            
-            const memberDiv = document.createElement('div');
-            memberDiv.className = 'health-member-item border rounded p-3 mb-3';
-            
-            // Check if health section is visible to determine if fields should be required
-            const healthSection = document.getElementById('healthInsuranceSection');
-            const isHealthVisible = healthSection.style.display !== 'none';
-            const requiredAttr = isHealthVisible ? 'required' : '';
-            
-            // Check current plan type to determine field visibility
+            if (bonusDiv) {
+                bonusDiv.style.display = isFloaterPlan ? 'none' : 'block';
+            }
+            if (deductibleDiv) {
+                deductibleDiv.style.display = (isTopupPlan && !isFloaterPlan) ? 'block' : 'none';
+            }
+        });
+    }
+
+    function handleProductChange(productName) {
+        const healthSection = document.getElementById('healthInsuranceSection');
+        const factorySection = document.getElementById('factoryInsuranceSection');
+        const sumInsuredField = document.getElementById('sum_insured');
+
+        // Hide all conditional sections first
+        healthSection.style.display = 'none';
+        factorySection.style.display = 'none';
+
+        // Remove required attributes from health fields when hiding
+        updateHealthFieldsRequired(false);
+
+        if (!productName) return;
+
+        const productType = window.productManager.getAdditionalFieldsType(productName);
+
+        if (productType === 'health') {
+            healthSection.style.display = 'block';
+            sumInsuredField.parentElement.style.display = 'none'; // Hide general sum insured for health
+            // Make health plan type required
             const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
-            const isFloaterPlan = selectedPlan && (selectedPlan.value === 'FLOATER' || selectedPlan.value === 'TOPUP_FLOATER');
-            const isTopupPlan = selectedPlan && (selectedPlan.value === 'TOPUP_FLOATER' || selectedPlan.value === 'TOPUP_INDIVIDUAL');
-            const sumInsuredDisplay = isFloaterPlan ? 'none' : 'block';
-            const bonusDisplay = isFloaterPlan ? 'none' : 'block';
-            const deductibleDisplay = isTopupPlan && !isFloaterPlan ? 'block' : 'none';
-            
-            memberDiv.innerHTML = `
+            if (!selectedPlan) {
+                document.getElementById('floater_plan').click();
+            }
+            // Trigger health plan type change to show/hide appropriate fields
+            setTimeout(handleHealthPlanTypeChange, 100);
+            // Add required attributes to health fields when showing
+            updateHealthFieldsRequired(true);
+        } else if (productType === 'factory') {
+            factorySection.style.display = 'block';
+            sumInsuredField.parentElement.style.display = 'block';
+        } else {
+            sumInsuredField.parentElement.style.display = 'block';
+        }
+    }
+
+    function addHealthMember() {
+        healthMemberCount++;
+        const membersList = document.getElementById('healthMembersList');
+
+        const memberDiv = document.createElement('div');
+        memberDiv.className = 'health-member-item border rounded p-3 mb-3';
+
+        // Check if health section is visible to determine if fields should be required
+        const healthSection = document.getElementById('healthInsuranceSection');
+        const isHealthVisible = healthSection.style.display !== 'none';
+        const requiredAttr = isHealthVisible ? 'required' : '';
+
+        // Check current plan type to determine field visibility
+        const selectedPlan = document.querySelector('input[name="health_plan_type"]:checked');
+        const isFloaterPlan = selectedPlan && (selectedPlan.value === 'FLOATER' || selectedPlan.value === 'TOPUP_FLOATER');
+        const isTopupPlan = selectedPlan && (selectedPlan.value === 'TOPUP_FLOATER' || selectedPlan.value === 'TOPUP_INDIVIDUAL');
+        const sumInsuredDisplay = isFloaterPlan ? 'none' : 'block';
+        const bonusDisplay = isFloaterPlan ? 'none' : 'block';
+        const deductibleDisplay = isTopupPlan && !isFloaterPlan ? 'block' : 'none';
+
+        memberDiv.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0">Member ${healthMemberCount}</h6>
                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeHealthMember(this)">
@@ -1018,265 +1079,264 @@
                     </div>
                 </div>
             `;
-            
-            membersList.appendChild(memberDiv);
+
+        membersList.appendChild(memberDiv);
+    }
+
+    function removeHealthMember(button) {
+        const memberItem = button.closest('.health-member-item');
+        if (document.querySelectorAll('.health-member-item').length > 1) {
+            memberItem.remove();
+        } else {
+            alert('At least one member is required for health insurance.');
         }
-        
-        function removeHealthMember(button) {
-            const memberItem = button.closest('.health-member-item');
-            if (document.querySelectorAll('.health-member-item').length > 1) {
-                memberItem.remove();
+    }
+
+    function updateHealthFieldsRequired(isRequired) {
+        // Update required attribute for health member name fields
+        const healthMemberFields = document.querySelectorAll('input[name="health_member_name[]"]');
+        const healthPlanTypeFields = document.querySelectorAll('input[name="health_plan_type"]');
+
+        healthMemberFields.forEach(field => {
+            if (isRequired) {
+                field.setAttribute('required', 'required');
             } else {
-                alert('At least one member is required for health insurance.');
+                field.removeAttribute('required');
             }
-        }
-        
-        function updateHealthFieldsRequired(isRequired) {
-            // Update required attribute for health member name fields
-            const healthMemberFields = document.querySelectorAll('input[name="health_member_name[]"]');
-            const healthPlanTypeFields = document.querySelectorAll('input[name="health_plan_type"]');
-            
-            healthMemberFields.forEach(field => {
-                if (isRequired) {
-                    field.setAttribute('required', 'required');
-                } else {
-                    field.removeAttribute('required');
-                }
-            });
-            
-            // Also handle health plan type radio buttons
-            healthPlanTypeFields.forEach(field => {
-                if (isRequired) {
-                    field.setAttribute('required', 'required');
-                } else {
-                    field.removeAttribute('required');
-                }
-            });
-        }
-        
-        function showErrors(errors) {
-            const errorDisplay = document.getElementById('errorDisplay');
-            const errorList = document.getElementById('errorList');
-            
-            if (errors.length > 0) {
-                errorList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
-                errorDisplay.style.display = 'block';
-                errorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+
+        // Also handle health plan type radio buttons
+        healthPlanTypeFields.forEach(field => {
+            if (isRequired) {
+                field.setAttribute('required', 'required');
             } else {
-                errorDisplay.style.display = 'none';
+                field.removeAttribute('required');
+            }
+        });
+    }
+
+    function showErrors(errors) {
+        const errorDisplay = document.getElementById('errorDisplay');
+        const errorList = document.getElementById('errorList');
+
+        if (errors.length > 0) {
+            errorList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+            errorDisplay.style.display = 'block';
+            errorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            errorDisplay.style.display = 'none';
+        }
+    }
+
+    function validateForm() {
+        console.log('🔍 Form validation started');
+        const errors = [];
+
+        // Check if form elements exist
+        const form = document.querySelector('form');
+        if (!form) {
+            console.error('❌ Form element not found!');
+            return false;
+        }
+
+        // Debug: Log all form data
+        const formData = new FormData(form);
+        console.log('📋 Form data:');
+        for (let [key, value] of formData.entries()) {
+            console.log(`  ${key}: ${value}`);
+        }
+
+        // Check if required elements exist
+        const requiredElements = [
+            'customerTypeInput', 'policy_file', 'policy_number',
+            'insurance_company', 'product_name'
+        ];
+
+        for (let elementId of requiredElements) {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                console.error(`❌ Required element missing: ${elementId}`);
+                errors.push(`Form element ${elementId} not found`);
             }
         }
-        
-        function validateForm() {
-            console.log('🔍 Form validation started');
-            const errors = [];
-            
-            // Check if form elements exist
-            const form = document.querySelector('form');
-            if (!form) {
-                console.error('❌ Form element not found!');
-                return false;
+
+        // Check if customer type is selected
+        const customerType = document.getElementById('customerTypeInput').value;
+        console.log(`👤 Customer type: '${customerType}'`);
+        if (!customerType) {
+            errors.push('Please select customer type (New or Existing Customer)');
+        }
+
+        // Check required fields based on customer type
+        if (customerType === 'new') {
+            const customerName = document.getElementById('customer_name').value;
+            const clientPrefix = document.getElementById('client_prefix').value;
+            console.log(`📝 New customer - Name: '${customerName}', Prefix: '${clientPrefix}'`);
+            if (!customerName) errors.push('Customer name is required for new customer');
+            if (!clientPrefix) errors.push('Client prefix is required for new customer');
+        } else if (customerType === 'existing') {
+            const existingClient = document.getElementById('existing_client_select').value;
+            const existingMember = document.getElementById('existing_member_select').value;
+            const newMemberName = document.getElementById('new_member_name').value;
+            console.log(`👥 Existing customer - Client: '${existingClient}', Member: '${existingMember}', New Member: '${newMemberName}'`);
+            if (!existingClient) errors.push('Please select an existing client');
+            // Either select existing member OR provide new member name
+            if (!existingMember && !newMemberName.trim()) {
+                errors.push('Please select an existing member or provide a new member name');
             }
-            
-            // Debug: Log all form data
-            const formData = new FormData(form);
-            console.log('📋 Form data:');
-            for (let [key, value] of formData.entries()) {
-                console.log(`  ${key}: ${value}`);
-            }
-            
-            // Check if required elements exist
-            const requiredElements = [
-                'customerTypeInput', 'policy_file', 'policy_number', 
-                'insurance_company', 'product_name'
-            ];
-            
-            for (let elementId of requiredElements) {
-                const element = document.getElementById(elementId);
-                if (!element) {
-                    console.error(`❌ Required element missing: ${elementId}`);
-                    errors.push(`Form element ${elementId} not found`);
-                }
-            }
-            
-            // Check if customer type is selected
-            const customerType = document.getElementById('customerTypeInput').value;
-            console.log(`👤 Customer type: '${customerType}'`);
-            if (!customerType) {
-                errors.push('Please select customer type (New or Existing Customer)');
-            }
-            
-            // Check required fields based on customer type
-            if (customerType === 'new') {
-                const customerName = document.getElementById('customer_name').value;
-                const clientPrefix = document.getElementById('client_prefix').value;
-                console.log(`📝 New customer - Name: '${customerName}', Prefix: '${clientPrefix}'`);
-                if (!customerName) errors.push('Customer name is required for new customer');
-                if (!clientPrefix) errors.push('Client prefix is required for new customer');
-            } else if (customerType === 'existing') {
-                const existingClient = document.getElementById('existing_client_select').value;
-                const existingMember = document.getElementById('existing_member_select').value;
-                const newMemberName = document.getElementById('new_member_name').value;
-                console.log(`👥 Existing customer - Client: '${existingClient}', Member: '${existingMember}', New Member: '${newMemberName}'`);
-                if (!existingClient) errors.push('Please select an existing client');
-                // Either select existing member OR provide new member name
-                if (!existingMember && !newMemberName.trim()) {
-                    errors.push('Please select an existing member or provide a new member name');
-                }
-            }
-            
-            // Check policy file
-            const policyFile = document.getElementById('policy_file');
-            console.log(`📄 Policy file:`, policyFile ? policyFile.files[0] : 'No file input found');
-            if (!policyFile || !policyFile.files[0]) {
-                errors.push('Please upload a policy PDF file');
-            }
-            
-            // Check policy number
-            const policyNumber = document.getElementById('policy_number').value;
-            console.log(`🔢 Policy number: '${policyNumber}'`);
-            if (!policyNumber) {
-                errors.push('Policy number is required');
-            }
-            
-            // Check insurance company
-            const insuranceCompany = document.getElementById('insurance_company').value;
-            console.log(`🏢 Insurance company: '${insuranceCompany}'`);
-            if (!insuranceCompany) {
-                errors.push('Insurance company is required');
-            }
-            
-            // Check product name
-            const productName = document.getElementById('product_name').value;
-            console.log(`📦 Product name: '${productName}'`);
-            if (!productName) {
-                errors.push('Product/Policy type is required');
-            }
-            
-            // Check health insurance specific fields if health product is selected
-            try {
-                if (productName && window.productManager && window.productManager.getAdditionalFieldsType(productName) === 'health') {
-                    const healthSection = document.getElementById('healthInsuranceSection');
-                    if (healthSection.style.display !== 'none') {
-                        // Check if health plan type is selected
-                        const healthPlanType = document.querySelector('input[name="health_plan_type"]:checked');
-                        if (!healthPlanType) {
-                            errors.push('Please select a health plan type (Floater or Individual)');
-                        } else {
-                            // Validate based on plan type
-                            if (healthPlanType.value === 'FLOATER') {
-                                // For floater plans, check floater sum insured
-                                const floaterSumInsured = document.getElementById('floater_sum_insured').value;
-                                if (!floaterSumInsured) {
-                                    errors.push('Floater sum insured is required for floater plans');
-                                }
-                            } else if (healthPlanType.value === 'INDIVIDUAL') {
-                                // For individual plans, check that each member has sum insured
-                                const memberNames = document.querySelectorAll('input[name="health_member_name[]"]');
-                                const memberSumInsureds = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
-                                
-                                for (let i = 0; i < memberNames.length; i++) {
-                                    if (memberNames[i].value.trim() && (!memberSumInsureds[i] || !memberSumInsureds[i].value.trim())) {
-                                        errors.push(`Sum insured is required for member: ${memberNames[i].value}`);
-                                    }
+        }
+
+        // Check policy file
+        const policyFile = document.getElementById('policy_file');
+        console.log(`📄 Policy file:`, policyFile ? policyFile.files[0] : 'No file input found');
+        if (!policyFile || !policyFile.files[0]) {
+            errors.push('Please upload a policy PDF file');
+        }
+
+        // Check policy number
+        const policyNumber = document.getElementById('policy_number').value;
+        console.log(`🔢 Policy number: '${policyNumber}'`);
+        if (!policyNumber) {
+            errors.push('Policy number is required');
+        }
+
+        // Check insurance company
+        const insuranceCompany = document.getElementById('insurance_company').value;
+        console.log(`🏢 Insurance company: '${insuranceCompany}'`);
+        if (!insuranceCompany) {
+            errors.push('Insurance company is required');
+        }
+
+        // Check product name
+        const productName = document.getElementById('product_name').value;
+        console.log(`📦 Product name: '${productName}'`);
+        if (!productName) {
+            errors.push('Product/Policy type is required');
+        }
+
+        // Check health insurance specific fields if health product is selected
+        try {
+            if (productName && window.productManager && window.productManager.getAdditionalFieldsType(productName) === 'health') {
+                const healthSection = document.getElementById('healthInsuranceSection');
+                if (healthSection.style.display !== 'none') {
+                    // Check if health plan type is selected
+                    const healthPlanType = document.querySelector('input[name="health_plan_type"]:checked');
+                    if (!healthPlanType) {
+                        errors.push('Please select a health plan type (Floater or Individual)');
+                    } else {
+                        // Validate based on plan type
+                        if (healthPlanType.value === 'FLOATER') {
+                            // For floater plans, check floater sum insured
+                            const floaterSumInsured = document.getElementById('floater_sum_insured').value;
+                            if (!floaterSumInsured) {
+                                errors.push('Floater sum insured is required for floater plans');
+                            }
+                        } else if (healthPlanType.value === 'INDIVIDUAL') {
+                            // For individual plans, check that each member has sum insured
+                            const memberNames = document.querySelectorAll('input[name="health_member_name[]"]');
+                            const memberSumInsureds = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
+
+                            for (let i = 0; i < memberNames.length; i++) {
+                                if (memberNames[i].value.trim() && (!memberSumInsureds[i] || !memberSumInsureds[i].value.trim())) {
+                                    errors.push(`Sum insured is required for member: ${memberNames[i].value}`);
                                 }
                             }
-                        }
-                        
-                        // Check if at least one health member is provided
-                        const healthMemberNames = document.querySelectorAll('input[name="health_member_name[]"]');
-                        let hasValidMember = false;
-                        healthMemberNames.forEach(field => {
-                            if (field.value.trim()) {
-                                hasValidMember = true;
-                            }
-                        });
-                        if (!hasValidMember) {
-                            errors.push('Please provide at least one health insurance member name');
                         }
                     }
+
+                    // Check if at least one health member is provided
+                    const healthMemberNames = document.querySelectorAll('input[name="health_member_name[]"]');
+                    let hasValidMember = false;
+                    healthMemberNames.forEach(field => {
+                        if (field.value.trim()) {
+                            hasValidMember = true;
+                        }
+                    });
+                    if (!hasValidMember) {
+                        errors.push('Please provide at least one health insurance member name');
+                    }
                 }
-            } catch (e) {
-                console.warn('Product manager error:', e);
-                // Continue validation even if product manager fails
             }
-            
-            // Show errors in UI
-            showErrors(errors);
-            
-            if (errors.length > 0) {
-                console.log('❌ Form validation failed with errors:', errors);
-                return false;
-            }
-            
-            console.log('✅ Form validation passed - submitting form');
-            
-            // Show loading state
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding Policy...';
-            
-            return true;
+        } catch (e) {
+            console.warn('Product manager error:', e);
+            // Continue validation even if product manager fails
         }
 
-        // Calculate gross premium automatically
-        function calculateGrossPremium() {
-            const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-            const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
-            const tpTrPremium = parseFloat(document.getElementById('tp_tr_premium').value) || 0;
-            const gstPercentage = parseFloat(document.getElementById('gst_percentage').value) || 0;
-            
-            // Calculate base amount (net + addon + tp/tr)
-            const baseAmount = netPremium + addonPremium + tpTrPremium;
-            
-            // Calculate GST amount
-            const gstAmount = (baseAmount * gstPercentage) / 100;
-            
-            // Calculate gross premium
-            const grossPremium = baseAmount + gstAmount;
-            
-            // Round to whole number (no decimals)
-            const roundedGrossPremium = Math.round(grossPremium);
-            
-            // Update the gross premium field
-            document.getElementById('gross_premium').value = roundedGrossPremium;
-            
-            // Also recalculate commission if percentage is set
-            calculateCommission();
+        // Show errors in UI
+        showErrors(errors);
+
+        if (errors.length > 0) {
+            console.log('❌ Form validation failed with errors:', errors);
+            return false;
         }
 
-        // Calculate commission amount automatically
-        function calculateCommission() {
-            const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
-            const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
-            const commissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
-            
-            // Commission is calculated on (Net + Addon) only
-            const commissionBase = netPremium + addonPremium;
-            const commissionAmount = (commissionBase * commissionPercentage) / 100;
-            
-            // Round to whole number (no decimals)
-            const roundedCommissionAmount = Math.round(commissionAmount);
-            
-            // Update the commission amount field
-            document.getElementById('commission_amount').value = roundedCommissionAmount;
-        }
-        
-    </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script>
-        // Initialize date pickers with DD/MM/YYYY format
-        document.addEventListener('DOMContentLoaded', function() {
-            flatpickr('.date-picker', {
-                dateFormat: 'd/m/Y',
-                altInput: false,
-                allowInput: true,
-                locale: {
-                    firstDayOfWeek: 1
-                }
-            });
+        console.log('✅ Form validation passed - submitting form');
+
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding Policy...';
+
+        return true;
+    }
+
+    // Calculate gross premium automatically
+    function calculateGrossPremium() {
+        const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+        const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
+        const tpTrPremium = parseFloat(document.getElementById('tp_tr_premium').value) || 0;
+        const gstPercentage = parseFloat(document.getElementById('gst_percentage').value) || 0;
+
+        // Calculate base amount (net + addon + tp/tr)
+        const baseAmount = netPremium + addonPremium + tpTrPremium;
+
+        // Calculate GST amount
+        const gstAmount = (baseAmount * gstPercentage) / 100;
+
+        // Calculate gross premium
+        const grossPremium = baseAmount + gstAmount;
+
+        // Round to whole number (no decimals)
+        const roundedGrossPremium = Math.round(grossPremium);
+
+        // Update the gross premium field
+        document.getElementById('gross_premium').value = roundedGrossPremium;
+
+        // Also recalculate commission if percentage is set
+        calculateCommission();
+    }
+
+    // Calculate commission amount automatically
+    function calculateCommission() {
+        const netPremium = parseFloat(document.getElementById('net_premium').value) || 0;
+        const addonPremium = parseFloat(document.getElementById('addon_premium').value) || 0;
+        const commissionPercentage = parseFloat(document.getElementById('commission_percentage').value) || 0;
+
+        // Commission is calculated on (Net + Addon) only
+        const commissionBase = netPremium + addonPremium;
+        const commissionAmount = (commissionBase * commissionPercentage) / 100;
+
+        // Round to whole number (no decimals)
+        const roundedCommissionAmount = Math.round(commissionAmount);
+
+        // Update the commission amount field
+        document.getElementById('commission_amount').value = roundedCommissionAmount;
+    }
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    // Initialize date pickers with DD/MM/YYYY format
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr('.date-picker', {
+            dateFormat: 'd/m/Y',
+            altInput: false,
+            allowInput: true,
+            locale: {
+                firstDayOfWeek: 1
+            }
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

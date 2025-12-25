@@ -11,42 +11,72 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 @existing_policies_bp.route("/existing_policies")
 @login_required
 def list_all():
-    """View all clients with their members and policies in hierarchical structure"""
+    """View all clients with their members and policies in hierarchical structure
+    
+    OPTIMIZED: Uses batch queries (3 total) instead of N+1 queries (200+)
+    """
     try:
+        import time
+        start_time = time.time()
+        
         # Get search parameter
         search_query = request.args.get("search", "").strip()
 
-        # Fetch all clients with their data
+        # BATCH QUERY 1: Fetch ALL clients
         clients_result = supabase.table("clients").select("*").order("client_id").execute()
         all_clients = clients_result.data
-
-        # Build hierarchical structure: Clients -> Members -> Policies
+        
+        # BATCH QUERY 2: Fetch ALL members
+        members_result = supabase.table("members").select("*").order("member_name").execute()
+        all_members = members_result.data
+        
+        # BATCH QUERY 3: Fetch ALL policies (only essential fields for listing)
+        policies_result = supabase.table("policies").select(
+            "policy_id, member_id, client_id, insurance_company, product_name, policy_number, policy_from, policy_to, gross_premium"
+        ).order("policy_to", desc=True).execute()
+        all_policies = policies_result.data
+        
+        query_time = time.time() - start_time
+        print(f"[OPTIMIZED] 3 batch queries completed in {query_time:.2f}s")
+        
+        # BUILD LOOKUP TABLES (in-memory joins)
+        # Create member_id -> policies[] lookup
+        policies_by_member = {}
+        for policy in all_policies:
+            member_id = policy.get('member_id')
+            if member_id:
+                if member_id not in policies_by_member:
+                    policies_by_member[member_id] = []
+                policies_by_member[member_id].append(policy)
+        
+        # Create client_id -> members[] lookup
+        members_by_client = {}
+        for member in all_members:
+            client_id = member.get('client_id')
+            if client_id:
+                if client_id not in members_by_client:
+                    members_by_client[client_id] = []
+                members_by_client[client_id].append(member)
+        
+        # BUILD HIERARCHICAL STRUCTURE
         clients_data = []
+        search_lower = search_query.lower() if search_query else None
         
         for client in all_clients:
             client_id = client['client_id']
             
-            # Get all members for this client
-            members_result = supabase.table("members").select("*").eq("client_id", client_id).order("member_name").execute()
-            client_members = members_result.data
+            # Get members for this client from lookup
+            client_members = members_by_client.get(client_id, [])
             
-            # For each member, get their policies
+            # Build members with their policies
             members_with_policies = []
             total_client_policies = 0
             
             for member in client_members:
                 member_id = member['member_id']
                 
-                # Get all policies for this member
-                policies_result = (
-                    supabase.table("policies")
-                    .select("*")
-                    .eq("member_id", member_id)
-                    .order("policy_to", desc=True)
-                    .execute()
-                )
-                
-                member_policies = policies_result.data
+                # Get policies for this member from lookup
+                member_policies = policies_by_member.get(member_id, [])
                 total_client_policies += len(member_policies)
                 
                 # Add policies to member data
@@ -60,8 +90,7 @@ def list_all():
             client['member_count'] = len(members_with_policies)
             
             # Apply search filter if provided
-            if search_query:
-                search_lower = search_query.lower()
+            if search_lower:
                 # Search in client name, client ID, member names, or policy details
                 client_matches = (
                     search_lower in client['name'].lower() or
@@ -83,7 +112,9 @@ def list_all():
             else:
                 clients_data.append(client)
 
-        print(f"Found {len(clients_data)} clients (filtered from {len(all_clients)} total)")
+        total_time = time.time() - start_time
+        print(f"[OPTIMIZED] Found {len(clients_data)} clients (filtered from {len(all_clients)} total) in {total_time:.2f}s")
+        print(f"[OPTIMIZED] Stats: {len(all_clients)} clients, {len(all_members)} members, {len(all_policies)} policies")
         print(f"Search query: '{search_query}'")
 
         return render_template(

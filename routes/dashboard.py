@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
 from supabase import create_client
 from dynamic_config import Config
@@ -237,3 +237,158 @@ def view_all_policies():
                              per_page=per_page,
                              current_user=current_user,
                              error=str(e))
+
+
+@dashboard_bp.route("/api/global_search")
+@login_required
+def global_search():
+    """
+    Global search API endpoint for searching policies, clients, members, claims, and pending items.
+    Returns JSON with categorized results.
+    """
+    query = request.args.get("q", "").strip().lower()
+    
+    if len(query) < 2:
+        return jsonify({"policies": [], "clients": [], "members": [], "claims": [], "pending": []})
+    
+    results = {"policies": [], "clients": [], "members": [], "claims": [], "pending": []}
+    
+    try:
+        # Search policies
+        policies_result = supabase.table("policies").select("*, clients(*), members(*)").execute()
+        
+        for policy in policies_result.data[:100]:  # Limit initial scan
+            member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
+            client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
+            insurance_company = policy.get("insurance_company", "")
+            product_name = policy.get("product_name", "")
+            policy_number = str(policy.get("policy_number", ""))
+            policy_id = str(policy.get("policy_id", ""))
+            
+            if (query in member_name.lower() or 
+                query in client_name.lower() or
+                query in insurance_company.lower() or 
+                query in product_name.lower() or 
+                query in policy_number.lower() or
+                query in policy_id.lower()):
+                
+                results["policies"].append({
+                    "policy_id": policy["policy_id"],
+                    "member_name": member_name or client_name,
+                    "client_id": policy.get("clients", {}).get("client_id", "") if policy.get("clients") else "",
+                    "insurance_company": insurance_company,
+                    "product_name": product_name,
+                    "policy_number": policy_number,
+                    "url": f"/view_policy/{policy['policy_id']}"
+                })
+                
+                if len(results["policies"]) >= 5:
+                    break
+        
+        # Search clients
+        clients_result = supabase.table("clients").select("*").execute()
+        
+        for client in clients_result.data[:100]:
+            client_name = client.get("name", "")
+            client_id = client.get("client_id", "")
+            phone = client.get("phone", "")
+            email = client.get("email", "")
+            
+            if (query in client_name.lower() or 
+                query in client_id.lower() or
+                query in phone.lower() or
+                query in email.lower()):
+                
+                results["clients"].append({
+                    "client_id": client_id,
+                    "name": client_name,
+                    "phone": phone,
+                    "email": email,
+                    "url": f"/existing_policies?search={client_name}"
+                })
+                
+                if len(results["clients"]) >= 5:
+                    break
+        
+        # Search members
+        members_result = supabase.table("members").select("*, clients(*)").execute()
+        
+        for member in members_result.data[:100]:
+            member_name = member.get("member_name", "")
+            member_id = str(member.get("member_id", ""))
+            client_name = member.get("clients", {}).get("name", "") if member.get("clients") else ""
+            
+            if (query in member_name.lower() or 
+                query in member_id.lower() or
+                query in client_name.lower()):
+                
+                results["members"].append({
+                    "member_id": member.get("member_id"),
+                    "member_name": member_name,
+                    "client_name": client_name,
+                    "client_id": member.get("client_id", ""),
+                    "url": f"/existing_policies?search={member_name}"
+                })
+                
+                if len(results["members"]) >= 5:
+                    break
+        
+        # Search claims
+        claims_result = supabase.table("claims").select("*, policies(*, clients(*), members(*))").execute()
+        
+        for claim in claims_result.data[:100]:
+            claim_id = str(claim.get("claim_id", ""))
+            claim_number = claim.get("claim_number", "")
+            status = claim.get("status", "")
+            policy = claim.get("policies", {}) or {}
+            client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
+            member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
+            
+            if (query in claim_id.lower() or 
+                query in str(claim_number).lower() or
+                query in client_name.lower() or
+                query in member_name.lower()):
+                
+                results["claims"].append({
+                    "claim_id": claim.get("claim_id"),
+                    "claim_number": claim_number,
+                    "status": status,
+                    "client_name": client_name or member_name,
+                    "policy_id": claim.get("policy_id"),
+                    "url": f"/claims/{claim.get('claim_id')}"
+                })
+                
+                if len(results["claims"]) >= 5:
+                    break
+        
+        # Search pending items (pending policies)
+        pending_result = supabase.table("pending_policies").select("*, clients(*)").execute()
+        
+        for pending in pending_result.data[:100]:
+            pending_id = str(pending.get("pending_id", ""))
+            customer_name = pending.get("customer_name", "")
+            insurance_company = pending.get("insurance_company", "")
+            product_name = pending.get("product_name", "")
+            client_name = pending.get("clients", {}).get("name", "") if pending.get("clients") else ""
+            
+            if (query in pending_id.lower() or 
+                query in customer_name.lower() or
+                query in insurance_company.lower() or
+                query in product_name.lower() or
+                query in client_name.lower()):
+                
+                results["pending"].append({
+                    "pending_id": pending.get("pending_id"),
+                    "customer_name": customer_name or client_name,
+                    "insurance_company": insurance_company,
+                    "product_name": product_name,
+                    "url": f"/pending/{pending.get('pending_id')}"
+                })
+                
+                if len(results["pending"]) >= 5:
+                    break
+        
+    except Exception as e:
+        print(f"Error in global search: {e}")
+    
+    return jsonify(results)

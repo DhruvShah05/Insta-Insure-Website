@@ -1,1563 +1,940 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - {{ config.PORTAL_TITLE }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}?v=2.0" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <style>
+{% block title %}Dashboard - {{ config.PORTAL_TITLE }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--spacing-6);
+        margin-bottom: var(--spacing-8);
+    }
+
+    .stat-card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--gray-200);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--spacing-4);
+    }
+
+    .stat-icon.expiring {
+        background: var(--warning-light);
+        color: var(--warning);
+    }
+
+    .stat-icon.pending {
+        background: var(--info-light);
+        color: var(--info);
+    }
+
+    .stat-icon.total {
+        background: var(--success-light);
+        color: var(--success);
+    }
+
+    .stat-icon.claims {
+        background: #e0e7ff;
+        color: #4338ca;
+    }
+
+    .stat-number {
+        font-size: var(--font-size-3xl);
+        font-weight: 700;
+        color: var(--gray-900);
+        margin: 0;
+    }
+
+    .stat-label {
+        color: var(--gray-600);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        margin: var(--spacing-1) 0 0 0;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-4);
+        margin-bottom: var(--spacing-8);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    .table {
+        width: 100%;
+        table-layout: fixed;
+        min-width: 1100px;
+    }
+
+    .table th:nth-child(1),
+    .table td:nth-child(1) {
+        width: 7%;
+    }
+
+    .table th:nth-child(2),
+    .table td:nth-child(2) {
+        width: 16%;
+    }
+
+    .table th:nth-child(3),
+    .table td:nth-child(3) {
+        width: 18%;
+    }
+
+    .table th:nth-child(4),
+    .table td:nth-child(4) {
+        width: 14%;
+    }
+
+    .table th:nth-child(5),
+    .table td:nth-child(5) {
+        width: 9%;
+    }
+
+    .table th:nth-child(6),
+    .table td:nth-child(6) {
+        width: 9%;
+    }
+
+    .table th:nth-child(7),
+    .table td:nth-child(7) {
+        width: 7%;
+    }
+
+    .table th:nth-child(8),
+    .table td:nth-child(8) {
+        width: 7%;
+    }
+
+    .table th:nth-child(9),
+    .table td:nth-child(9) {
+        width: 13%;
+        text-align: right;
+        padding-right: 15px;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
+        width: 70px;
+        margin-left: auto;
+    }
+
+    .action-buttons .btn {
+        white-space: nowrap;
+        font-size: 9px;
+        padding: 3px 4px;
+        min-width: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+    }
+
+    .table td {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        max-width: 0;
+    }
+
+    .customer-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-1);
+        max-width: 100%;
+    }
+
+    .customer-name {
+        font-weight: 500;
+        color: var(--gray-900);
+        font-size: var(--font-size-sm);
+        line-height: 1.3;
+    }
+
+    .customer-contact {
+        font-size: var(--font-size-xs);
+        color: var(--gray-500);
+        line-height: 1.2;
+    }
+
+    .quick-action-card {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--gray-200);
+        text-align: center;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .quick-action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .quick-action-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto var(--spacing-3) auto;
+        background: var(--secondary-blue);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-blue);
+    }
+
+    .quick-action-title {
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0 0 var(--spacing-1) 0;
+    }
+
+    .quick-action-desc {
+        color: var(--gray-600);
+        font-size: var(--font-size-sm);
+        margin: 0;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-6);
+    }
+
+    .section-title {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        color: var(--gray-900);
+        margin: 0;
+    }
+
+    .whatsapp-icon {
+        width: 16px;
+        height: 16px;
+    }
+
+    .policy-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-1);
+        padding: var(--spacing-1) var(--spacing-2);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+    }
+
+    .policy-badge.paid {
+        background: var(--success-light);
+        color: #065f46;
+    }
+
+    .policy-badge.pending {
+        background: var(--warning-light);
+        color: #92400e;
+    }
+
+    .policy-badge.active {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .policy-badge.expiring-soon {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .policy-badge.expired {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .policy-badge.unknown {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
         .dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: var(--spacing-6);
-            margin-bottom: var(--spacing-8);
-        }
-
-        .stat-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-6);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--gray-200);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: var(--spacing-4);
-        }
-
-        .stat-icon.expiring {
-            background: var(--warning-light);
-            color: var(--warning);
-        }
-
-        .stat-icon.pending {
-            background: var(--info-light);
-            color: var(--info);
-        }
-
-        .stat-icon.total {
-            background: var(--success-light);
-            color: var(--success);
-        }
-
-        /* New Style for Claims Stat Icon */
-        .stat-icon.claims {
-            background: #e0e7ff;
-            /* A light indigo */
-            color: #4338ca;
-            /* A darker indigo */
-        }
-
-        .stat-number {
-            font-size: var(--font-size-3xl);
-            font-weight: 700;
-            color: var(--gray-900);
-            margin: 0;
-        }
-
-        .stat-label {
-            color: var(--gray-600);
-            font-size: var(--font-size-sm);
-            font-weight: 500;
-            margin: var(--spacing-1) 0 0 0;
+            grid-template-columns: 1fr;
         }
 
         .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--spacing-4);
-            margin-bottom: var(--spacing-8);
-        }
-
-        .table-responsive {
-            overflow-x: auto;
-            width: 100%;
-        }
-
-        .table {
-            width: 100%;
-            table-layout: fixed;
-            min-width: 1100px;
-            /* Add this line */
-        }
-
-        /* Column width constraints */
-        /* Replace this section */
-        .table th:nth-child(1),
-        .table td:nth-child(1) {
-            width: 7%;
-        }
-
-        /* Policy ID */
-        .table th:nth-child(2),
-        .table td:nth-child(2) {
-            width: 16%;
-        }
-
-        /* Customer */
-        .table th:nth-child(3),
-        .table td:nth-child(3) {
-            width: 18%;
-        }
-
-        /* Company */
-        .table th:nth-child(4),
-        .table td:nth-child(4) {
-            width: 14%;
-        }
-
-        /* Policy Details */
-        .table th:nth-child(5),
-        .table td:nth-child(5) {
-            width: 9%;
-        }
-
-        /* Expiry Date */
-        .table th:nth-child(6),
-        .table td:nth-child(6) {
-            width: 9%;
-        }
-
-        /* Last Reminder */
-        .table th:nth-child(7),
-        .table td:nth-child(7) {
-            width: 7%;
-        }
-
-        /* Status */
-        .table th:nth-child(8),
-        .table td:nth-child(8) {
-            width: 7%;
-        }
-
-        /* Document */
-        .table th:nth-child(9),
-        .table td:nth-child(9) {
-            width: 13%;
-            text-align: right;
-            padding-right: 15px;
-        }
-
-        /* Actions */
-
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            align-items: flex-end;
-            width: 70px;
-            margin-left: auto;
-        }
-
-        .action-buttons .btn {
-            white-space: nowrap;
-            font-size: 9px;
-            padding: 3px 4px;
-            min-width: 0;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-        }
-
-        /* Ensure text doesn't overflow */
-        .table td {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            max-width: 0;
-        }
-
-        /* Customer info styling */
-        .customer-info {
-            max-width: 100%;
-        }
-
-        .customer-name {
-            font-size: var(--font-size-sm);
-            line-height: 1.3;
-        }
-
-        .customer-contact {
-            font-size: var(--font-size-xs);
-            line-height: 1.2;
-        }
-
-        /* Company name styling */
-        .table td:nth-child(3) {
-            font-size: var(--font-size-sm);
-            line-height: 1.3;
-        }
-
-        /* Policy details styling */
-        .table td:nth-child(4) {
-            font-size: var(--font-size-sm);
-            line-height: 1.3;
-        }
-
-        .quick-action-card {
-            background: var(--white);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-6);
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--gray-200);
-            text-align: center;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .quick-action-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .quick-action-icon {
-            width: 40px;
-            height: 40px;
-            margin: 0 auto var(--spacing-3) auto;
-            background: var(--secondary-blue);
-            border-radius: var(--radius-lg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary-blue);
-        }
-
-        .quick-action-title {
-            font-weight: 600;
-            color: var(--gray-900);
-            margin: 0 0 var(--spacing-1) 0;
-        }
-
-        .quick-action-desc {
-            color: var(--gray-600);
-            font-size: var(--font-size-sm);
-            margin: 0;
+            grid-template-columns: 1fr;
         }
 
         .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-6);
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-4);
         }
 
-        .section-title {
-            font-size: var(--font-size-xl);
-            font-weight: 600;
-            color: var(--gray-900);
-            margin: 0;
+        .table th,
+        .table td {
+            padding: var(--spacing-2);
+            font-size: var(--font-size-xs);
+        }
+
+        .action-buttons .btn {
+            font-size: 9px;
+            padding: 2px 3px;
+        }
+
+        .action-buttons .btn svg {
+            width: 8px;
+            height: 8px;
         }
 
         .whatsapp-icon {
-            width: 16px;
-            height: 16px;
-        }
-
-        .customer-info {
-            display: flex;
-            flex-direction: column;
-            gap: var(--spacing-1);
+            width: 8px;
+            height: 8px;
         }
 
         .customer-name {
-            font-weight: 500;
-            color: var(--gray-900);
-        }
-
-        .customer-contact {
             font-size: var(--font-size-xs);
-            color: var(--gray-500);
         }
+    }
 
-        .policy-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: var(--spacing-1);
-            padding: var(--spacing-1) var(--spacing-2);
-            border-radius: var(--radius-sm);
-            font-size: var(--font-size-xs);
-            font-weight: 500;
-        }
+    .hidden-policy-row {
+        opacity: 0.6;
+        background-color: #f9fafb;
+    }
 
-        .policy-badge.paid {
-            background: var(--success-light);
-            color: #065f46;
-        }
+    .hidden-policy-row:hover {
+        opacity: 0.8;
+    }
 
-        .policy-badge.pending {
-            background: var(--warning-light);
-            color: #92400e;
-        }
+    .hide-policy-btn:hover {
+        opacity: 0.85;
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
 
-        .policy-badge.active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .policy-badge.expiring-soon {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .policy-badge.expired {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-
-        .policy-badge.unknown {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-
-        @media (max-width: 1200px) {
-
-            .table th:nth-child(1),
-            .table td:nth-child(1) {
-                width: 10%;
-            }
-
-            /* Policy ID */
-            .table th:nth-child(2),
-            .table td:nth-child(2) {
-                width: 20%;
-            }
-
-            /* Customer */
-            .table th:nth-child(3),
-            .table td:nth-child(3) {
-                width: 22%;
-            }
-
-            /* Company */
-            .table th:nth-child(4),
-            .table td:nth-child(4) {
-                width: 15%;
-            }
-
-            /* Policy Details */
-            .table th:nth-child(5),
-            .table td:nth-child(5) {
-                width: 10%;
-            }
-
-            /* Expiry Date */
-            .table th:nth-child(6),
-            .table td:nth-child(6) {
-                width: 8%;
-            }
-
-            /* Last Reminder */
-            .table th:nth-child(7),
-            .table td:nth-child(7) {
-                width: 8%;
-            }
-
-            /* Status */
-            .table th:nth-child(8),
-            .table td:nth-child(8) {
-                width: 7%;
-            }
-
-            /* Document */
-        }
-
-        /* Hamburger Menu Styles */
-        .hamburger-menu {
-            display: none;
-            flex-direction: column;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-
-        .hamburger-menu:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .hamburger-line {
-            width: 20px;
-            height: 2px;
-            background-color: #374151;
-            margin: 2px 0;
-            transition: 0.3s;
-        }
-
-        .hamburger-menu.active .hamburger-line:nth-child(1) {
-            transform: rotate(-45deg) translate(-4px, 4px);
-        }
-
-        .hamburger-menu.active .hamburger-line:nth-child(2) {
-            opacity: 0;
-        }
-
-        .hamburger-menu.active .hamburger-line:nth-child(3) {
-            transform: rotate(45deg) translate(-4px, -4px);
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: -300px;
-            width: 300px;
-            height: 100vh;
-            background: white;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            transition: left 0.3s ease;
-            z-index: 1050;
-            overflow-y: auto;
-        }
-
-        .sidebar.active {
-            left: 0;
-        }
-
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1040;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .sidebar-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #6b7280;
-        }
-
-        .sidebar-nav {
-            padding: 20px 0;
-        }
-
-        .sidebar-nav-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            color: #374151;
-            text-decoration: none;
-            transition: background-color 0.2s;
-        }
-
-        .sidebar-nav-item:hover {
-            background-color: #f3f4f6;
-            color: #374151;
-            text-decoration: none;
-        }
-
-        .sidebar-nav-item svg {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            color: #6b7280;
-        }
-
-        .sidebar-nav-section {
-            padding: 8px 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: #9ca3af;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 20px;
-        }
-
-        .sidebar-nav-section:first-child {
-            margin-top: 0;
-        }
-
-        /* User Profile Styles */
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-
-        .user-profile:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-name {
-            color: white;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        /* Simplified Navigation */
-        .main-nav {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .main-nav .btn {
-            font-size: 14px;
-            padding: 8px 16px;
-        }
-
-        /* Always show hamburger menu */
-        .hamburger-menu {
-            display: flex;
-        }
-
-        @media (max-width: 768px) {
-            .main-nav {
-                display: none;
-            }
-
-            .dashboard-stats {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .section-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--spacing-4);
-            }
-
-            /* Make table more compact on mobile */
-            .table th,
-            .table td {
-                padding: var(--spacing-2);
-                font-size: var(--font-size-xs);
-            }
-
-            .action-buttons .btn {
-                font-size: 9px;
-                padding: 2px 3px;
-            }
-
-            .action-buttons .btn svg {
-                width: 8px;
-                height: 8px;
-            }
-
-            .whatsapp-icon {
-                width: 8px;
-                height: 8px;
-            }
-
-            .customer-name {
-                font-size: var(--font-size-xs);
-            }
-        }
-
-        /* Hidden policy row styling */
-        .hidden-policy-row {
-            opacity: 0.6;
-            background-color: #f9fafb;
-        }
-
-        .hidden-policy-row:hover {
-            opacity: 0.8;
-        }
-
-        .hide-policy-btn:hover {
-            opacity: 0.85;
-            transform: scale(1.05);
-        }
-    </style>
-</head>
-
-<body>
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="d-flex align-items-center">
-                <img src="{{ url_for('static', filename='ico.png') }}" alt="Insta Insurance" width="24" height="24"
-                    class="me-2">
-                <span class="fw-bold">Insta Insurance</span>
-            </div>
-            <button class="sidebar-close" id="sidebarClose">&times;</button>
+{% block content %}
+<!-- Dashboard Stats -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-icon expiring">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+            </svg>
         </div>
-        <nav class="sidebar-nav">
-            <div class="sidebar-nav-section">Main Actions</div>
-            <a href="{{ url_for('policies.add_policy') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
-                Add Policy
-            </a>
-            <a href="{{ url_for('pending_policies.add_pending') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
-                Add Pending Policy
-            </a>
-            <a href="{{ url_for('dashboard.view_all_policies') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                </svg>
-                View All Policies
-            </a>
-            <a href="{{ url_for('claims.index') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                </svg>
-                Claims
-            </a>
-
-            <div class="sidebar-nav-section">Management</div>
-            <a href="{{ url_for('pending.list_pending') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                </svg>
-                Pending Items
-            </a>
-            <a href="{{ url_for('existing_policies.list_all') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                </svg>
-                All Clients
-            </a>
-            <a href="{{ url_for('whatsapp_logs.whatsapp_logs') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                </svg>
-                WhatsApp Logs
-            </a>
-
-            <div class="sidebar-nav-section">Data & Reports</div>
-            <a href="/excel" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                    <polyline points="14,2 14,8 20,8" />
-                    <path d="M12 18v-6" />
-                    <path d="m9 15 3 3 3-3" />
-                </svg>
-                Excel Data
-            </a>
-            <a href="{{ url_for('renewal.renewal_export_page') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                    <polyline points="14,2 14,8 20,8" />
-                    <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
-                    <path d="m14 15 2 2 4-4" />
-                </svg>
-                Renewal Export
-            </a>
-
-            <div class="sidebar-nav-section">Account</div>
-            {% if current_user.is_admin %}
-            <a href="{{ url_for('settings.index') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z" />
-                </svg>
-                Settings
-            </a>
-            {% endif %}
-            <a href="{{ url_for('auth.logout') }}" class="sidebar-nav-item">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-                </svg>
-                Logout
-            </a>
-        </nav>
+        <h3 class="stat-number">{{ policies|length if policies else 0 }}</h3>
+        <p class="stat-label">Policies Requiring Attention</p>
     </div>
-
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid px-4">
-            <div class="d-flex align-items-center">
-                <div class="hamburger-menu" id="hamburgerMenu">
-                    <div class="hamburger-line"></div>
-                    <div class="hamburger-line"></div>
-                    <div class="hamburger-line"></div>
-                </div>
-                <a class="navbar-brand ms-3" href="{{ url_for('dashboard.index') }}">
-                    <img src="{{ url_for('static', filename=config.LOGO_PATH) }}" alt="{{ config.COMPANY_NAME }}"
-                        class="me-2">
-                    {{ config.PORTAL_NAME }}
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="main-nav">
-                    <a href="{{ url_for('policies.add_policy') }}" class="btn btn-outline">Add Policy</a>
-                    <a href="{{ url_for('pending_policies.add_pending') }}" class="btn btn-outline">Add Pending</a>
-                    <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
-                    <a href="{{ url_for('claims.index') }}" class="btn btn-primary">Claims</a>
-                </div>
-                <div class="user-profile" onclick="toggleUserMenu()">
-                    <div class="user-avatar">{{ current_user.name[0].upper() if current_user and current_user.name else
-                        'U' }}</div>
-                    <span class="user-name d-none d-md-inline">{{ current_user.name if current_user and
-                        current_user.name else 'User' }}</span>
-                </div>
-            </div>
+    <div class="stat-card">
+        <div class="stat-icon pending">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
         </div>
-    </nav>
-
-    <div class="page-container">
-        <!-- Dashboard Stats -->
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <div class="stat-icon expiring">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                </div>
-                <h3 class="stat-number">{{ policies|length if policies else 0 }}</h3>
-                <p class="stat-label">Policies Requiring Attention</p>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon pending">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                    </svg>
-                </div>
-                <h3 class="stat-number">{{ total_pending_policies if total_pending_policies else 0 }}</h3>
-                <p class="stat-label">Pending Policies</p>
-            </div>
-            <!-- *** ADDITION 2: CLAIMS STATS CARD *** -->
-            <div class="stat-card">
-                <div class="stat-icon claims">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
-                </div>
-                <h3 class="stat-number">{{ total_claims if total_claims else 0 }}</h3>
-                <p class="stat-label">Total Claims</p>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon total">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
-                </div>
-                <h3 class="stat-number">{{ total_active_policies if total_active_policies else 0 }}</h3>
-                <p class="stat-label">Total Active Policies</p>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <a href="{{ url_for('policies.add_policy') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Add New Policy</h4>
-                <p class="quick-action-desc">Register a new insurance policy</p>
-            </a>
-            <a href="{{ url_for('pending_policies.add_pending') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Add Pending Policy</h4>
-                <p class="quick-action-desc">Track pending policy applications</p>
-            </a>
-            <a href="{{ url_for('dashboard.view_all_policies') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">View All Policies</h4>
-                <p class="quick-action-desc">Browse all policies with search and pagination</p>
-            </a>
-            <a href="{{ url_for('existing_policies.list_all') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">View All Clients</h4>
-                <p class="quick-action-desc">Browse clients, members, and their policies</p>
-            </a>
-            <!-- *** ADDITION 3: CLAIMS QUICK ACTION CARD *** -->
-            <a href="{{ url_for('claims.index') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Manage Claims</h4>
-                <p class="quick-action-desc">View and process all claims</p>
-            </a>
-            <a href="{{ url_for('pending.list_pending') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Pending Items</h4>
-                <p class="quick-action-desc">Review pending policies and renewals</p>
-            </a>
-            <a href="/excel" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                        <polyline points="14,2 14,8 20,8" />
-                        <path d="M12 18v-6" />
-                        <path d="m9 15 3 3 3-3" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Excel Data</h4>
-                <p class="quick-action-desc">View and manage data in Excel format</p>
-            </a>
-            <a href="{{ url_for('renewal.renewal_export_page') }}" class="quick-action-card">
-                <div class="quick-action-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
-                        <polyline points="14,2 14,8 20,8" />
-                        <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
-                        <path d="m14 15 2 2 4-4" />
-                    </svg>
-                </div>
-                <h4 class="quick-action-title">Renewal Export</h4>
-                <p class="quick-action-desc">Export policies expiring by month</p>
-            </a>
-        </div>
-
-        <!-- Policies Expiring Soon Section -->
-        <div class="section-header">
-            <h2 class="section-title">Policies Requiring Attention</h2>
-            <div class="d-flex gap-2 align-items-center">
-                <div class="form-check form-switch" style="margin-right: 10px;">
-                    <input class="form-check-input" type="checkbox" id="showHiddenToggle" {% if show_hidden %}checked{%
-                        endif %} onchange="toggleShowHidden(this.checked)"
-                        style="cursor: pointer; width: 40px; height: 20px;">
-                    <label class="form-check-label" for="showHiddenToggle"
-                        style="cursor: pointer; font-size: 14px; color: #6b7280;">
-                        Show Hidden
-                    </label>
-                </div>
-                <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
-                <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">View All Clients</a>
-                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary">Add Policy</a>
-            </div>
-        </div>
-
-        <div class="table-container">
-            {% if policies %}
-            <div class="mb-4">
-                <span class="text-muted">Showing {{ policies|length }} policies requiring attention (expiring within 30
-                    days or expired within last 30 days)</span>
-            </div>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Policy ID</th>
-                            <th>Member</th>
-                            <th>Company</th>
-                            <th>Policy Details</th>
-                            <th>Expiry Date</th>
-                            <th>Last Reminder</th>
-                            <th>Status</th>
-                            <th>Document</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for policy in policies %}
-                        <tr class="{% if policy.is_hidden_from_renewals %}hidden-policy-row{% endif %}"
-                            data-policy-id="{{ policy.policy_id }}"
-                            data-is-hidden="{{ policy.is_hidden_from_renewals|default(false)|lower }}">
-                            <td><strong>#{{ policy.policy_id }}</strong></td>
-                            <td>
-                                <div class="customer-info">
-                                    <div class="customer-name">{{ policy.member_name }}</div>
-                                    {% if policy.customer_phone %}
-                                    <div class="customer-contact">{{ policy.customer_phone }}</div>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td>{{ policy.insurance_company }}</td>
-                            <td>
-                                {% if policy.remarks %}
-                                {{ policy.remarks }}
-                                {% else %}
-                                <span class="text-muted">{{ policy.product_name }}</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ policy.policy_to | indian_date }}</td>
-                            <td>
-                                {% if policy.last_reminder_sent %}
-                                <small class="text-muted">{{ policy.last_reminder_sent[:10] | indian_date }}</small>
-                                {% else %}
-                                <small class="text-muted">Never</small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% set status_info = policy | policy_status %}
-                                <span class="policy-badge {{ status_info.class }}">{{ status_info.label }}</span>
-                            </td>
-                            <td>
-                                {% if policy.drive_url %}
-                                <a href="{{ policy.drive_url }}" target="_blank" class="btn btn-sm btn-outline">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
-                                        <path
-                                            d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                                    </svg>
-                                    View
-                                </a>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn whatsapp-btn btn-sm renewal-btn"
-                                        data-policy-id="{{ policy.policy_id }}"
-                                        data-customer-name="{{ policy.member_name }}"
-                                        data-insurance-company="{{ policy.insurance_company }}"
-                                        data-product-name="{{ policy.product_name }}"
-                                        data-customer-phone="{{ policy.customer_phone }}"
-                                        data-customer-email="{{ policy.customer_email }}"
-                                        title="Send renewal reminder via WhatsApp & Email">
-                                        <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
-                                            <path
-                                                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                                        </svg>
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
-                                            style="margin-left: 2px;">
-                                            <path
-                                                d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                                        </svg>
-                                    </button>
-                                    <button class="btn paid-btn btn-sm policy-paid-btn"
-                                        data-policy-id="{{ policy.policy_id }}"
-                                        data-customer-name="{{ policy.member_name }}"
-                                        data-insurance-company="{{ policy.insurance_company }}"
-                                        data-product-name="{{ policy.product_name }}"
-                                        data-customer-phone="{{ policy.customer_phone }}"
-                                        data-customer-email="{{ policy.customer_email }}" title="Mark policy as paid">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                            <path
-                                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                                        </svg>
-                                    </button>
-                                    <button class="btn btn-sm hide-policy-btn" data-policy-id="{{ policy.policy_id }}"
-                                        title="{% if policy.is_hidden_from_renewals %}Unhide Policy{% else %}Hide Policy{% endif %}"
-                                        style="background: {% if policy.is_hidden_from_renewals %}#10b981{% else %}#6b7280{% endif %}; color: white; border: none; padding: 4px 6px; border-radius: 4px;">
-                                        {% if policy.is_hidden_from_renewals %}
-                                        <!-- Eye icon (unhide) -->
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                            <path
-                                                d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                                        </svg>
-                                        {% else %}
-                                        <!-- Eye-off icon (hide) -->
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                            <path
-                                                d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
-                                        </svg>
-                                        {% endif %}
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                    </path>
-                </svg>
-                <h5>No policies expiring soon</h5>
-                <p>All policies are up to date. Great job!</p>
-                <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary mt-3">Add New Policy</a>
-            </div>
-            {% endif %}
-        </div>
+        <h3 class="stat-number">{{ total_pending_policies if total_pending_policies else 0 }}</h3>
+        <p class="stat-label">Pending Policies</p>
     </div>
-
-    <!-- Renewal Reminder Modal -->
-    <div class="modal fade" id="renewalModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Send Renewal Reminder</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <strong>Member:</strong> <span id="modalCustomerName"></span><br>
-                        <strong>Phone:</strong> <span id="modalPhone"></span><br>
-                        <strong>Email:</strong> <span id="modalEmail"></span><br>
-                        <strong>Policy:</strong> <span id="modalPolicyDetails"></span>
-                    </div>
-
-                    <form id="renewalForm" enctype="multipart/form-data">
-                        <input type="hidden" id="modalPolicyId" name="policy_id">
-
-                        <div class="mb-3">
-                            <label for="renewalPremium" class="form-label">Renewal Premium (Optional)</label>
-                            <input type="number" class="form-control" id="renewalPremium" name="renewal_premium"
-                                placeholder="Enter renewal premium amount" step="0.01" min="0">
-                            <small class="text-muted">Enter the premium amount for renewal</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="renewalFile" class="form-label">Renewal Document (Optional)</label>
-                            <input type="file" class="form-control" id="renewalFile" name="renewal_file" accept=".pdf">
-                        </div>
-
-                        <div class="alert alert-info">
-                            <small><strong></strong> Reminder will be sent via WhatsApp and Email (if contact info
-                                available)</small>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-outline" id="editDetailsBtn" onclick="goToRenewalPage()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                            <path
-                                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                        </svg>
-                        Edit Details & Renew
-                    </button>
-                    <button type="button" class="btn btn-send-reminder" onclick="sendRenewalReminder()">Send
-                        Reminder</button>
-                </div>
-            </div>
+    <div class="stat-card">
+        <div class="stat-icon claims">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
         </div>
+        <h3 class="stat-number">{{ total_claims if total_claims else 0 }}</h3>
+        <p class="stat-label">Total Claims</p>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon total">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+        </div>
+        <h3 class="stat-number">{{ total_active_policies if total_active_policies else 0 }}</h3>
+        <p class="stat-label">Total Active Policies</p>
+    </div>
+</div>
 
-    <!-- Policy Paid Modal -->
-    <div class="modal fade" id="policyPaidModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Policy Payment Received</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-4">
-                        <strong>Member:</strong> <span id="paidModalCustomerName"></span><br>
-                        <strong>Phone:</strong> <span id="paidModalPhone"></span><br>
-                        <strong>Email:</strong> <span id="paidModalEmail"></span><br>
-                        <strong>Policy:</strong> <span id="paidModalPolicyDetails"></span>
-                    </div>
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{{ url_for('policies.add_policy') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Add New Policy</h4>
+        <p class="quick-action-desc">Register a new insurance policy</p>
+    </a>
+    <a href="{{ url_for('pending_policies.add_pending') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Add Pending Policy</h4>
+        <p class="quick-action-desc">Track pending policy applications</p>
+    </a>
+    <a href="{{ url_for('dashboard.view_all_policies') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">View All Policies</h4>
+        <p class="quick-action-desc">Browse all policies with search and pagination</p>
+    </a>
+    <a href="{{ url_for('existing_policies.list_all') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">View All Clients</h4>
+        <p class="quick-action-desc">Browse clients, members, and their policies</p>
+    </a>
+    <a href="{{ url_for('claims.index') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Manage Claims</h4>
+        <p class="quick-action-desc">View and process all claims</p>
+    </a>
+    <a href="{{ url_for('pending.list_pending') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Pending Items</h4>
+        <p class="quick-action-desc">Review pending policies and renewals</p>
+    </a>
+    <a href="/excel" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14,2 14,8 20,8" />
+                <path d="M12 18v-6" />
+                <path d="m9 15 3 3 3-3" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Excel Data</h4>
+        <p class="quick-action-desc">View and manage data in Excel format</p>
+    </a>
+    <a href="{{ url_for('renewal.renewal_export_page') }}" class="quick-action-card">
+        <div class="quick-action-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+                <polyline points="14,2 14,8 20,8" />
+                <path d="M16 13a4 4 0 1 1 0 8 4 4 0 0 1 0-8z" />
+                <path d="m14 15 2 2 4-4" />
+            </svg>
+        </div>
+        <h4 class="quick-action-title">Renewal Export</h4>
+        <p class="quick-action-desc">Export policies expiring by month</p>
+    </a>
+</div>
 
-                    <input type="hidden" id="paidModalPolicyId" name="policy_id">
+<!-- Policies Expiring Soon Section -->
+<div class="section-header">
+    <h2 class="section-title">Policies Requiring Attention</h2>
+    <div class="d-flex gap-2 align-items-center">
+        <div class="form-check form-switch" style="margin-right: 10px;">
+            <input class="form-check-input" type="checkbox" id="showHiddenToggle" {% if show_hidden %}checked{% endif %}
+                onchange="toggleShowHidden(this.checked)" style="cursor: pointer; width: 40px; height: 20px;">
+            <label class="form-check-label" for="showHiddenToggle"
+                style="cursor: pointer; font-size: 14px; color: #6b7280;">Show Hidden</label>
+        </div>
+        <a href="{{ url_for('dashboard.view_all_policies') }}" class="btn btn-outline">View All Policies</a>
+        <a href="{{ url_for('existing_policies.list_all') }}" class="btn btn-outline">View All Clients</a>
+        <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary">Add Policy</a>
+    </div>
+</div>
 
-                    <p class="mb-3"><strong>Choose how to proceed:</strong></p>
-
-                    <!-- Option 1: Edit Details & Renew Now -->
-                    <div class="card mb-3" style="border: 2px solid #10b981; cursor: pointer;"
-                        onclick="goToRenewalPageFromPaid()">
-                        <div class="card-body">
-                            <h6 class="card-title mb-2">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
-                                    style="vertical-align: text-bottom; margin-right: 8px; color: #10b981;">
+<div class="table-container">
+    {% if policies %}
+    <div class="mb-4">
+        <span class="text-muted">Showing {{ policies|length }} policies requiring attention (expiring within 30 days or
+            expired within last 30 days)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Policy ID</th>
+                    <th>Member</th>
+                    <th>Company</th>
+                    <th>Policy Details</th>
+                    <th>Expiry Date</th>
+                    <th>Last Reminder</th>
+                    <th>Status</th>
+                    <th>Document</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for policy in policies %}
+                <tr class="{% if policy.is_hidden_from_renewals %}hidden-policy-row{% endif %}"
+                    data-policy-id="{{ policy.policy_id }}"
+                    data-is-hidden="{{ policy.is_hidden_from_renewals|default(false)|lower }}">
+                    <td><strong>#{{ policy.policy_id }}</strong></td>
+                    <td>
+                        <div class="customer-info">
+                            <div class="customer-name">{{ policy.member_name }}</div>
+                            {% if policy.customer_phone %}
+                            <div class="customer-contact">{{ policy.customer_phone }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ policy.insurance_company }}</td>
+                    <td>
+                        {% if policy.remarks %}{{ policy.remarks }}{% else %}<span class="text-muted">{{
+                            policy.product_name }}</span>{% endif %}
+                    </td>
+                    <td>{{ policy.policy_to | indian_date }}</td>
+                    <td>
+                        {% if policy.last_reminder_sent %}<small class="text-muted">{{ policy.last_reminder_sent[:10] |
+                            indian_date }}</small>{% else %}<small class="text-muted">Never</small>{% endif %}
+                    </td>
+                    <td>
+                        {% set status_info = policy | policy_status %}
+                        <span class="policy-badge {{ status_info.class }}">{{ status_info.label }}</span>
+                    </td>
+                    <td>
+                        {% if policy.drive_url %}
+                        <a href="{{ policy.drive_url }}" target="_blank" class="btn btn-sm btn-outline">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="me-1">
+                                <path
+                                    d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>View
+                        </a>
+                        {% else %}<span class="text-muted">-</span>{% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn whatsapp-btn btn-sm renewal-btn" data-policy-id="{{ policy.policy_id }}"
+                                data-customer-name="{{ policy.member_name }}"
+                                data-insurance-company="{{ policy.insurance_company }}"
+                                data-product-name="{{ policy.product_name }}"
+                                data-customer-phone="{{ policy.customer_phone }}"
+                                data-customer-email="{{ policy.customer_email }}"
+                                title="Send renewal reminder via WhatsApp & Email">
+                                <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
                                     <path
-                                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                                        d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                 </svg>
-                                <strong>Option 1: Edit Details & Renew Now</strong>
-                            </h6>
-                            <p class="card-text text-muted mb-0" style="font-size: 0.9rem;">
-                                Go to renewal page to upload PDF and edit all policy details immediately.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Option 2: Mark as Pending Renewal -->
-                    <div class="card" style="border: 2px solid #f59e0b;">
-                        <div class="card-body">
-                            <h6 class="card-title mb-2">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
-                                    style="vertical-align: text-bottom; margin-right: 8px; color: #f59e0b;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+                                    style="margin-left: 2px;">
+                                    <path
+                                        d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                                </svg>
+                            </button>
+                            <button class="btn paid-btn btn-sm policy-paid-btn" data-policy-id="{{ policy.policy_id }}"
+                                data-customer-name="{{ policy.member_name }}"
+                                data-insurance-company="{{ policy.insurance_company }}"
+                                data-product-name="{{ policy.product_name }}"
+                                data-customer-phone="{{ policy.customer_phone }}"
+                                data-customer-email="{{ policy.customer_email }}" title="Mark policy as paid">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                                     <path
                                         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                                 </svg>
-                                <strong>Option 2: Mark as Pending Renewal</strong>
-                            </h6>
-                            <p class="card-text text-muted mb-3" style="font-size: 0.9rem;">
-                                Payment received but company hasn't issued new policy yet. Track it until ready.
-                            </p>
-
-                            <form id="pendingRenewalForm">
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label for="pendingPolicyFrom" class="form-label"
-                                            style="font-size: 0.85rem;">New Start Date <span
-                                                class="text-danger">*</span></label>
-                                        <input type="text" class="form-control form-control-sm date-picker"
-                                            id="pendingPolicyFrom" placeholder="DD/MM/YYYY" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="pendingPolicyTo" class="form-label" style="font-size: 0.85rem;">New
-                                            Expiry Date <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control form-control-sm date-picker"
-                                            id="pendingPolicyTo" placeholder="DD/MM/YYYY" required>
-                                    </div>
-                                </div>
-                                <button type="button" class="btn btn-warning btn-sm mt-3 w-100"
-                                    onclick="markAsPendingRenewal()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
-                                        style="vertical-align: text-bottom; margin-right: 4px;">
-                                        <path
-                                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                                    </svg>
-                                    Mark as Pending Renewal
-                                </button>
-                            </form>
+                            </button>
+                            <button class="btn btn-sm hide-policy-btn" data-policy-id="{{ policy.policy_id }}"
+                                title="{% if policy.is_hidden_from_renewals %}Unhide Policy{% else %}Hide Policy{% endif %}"
+                                style="background: {% if policy.is_hidden_from_renewals %}#10b981{% else %}#6b7280{% endif %}; color: white; border: none; padding: 4px 6px; border-radius: 4px;">
+                                {% if policy.is_hidden_from_renewals %}
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                                </svg>
+                                {% else %}
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
+                                </svg>
+                                {% endif %}
+                            </button>
                         </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+            </path>
+        </svg>
+        <h5>No policies expiring soon</h5>
+        <p>All policies are up to date. Great job!</p>
+        <a href="{{ url_for('policies.add_policy') }}" class="btn btn-primary mt-3">Add New Policy</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Renewal Reminder Modal -->
+<div class="modal fade" id="renewalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Renewal Reminder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Member:</strong> <span id="modalCustomerName"></span><br>
+                    <strong>Phone:</strong> <span id="modalPhone"></span><br>
+                    <strong>Email:</strong> <span id="modalEmail"></span><br>
+                    <strong>Policy:</strong> <span id="modalPolicyDetails"></span>
+                </div>
+                <form id="renewalForm" enctype="multipart/form-data">
+                    <input type="hidden" id="modalPolicyId" name="policy_id">
+                    <div class="mb-3">
+                        <label for="renewalPremium" class="form-label">Renewal Premium (Optional)</label>
+                        <input type="number" class="form-control" id="renewalPremium" name="renewal_premium"
+                            placeholder="Enter renewal premium amount" step="0.01" min="0">
+                        <small class="text-muted">Enter the premium amount for renewal</small>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                </div>
+                    <div class="mb-3">
+                        <label for="renewalFile" class="form-label">Renewal Document (Optional)</label>
+                        <input type="file" class="form-control" id="renewalFile" name="renewal_file" accept=".pdf">
+                    </div>
+                    <div class="alert alert-info">
+                        <small><strong></strong> Reminder will be sent via WhatsApp and Email (if contact info
+                            available)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline" id="editDetailsBtn" onclick="goToRenewalPage()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                    </svg>
+                    Edit Details & Renew
+                </button>
+                <button type="button" class="btn btn-send-reminder" onclick="sendRenewalReminder()">Send
+                    Reminder</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="{{ url_for('static', filename='js/performance.js') }}?v=2.0"></script>
-    <script>
-        // Initialize date pickers with DD/MM/YYYY format
-        document.addEventListener('DOMContentLoaded', function () {
-            flatpickr('.date-picker', {
-                dateFormat: 'd/m/Y',
-                altInput: false,
-                allowInput: true,
-                locale: {
-                    firstDayOfWeek: 1
-                }
-            });
+<!-- Policy Paid Modal -->
+<div class="modal fade" id="policyPaidModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Policy Payment Received</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <strong>Member:</strong> <span id="paidModalCustomerName"></span><br>
+                    <strong>Phone:</strong> <span id="paidModalPhone"></span><br>
+                    <strong>Email:</strong> <span id="paidModalEmail"></span><br>
+                    <strong>Policy:</strong> <span id="paidModalPolicyDetails"></span>
+                </div>
+                <input type="hidden" id="paidModalPolicyId" name="policy_id">
+                <p class="mb-3"><strong>Choose how to proceed:</strong></p>
+                <div class="card mb-3" style="border: 2px solid #10b981; cursor: pointer;"
+                    onclick="goToRenewalPageFromPaid()">
+                    <div class="card-body">
+                        <h6 class="card-title mb-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+                                style="vertical-align: text-bottom; margin-right: 8px; color: #10b981;">
+                                <path
+                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                            </svg>
+                            <strong>Option 1: Edit Details & Renew Now</strong>
+                        </h6>
+                        <p class="card-text text-muted mb-0" style="font-size: 0.9rem;">Go to renewal page to upload PDF
+                            and edit all policy details immediately.</p>
+                    </div>
+                </div>
+                <div class="card" style="border: 2px solid #f59e0b;">
+                    <div class="card-body">
+                        <h6 class="card-title mb-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
+                                style="vertical-align: text-bottom; margin-right: 8px; color: #f59e0b;">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                            <strong>Option 2: Mark as Pending Renewal</strong>
+                        </h6>
+                        <p class="card-text text-muted mb-3" style="font-size: 0.9rem;">Payment received but company
+                            hasn't issued new policy yet. Track it until ready.</p>
+                        <form id="pendingRenewalForm">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label for="pendingPolicyFrom" class="form-label" style="font-size: 0.85rem;">New
+                                        Start Date <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm date-picker"
+                                        id="pendingPolicyFrom" placeholder="DD/MM/YYYY" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="pendingPolicyTo" class="form-label" style="font-size: 0.85rem;">New
+                                        Expiry Date <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm date-picker"
+                                        id="pendingPolicyTo" placeholder="DD/MM/YYYY" required>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-warning btn-sm mt-3 w-100"
+                                onclick="markAsPendingRenewal()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                                    style="vertical-align: text-bottom; margin-right: 4px;">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                </svg>
+                                Mark as Pending Renewal
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
-            // Initialize sidebar functionality
-            initializeSidebar();
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="{{ url_for('static', filename='js/performance.js') }}?v=2.0"></script>
+<script>
+    // Initialize date pickers
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr('.date-picker', {
+            dateFormat: 'd/m/Y',
+            altInput: false,
+            allowInput: true,
+            locale: { firstDayOfWeek: 1 }
         });
+    });
 
-        // Sidebar functionality
-        function initializeSidebar() {
-            const hamburgerMenu = document.getElementById('hamburgerMenu');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const sidebarClose = document.getElementById('sidebarClose');
+    let currentPolicyId = null;
+    let currentCustomerData = {};
+    const renewalModal = new bootstrap.Modal(document.getElementById('renewalModal'));
+    const policyPaidModal = new bootstrap.Modal(document.getElementById('policyPaidModal'));
 
-            // Toggle sidebar
-            function toggleSidebar() {
-                hamburgerMenu.classList.toggle('active');
-                sidebar.classList.toggle('active');
-                sidebarOverlay.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            }
+    function openRenewalModal(policyId, customerName, companyName, policyType, phone, email) {
+        currentPolicyId = policyId;
+        document.getElementById('modalPolicyId').value = policyId;
+        document.getElementById('modalCustomerName').textContent = customerName;
+        document.getElementById('modalPhone').textContent = phone || 'No phone';
+        document.getElementById('modalEmail').textContent = email || 'No email';
+        document.getElementById('modalPolicyDetails').textContent = `${companyName} - ${policyType}`;
+        document.getElementById('renewalForm').reset();
+        document.getElementById('modalPolicyId').value = policyId;
+        renewalModal.show();
+    }
 
-            // Close sidebar
-            function closeSidebar() {
-                hamburgerMenu.classList.remove('active');
-                sidebar.classList.remove('active');
-                sidebarOverlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
+    function openPolicyPaidModal(policyId, customerName, companyName, policyType, phone, email) {
+        currentPolicyId = policyId;
+        currentCustomerData = { phone, email, name: customerName };
+        document.getElementById('paidModalPolicyId').value = policyId;
+        document.getElementById('paidModalCustomerName').textContent = customerName;
+        document.getElementById('paidModalPhone').textContent = phone || 'No phone';
+        document.getElementById('paidModalEmail').textContent = email || 'No email';
+        document.getElementById('paidModalPolicyDetails').textContent = `${companyName} - ${policyType}`;
+        const pendingForm = document.getElementById('pendingRenewalForm');
+        if (pendingForm) pendingForm.reset();
+        policyPaidModal.show();
+    }
 
-            // Event listeners
-            hamburgerMenu.addEventListener('click', toggleSidebar);
-            sidebarClose.addEventListener('click', closeSidebar);
-            sidebarOverlay.addEventListener('click', closeSidebar);
-
-            // Close sidebar when clicking on nav items (mobile)
-            const sidebarNavItems = document.querySelectorAll('.sidebar-nav-item');
-            sidebarNavItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    if (window.innerWidth <= 768) {
-                        closeSidebar();
-                    }
-                });
-            });
-
-            // Close sidebar on window resize if open
-            window.addEventListener('resize', () => {
-                if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
-                    closeSidebar();
-                }
-            });
+    // Event delegation for buttons
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.renewal-btn')) {
+            const btn = e.target.closest('.renewal-btn');
+            openRenewalModal(btn.dataset.policyId, btn.dataset.customerName, btn.dataset.insuranceCompany, btn.dataset.productName, btn.dataset.customerPhone, btn.dataset.customerEmail);
         }
-
-        // User menu functionality
-        function toggleUserMenu() {
-            // For now, just show a simple menu - you can expand this later
-            const userOptions = [
-                { label: 'Profile', action: () => alert('Profile functionality coming soon') },
-                {% if current_user.is_admin %}
-        { label: 'Settings', action: () => window.location.href = '{{ url_for("settings.index") }}' },
-        {% endif %}
-        { label: 'Logout', action: () => window.location.href = '{{ url_for("auth.logout") }}' }
-            ];
-
-        // Create a simple dropdown menu
-        const existingMenu = document.querySelector('.user-dropdown');
-        if (existingMenu) {
-            existingMenu.remove();
-            return;
+        if (e.target.closest('.policy-paid-btn')) {
+            const btn = e.target.closest('.policy-paid-btn');
+            openPolicyPaidModal(btn.dataset.policyId, btn.dataset.customerName, btn.dataset.insuranceCompany, btn.dataset.productName, btn.dataset.customerPhone, btn.dataset.customerEmail);
         }
-
-        const dropdown = document.createElement('div');
-        dropdown.className = 'user-dropdown';
-        dropdown.style.cssText = `
-                position: absolute;
-                top: 100%;
-                right: 0;
-                background: white;
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-                z-index: 1000;
-                min-width: 150px;
-                margin-top: 8px;
-            `;
-
-        userOptions.forEach((option, index) => {
-            const item = document.createElement('div');
-            item.textContent = option.label;
-            item.style.cssText = `
-                    padding: 12px 16px;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                    ${index === userOptions.length - 1 ? '' : 'border-bottom: 1px solid #f3f4f6;'}
-                `;
-            item.addEventListener('mouseenter', () => item.style.backgroundColor = '#f3f4f6');
-            item.addEventListener('mouseleave', () => item.style.backgroundColor = 'white');
-            item.addEventListener('click', () => {
-                option.action();
-                dropdown.remove();
-            });
-            dropdown.appendChild(item);
-        });
-
-        const userProfile = document.querySelector('.user-profile');
-        userProfile.style.position = 'relative';
-        userProfile.appendChild(dropdown);
-
-        // Close dropdown when clicking outside
-        setTimeout(() => {
-            document.addEventListener('click', function closeDropdown(e) {
-                if (!userProfile.contains(e.target)) {
-                    dropdown.remove();
-                    document.removeEventListener('click', closeDropdown);
-                }
-            });
-        }, 100);
+        if (e.target.closest('.hide-policy-btn')) {
+            const btn = e.target.closest('.hide-policy-btn');
+            togglePolicyVisibility(btn.dataset.policyId, btn);
         }
-    </script>
-    <script>
-        let currentPolicyId = null;
-        let currentCustomerData = {};
-        const renewalModal = new bootstrap.Modal(document.getElementById('renewalModal'));
-        const policyPaidModal = new bootstrap.Modal(document.getElementById('policyPaidModal'));
+    });
 
-        function openRenewalModal(policyId, customerName, companyName, policyType, phone, email) {
-            currentPolicyId = policyId;
-            document.getElementById('modalPolicyId').value = policyId;
-            document.getElementById('modalCustomerName').textContent = customerName;
-            document.getElementById('modalPhone').textContent = phone || 'No phone';
-            document.getElementById('modalEmail').textContent = email || 'No email';
-            document.getElementById('modalPolicyDetails').textContent = `${companyName} - ${policyType}`;
-            document.getElementById('renewalForm').reset();
-            document.getElementById('modalPolicyId').value = policyId;
-            renewalModal.show();
+    function goToRenewalPage() {
+        if (currentPolicyId) {
+            renewalModal.hide();
+            window.location.href = `/renewal_page/${currentPolicyId}`;
+        } else {
+            alert('No policy selected');
         }
+    }
 
-        function openPolicyPaidModal(policyId, customerName, companyName, policyType, phone, email) {
-            currentPolicyId = policyId;
-            currentCustomerData = { phone, email, name: customerName };
-            document.getElementById('paidModalPolicyId').value = policyId;
-            document.getElementById('paidModalCustomerName').textContent = customerName;
-            document.getElementById('paidModalPhone').textContent = phone || 'No phone';
-            document.getElementById('paidModalEmail').textContent = email || 'No email';
-            document.getElementById('paidModalPolicyDetails').textContent = `${companyName} - ${policyType}`;
-            // Reset the pending renewal form if it exists
-            const pendingForm = document.getElementById('pendingRenewalForm');
-            if (pendingForm) {
-                pendingForm.reset();
-            }
-            policyPaidModal.show();
+    function goToRenewalPageFromPaid() {
+        if (currentPolicyId) {
+            policyPaidModal.hide();
+            window.location.href = `/renewal_page/${currentPolicyId}`;
+        } else {
+            alert('No policy selected');
         }
+    }
 
-        // Event delegation for renewal buttons
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('.renewal-btn')) {
-                const btn = e.target.closest('.renewal-btn');
-                const policyId = btn.dataset.policyId;
-                const customerName = btn.dataset.customerName;
-                const companyName = btn.dataset.insuranceCompany;
-                const policyType = btn.dataset.productName;
-                const phone = btn.dataset.customerPhone;
-                const email = btn.dataset.customerEmail;
+    async function markAsPendingRenewal() {
+        const policyFrom = document.getElementById('pendingPolicyFrom').value;
+        const policyTo = document.getElementById('pendingPolicyTo').value;
+        if (!policyFrom || !policyTo) { alert('Please enter both start and expiry dates'); return; }
+        if (!confirm('Mark this policy as pending renewal? It will be moved to the Pending Renewals page.')) return;
 
-                openRenewalModal(policyId, customerName, companyName, policyType, phone, email);
-            }
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+        button.disabled = true;
 
-            if (e.target.closest('.policy-paid-btn')) {
-                const btn = e.target.closest('.policy-paid-btn');
-                const policyId = btn.dataset.policyId;
-                const customerName = btn.dataset.customerName;
-                const companyName = btn.dataset.insuranceCompany;
-                const policyType = btn.dataset.productName;
-                const phone = btn.dataset.customerPhone;
-                const email = btn.dataset.customerEmail;
+        try {
+            const formData = new FormData();
+            formData.append('policy_id', currentPolicyId);
+            formData.append('new_policy_from', policyFrom);
+            formData.append('new_policy_to', policyTo);
 
-                openPolicyPaidModal(policyId, customerName, companyName, policyType, phone, email);
-            }
-        });
+            const response = await fetch('/api/mark_pending_renewal', { method: 'POST', body: formData });
+            const result = await response.json();
 
-        function goToRenewalPage() {
-            if (currentPolicyId) {
-                // Close the modal and redirect to renewal page
-                renewalModal.hide();
-                window.location.href = `/renewal_page/${currentPolicyId}`;
-            } else {
-                alert('No policy selected');
-            }
-        }
-
-        function goToRenewalPageFromPaid() {
-            if (currentPolicyId) {
-                // Close the modal and redirect to renewal page
+            if (result.success) {
+                alert(`Success: ${result.message}`);
                 policyPaidModal.hide();
-                window.location.href = `/renewal_page/${currentPolicyId}`;
+                location.reload();
             } else {
-                alert('No policy selected');
+                alert(`Error: ${result.message}`);
             }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error marking policy as pending renewal');
+        } finally {
+            button.innerHTML = originalText;
+            button.disabled = false;
         }
+    }
 
-        async function markAsPendingRenewal() {
-            const policyFrom = document.getElementById('pendingPolicyFrom').value;
-            const policyTo = document.getElementById('pendingPolicyTo').value;
+    async function sendRenewalReminder() {
+        const formData = new FormData(document.getElementById('renewalForm'));
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = 'Sending...';
 
-            if (!policyFrom || !policyTo) {
-                alert('Please enter both start and expiry dates');
-                return;
-            }
+        try {
+            const response = await fetch('/api/send_renewal_reminder', { method: 'POST', body: formData });
+            const result = await response.json();
 
-            if (!confirm('Mark this policy as pending renewal? It will be moved to the Pending Renewals page.')) {
-                return;
-            }
-
-            const button = event.target;
-            const originalText = button.innerHTML;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
-            button.disabled = true;
-
-            try {
-                const formData = new FormData();
-                formData.append('policy_id', currentPolicyId);
-                formData.append('new_policy_from', policyFrom);
-                formData.append('new_policy_to', policyTo);
-
-                const response = await fetch('/api/mark_pending_renewal', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert(`Success: ${result.message}`);
-                    policyPaidModal.hide();
-                    location.reload();
-                } else {
-                    alert(`Error: ${result.message}`);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error marking policy as pending renewal');
-            } finally {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
-        }
-
-        async function sendRenewalReminder() {
-            const formData = new FormData(document.getElementById('renewalForm'));
-            const button = event.target;
-            const originalText = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = 'Sending...';
-
-            try {
-                const response = await fetch('/api/send_renewal_reminder', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    alert('Sent: ' + result.message);
-                    renewalModal.hide();
-                    location.reload();
-                } else {
-                    alert('Error: ' + result.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to send reminder');
-            } finally {
-                button.disabled = false;
-                button.innerHTML = originalText;
-            }
-        }
-
-        // Toggle show hidden policies
-        function toggleShowHidden(showHidden) {
-            const url = new URL(window.location.href);
-            if (showHidden) {
-                url.searchParams.set('show_hidden', 'true');
+            if (result.success) {
+                alert('Sent: ' + result.message);
+                renewalModal.hide();
+                location.reload();
             } else {
-                url.searchParams.delete('show_hidden');
+                alert('Error: ' + result.message);
             }
-            window.location.href = url.toString();
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to send reminder');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalText;
         }
+    }
 
-        // Toggle policy visibility (hide/unhide)
-        async function togglePolicyVisibility(policyId, button) {
-            const row = button.closest('tr');
-            const originalHtml = button.innerHTML;
+    function toggleShowHidden(showHidden) {
+        const url = new URL(window.location.href);
+        if (showHidden) {
+            url.searchParams.set('show_hidden', 'true');
+        } else {
+            url.searchParams.delete('show_hidden');
+        }
+        window.location.href = url.toString();
+    }
 
-            button.disabled = true;
-            button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="spin"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.42 3.58-8 8-8z"/></svg>';
+    async function togglePolicyVisibility(policyId, button) {
+        const row = button.closest('tr');
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="spin"><path d="M12 4V2C6.48 2 2 6.48 2 12h2c0-4.42 3.58-8 8-8z"/></svg>';
 
-            try {
-                const response = await fetch(`/toggle_policy_visibility/${policyId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+        try {
+            const response = await fetch(`/toggle_policy_visibility/${policyId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+            const result = await response.json();
 
-                const result = await response.json();
-
-                if (result.success) {
-                    const isHidden = result.is_hidden;
-
-                    // Update row appearance
-                    if (isHidden) {
-                        row.classList.add('hidden-policy-row');
-                        row.dataset.isHidden = 'true';
-                        // If we're not showing hidden policies, remove the row
-                        const showHiddenToggle = document.getElementById('showHiddenToggle');
-                        if (!showHiddenToggle.checked) {
-                            row.style.transition = 'opacity 0.3s';
-                            row.style.opacity = '0';
-                            setTimeout(() => row.remove(), 300);
-                        } else {
-                            // Update button to show "unhide" icon
-                            button.style.background = '#10b981';
-                            button.title = 'Unhide Policy';
-                            button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
-                        }
+            if (result.success) {
+                const isHidden = result.is_hidden;
+                if (isHidden) {
+                    row.classList.add('hidden-policy-row');
+                    row.dataset.isHidden = 'true';
+                    const showHiddenToggle = document.getElementById('showHiddenToggle');
+                    if (!showHiddenToggle.checked) {
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
                     } else {
-                        row.classList.remove('hidden-policy-row');
-                        row.dataset.isHidden = 'false';
-                        // Update button to show "hide" icon
-                        button.style.background = '#6b7280';
-                        button.title = 'Hide Policy';
-                        button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
+                        button.style.background = '#10b981';
+                        button.title = 'Unhide Policy';
+                        button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
                     }
                 } else {
-                    alert('Error: ' + result.error);
-                    button.innerHTML = originalHtml;
+                    row.classList.remove('hidden-policy-row');
+                    row.dataset.isHidden = 'false';
+                    button.style.background = '#6b7280';
+                    button.title = 'Hide Policy';
+                    button.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to toggle policy visibility');
+            } else {
+                alert('Error: ' + result.error);
                 button.innerHTML = originalHtml;
-            } finally {
-                button.disabled = false;
             }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to toggle policy visibility');
+            button.innerHTML = originalHtml;
+        } finally {
+            button.disabled = false;
         }
-
-        // Event delegation for hide policy buttons
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('.hide-policy-btn')) {
-                const btn = e.target.closest('.hide-policy-btn');
-                const policyId = btn.dataset.policyId;
-                togglePolicyVisibility(policyId, btn);
-            }
-        });
-    </script>
-</body>
-
-</html>
+    }
+</script>
+{% endblock %}
