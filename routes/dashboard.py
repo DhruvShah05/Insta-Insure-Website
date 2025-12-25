@@ -19,18 +19,26 @@ def index():
     today = datetime.today().strftime("%Y-%m-%d")
     next_month = (datetime.today() + timedelta(days=30)).strftime("%Y-%m-%d")
     last_month = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    
+    # Check if we should show hidden policies
+    show_hidden = request.args.get("show_hidden", "false").lower() == "true"
 
     try:
         # Get policies expiring soon OR expired within last 30 days (exclude pending renewals)
-        policies_result = (
+        query = (
             supabase.table("policies")
             .select("*, clients(*), members(*)")
             .eq("is_pending_renewal", False)  # Exclude pending renewals from dashboard
             .gte("policy_to", last_month)  # Include policies expired within last 30 days
             .lte("policy_to", next_month)
             .order("policy_to", desc=False)
-            .execute()
         )
+        
+        # Filter out hidden policies unless show_hidden is true
+        if not show_hidden:
+            query = query.eq("is_hidden_from_renewals", False)
+        
+        policies_result = query.execute()
 
         policies = policies_result.data
 
@@ -69,13 +77,49 @@ def index():
         policies = []
         total_active_policies = 0
         total_pending_policies = 0
+        total_claims = 0
 
     return render_template("dashboard.html", 
                          policies=policies, 
                          total_active_policies=total_active_policies,
                          total_pending_policies=total_pending_policies,
                          total_claims=total_claims,
+                         show_hidden=show_hidden,
                          current_user=current_user)
+
+
+@dashboard_bp.route("/toggle_policy_visibility/<int:policy_id>", methods=["POST"])
+@login_required
+def toggle_policy_visibility(policy_id):
+    """
+    Toggle the hidden status of a policy for renewals
+    """
+    from flask import jsonify
+    
+    try:
+        # Get current policy state
+        policy_result = supabase.table("policies").select("is_hidden_from_renewals").eq("policy_id", policy_id).single().execute()
+        
+        if not policy_result.data:
+            return jsonify({"success": False, "error": "Policy not found"}), 404
+        
+        # Toggle the hidden state
+        current_hidden = policy_result.data.get("is_hidden_from_renewals", False)
+        new_hidden = not current_hidden
+        
+        # Update the policy
+        update_result = supabase.table("policies").update({"is_hidden_from_renewals": new_hidden}).eq("policy_id", policy_id).execute()
+        
+        action = "hidden" if new_hidden else "unhidden"
+        return jsonify({
+            "success": True, 
+            "message": f"Policy has been {action}",
+            "is_hidden": new_hidden
+        })
+        
+    except Exception as e:
+        print(f"Error toggling policy visibility: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @dashboard_bp.route("/view_all_policies")
