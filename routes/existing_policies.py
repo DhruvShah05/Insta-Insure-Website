@@ -151,6 +151,8 @@ def view_policy(policy_id):
             policy["customer_name"] = policy["clients"]["name"]
             policy["customer_email"] = policy["clients"]["email"]
             policy["customer_phone"] = policy["clients"].get("phone", "")
+            policy["customer_alternate_email"] = policy["clients"].get("alternate_email", "")
+            policy["customer_alternate_phone"] = policy["clients"].get("alternate_phone", "")
         if policy.get("members"):
             policy["member_name"] = policy["members"].get("member_name", "")
 

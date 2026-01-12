@@ -14,6 +14,7 @@ CREATE TABLE public.claim_documents (
   CONSTRAINT claim_documents_pkey PRIMARY KEY (document_id),
   CONSTRAINT claim_documents_claim_id_fkey FOREIGN KEY (claim_id) REFERENCES public.claims(claim_id)
 );
+
 CREATE TABLE public.claims (
   claim_id integer NOT NULL DEFAULT nextval('claims_claim_id_seq'::regclass),
   policy_id integer,
@@ -36,14 +37,18 @@ CREATE TABLE public.claims (
   CONSTRAINT claims_pkey PRIMARY KEY (claim_id),
   CONSTRAINT claims_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policies(policy_id)
 );
+
 CREATE TABLE public.clients (
-  client_id text NOT NULL,
-  prefix text NOT NULL,
-  name text NOT NULL,
-  phone text,
-  email text,
-  CONSTRAINT clients_pkey PRIMARY KEY (client_id)
+    client_id text NOT NULL,
+    prefix text NOT NULL,
+    name text NOT NULL,
+    phone text,
+    email text,
+    alternate_phone text,
+    alternate_email text,
+    CONSTRAINT clients_pkey PRIMARY KEY (client_id)
 );
+
 CREATE TABLE public.custom_document_types (
   id integer NOT NULL DEFAULT nextval('custom_document_types_id_seq'::regclass),
   type_name character varying NOT NULL UNIQUE,
@@ -51,6 +56,7 @@ CREATE TABLE public.custom_document_types (
   is_active boolean DEFAULT true,
   CONSTRAINT custom_document_types_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE public.factory_insurance_details (
   factory_id bigint NOT NULL DEFAULT nextval('factory_insurance_details_factory_id_seq'::regclass),
   policy_id bigint NOT NULL,
@@ -62,6 +68,7 @@ CREATE TABLE public.factory_insurance_details (
   CONSTRAINT factory_insurance_details_pkey PRIMARY KEY (factory_id),
   CONSTRAINT factory_insurance_details_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policies(policy_id)
 );
+
 CREATE TABLE public.health_insurance_details (
   health_id bigint NOT NULL DEFAULT nextval('health_insurance_details_health_id_seq'::regclass),
   policy_id bigint NOT NULL,
@@ -72,6 +79,7 @@ CREATE TABLE public.health_insurance_details (
   CONSTRAINT health_insurance_details_pkey PRIMARY KEY (health_id),
   CONSTRAINT health_insurance_details_policy_id_fkey FOREIGN KEY (policy_id) REFERENCES public.policies(policy_id)
 );
+
 CREATE TABLE public.health_insured_members (
   member_id bigint NOT NULL DEFAULT nextval('health_insured_members_member_id_seq'::regclass),
   health_id bigint NOT NULL,
@@ -82,23 +90,26 @@ CREATE TABLE public.health_insured_members (
   CONSTRAINT health_insured_members_pkey PRIMARY KEY (member_id),
   CONSTRAINT health_insured_members_health_id_fkey FOREIGN KEY (health_id) REFERENCES public.health_insurance_details(health_id)
 );
+
 CREATE TABLE public.members (
-  member_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  client_id text NOT NULL,
-  member_name text NOT NULL,
-  CONSTRAINT members_pkey PRIMARY KEY (member_id),
-  CONSTRAINT members_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(client_id)
+    member_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+    client_id text NOT NULL,
+    member_name text NOT NULL,
+    CONSTRAINT members_pkey PRIMARY KEY (member_id),
+    CONSTRAINT members_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients (client_id)
 );
+
 CREATE TABLE public.pending_factory_insurance_details (
-  pending_id bigint NOT NULL,
-  building numeric,
-  plant_machinery numeric,
-  furniture_fittings numeric,
-  stocks numeric,
-  electrical_installations numeric,
-  CONSTRAINT pending_factory_insurance_details_pkey PRIMARY KEY (pending_id),
-  CONSTRAINT pending_factory_insurance_details_pending_id_fkey FOREIGN KEY (pending_id) REFERENCES public.pending_policies(pending_id)
+    pending_id bigint NOT NULL,
+    building numeric,
+    plant_machinery numeric,
+    furniture_fittings numeric,
+    stocks numeric,
+    electrical_installations numeric,
+    CONSTRAINT pending_factory_insurance_details_pkey PRIMARY KEY (pending_id),
+    CONSTRAINT pending_factory_insurance_details_pending_id_fkey FOREIGN KEY (pending_id) REFERENCES public.pending_policies (pending_id)
 );
+
 CREATE TABLE public.pending_health_insurance_details (
   pending_health_id bigint NOT NULL DEFAULT nextval('pending_health_insurance_details_pending_health_id_seq'::regclass),
   pending_id bigint NOT NULL,
@@ -109,6 +120,7 @@ CREATE TABLE public.pending_health_insurance_details (
   CONSTRAINT pending_health_insurance_details_pkey PRIMARY KEY (pending_health_id),
   CONSTRAINT pending_health_insurance_details_pending_id_fkey FOREIGN KEY (pending_id) REFERENCES public.pending_policies(pending_id)
 );
+
 CREATE TABLE public.pending_health_insured_members (
   member_id bigint NOT NULL DEFAULT nextval('pending_health_insured_members_member_id_seq'::regclass),
   pending_health_id bigint NOT NULL,
@@ -119,6 +131,7 @@ CREATE TABLE public.pending_health_insured_members (
   CONSTRAINT pending_health_insured_members_pkey PRIMARY KEY (member_id),
   CONSTRAINT pending_health_insured_members_pending_health_id_fkey FOREIGN KEY (pending_health_id) REFERENCES public.pending_health_insurance_details(pending_health_id)
 );
+
 CREATE TABLE public.pending_policies (
   pending_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   client_id text NOT NULL,
@@ -151,6 +164,7 @@ CREATE TABLE public.pending_policies (
   CONSTRAINT pending_policies_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(client_id),
   CONSTRAINT pending_policies_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(member_id)
 );
+
 CREATE TABLE public.policies (
   policy_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   client_id text NOT NULL,
@@ -190,6 +204,7 @@ CREATE TABLE public.policies (
   CONSTRAINT policies_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(client_id),
   CONSTRAINT policies_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(member_id)
 );
+
 CREATE TABLE public.policy_history (
   history_id integer NOT NULL DEFAULT nextval('policy_history_history_id_seq'::regclass),
   original_policy_id integer NOT NULL,
@@ -230,14 +245,19 @@ CREATE TABLE public.policy_history (
   CONSTRAINT policy_history_pkey PRIMARY KEY (history_id),
   CONSTRAINT fk_policy_history_original_policy FOREIGN KEY (original_policy_id) REFERENCES public.policies(policy_id)
 );
+
 CREATE TABLE public.users (
-  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  email text NOT NULL UNIQUE,
-  name text NOT NULL,
-  picture text,
-  is_admin boolean NOT NULL DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  last_login timestamp with time zone DEFAULT now(),
-  is_active boolean NOT NULL DEFAULT true,
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+    id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+    email text NOT NULL UNIQUE,
+    name text NOT NULL,
+    picture text,
+    is_admin boolean NOT NULL DEFAULT false,
+    created_at timestamp
+    with
+        time zone DEFAULT now(),
+        last_login timestamp
+    with
+        time zone DEFAULT now(),
+        is_active boolean NOT NULL DEFAULT true,
+        CONSTRAINT users_pkey PRIMARY KEY (id)
 );

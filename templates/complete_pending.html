@@ -117,6 +117,18 @@
             <span class="info-label">Phone:</span>
             <span class="info-value">{{ pending.customer_phone or 'N/A' }}</span>
         </div>
+        {% if pending.customer_alternate_email %}
+        <div class="info-row">
+            <span class="info-label">Alt. Email:</span>
+            <span class="info-value">{{ pending.customer_alternate_email }}</span>
+        </div>
+        {% endif %}
+        {% if pending.customer_alternate_phone %}
+        <div class="info-row">
+            <span class="info-label">Alt. Phone:</span>
+            <span class="info-value">{{ pending.customer_alternate_phone }}</span>
+        </div>
+        {% endif %}
         <div class="info-row">
             <span class="info-label">Company:</span>
             <span class="info-value">{{ pending.insurance_company }}</span>

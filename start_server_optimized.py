@@ -6,6 +6,11 @@ import os
 import sys
 import psutil
 import gc
+import logging
+
+# Suppress httpx INFO logs (Supabase HTTP requests) to reduce terminal noise
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Set encoding for Windows console
 os.environ.setdefault('PYTHONIOENCODING', 'utf-8')

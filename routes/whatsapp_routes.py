@@ -23,10 +23,16 @@ supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 @whatsapp_bp.route('/api/send_policy_whatsapp', methods=['POST'])
 @login_required
 def send_policy_whatsapp():
-    """Send a policy document to customer via WhatsApp"""
+    """Send a policy document to customer via WhatsApp and/or Email with contact selection"""
     try:
         data = request.json
         policy_id = data.get('policy_id')
+        
+        # Contact selection options (default to primary)
+        use_primary_phone = data.get('use_primary_phone', True)
+        use_alternate_phone = data.get('use_alternate_phone', False)
+        use_primary_email = data.get('use_primary_email', True)
+        use_alternate_email = data.get('use_alternate_email', False)
 
         if not policy_id:
             return jsonify({'success': False, 'message': 'Policy ID required'}), 400
@@ -42,27 +48,90 @@ def send_policy_whatsapp():
 
         policy = result.data
         customer = policy.get('clients')
+        
+        if not customer:
+            return jsonify({'success': False, 'message': 'No customer found for policy'}), 400
 
-        if not customer or not customer.get('phone'):
-            return jsonify({'success': False, 'message': 'No phone number found for customer'}), 400
+        messages = []
+        overall_success = False
+        
+        # Build phone list based on selection
+        phones_to_send = []
+        if use_primary_phone and customer.get('phone'):
+            phones_to_send.append(('primary', normalize_phone(customer['phone'])))
+        if use_alternate_phone and customer.get('alternate_phone'):
+            phones_to_send.append(('alternate', normalize_phone(customer['alternate_phone'])))
+        
+        # Send WhatsApp to selected phones
+        for contact_type, phone in phones_to_send:
+            success, message = send_policy_to_customer(phone, policy, send_email=False)
+            messages.append(f"WhatsApp ({contact_type}): {message}")
+            if success:
+                overall_success = True
+        
+        # Build email list based on selection
+        emails_to_send = []
+        if use_primary_email and customer.get('email'):
+            emails_to_send.append(('primary', customer['email']))
+        if use_alternate_email and customer.get('alternate_email'):
+            emails_to_send.append(('alternate', customer['alternate_email']))
+        
+        # Send email to selected addresses
+        if emails_to_send:
+            from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
+            
+            file_id = extract_file_id_from_url(policy.get('drive_url'))
+            if file_id:
+                filename = f"{policy.get('insurance_company','')}_{policy.get('product_name','')}.pdf".replace(' ', '_')
+                temp_file_path = download_file_from_drive(file_id, filename)
+                
+                if temp_file_path:
+                    member = policy.get('members')
+                    member_name = member.get('member_name', '') if member else ''
+                    display_name = member_name if member_name else customer['name']
+                    
+                    policy_data = {
+                        'member_name': display_name,
+                        'policy_type': policy.get('product_name', 'Insurance'),
+                        'policy_no': policy.get('policy_number', 'N/A'),
+                        'asset': policy.get('remarks', 'N/A'),
+                        'start_date': indian_date_filter(policy.get('policy_from')),
+                        'expiry_date': indian_date_filter(policy.get('policy_to'))
+                    }
+                    
+                    for contact_type, email in emails_to_send:
+                        success, message = send_policy_email(email, policy_data, temp_file_path)
+                        messages.append(f"Email ({contact_type}): {message}")
+                        if success:
+                            overall_success = True
+                    
+                    delete_temp_file(temp_file_path)
+                else:
+                    messages.append("Email: Failed to download policy document")
+            else:
+                messages.append("Email: No drive URL found")
+        
+        if not phones_to_send and not emails_to_send:
+            return jsonify({'success': False, 'message': 'No contacts selected for sending'}), 400
 
-        phone = normalize_phone(customer['phone'])
-        success, message = send_policy_to_customer(phone, policy)
-
-        return jsonify({'success': success, 'message': message})
+        return jsonify({'success': overall_success, 'message': ' | '.join(messages)})
 
     except Exception as e:
-        print(f"Error sending policy via WhatsApp: {e}")
+        print(f"Error sending policy: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @whatsapp_bp.route('/api/send_policy_email', methods=['POST'])
 @login_required
 def send_policy_email_api():
-    """Send a policy document to customer via email only"""
+    """Send a policy document to customer via email only with contact selection"""
     try:
         data = request.json
         policy_id = data.get('policy_id')
+        
+        # Contact selection options (default to primary)
+        use_primary_email = data.get('use_primary_email', True)
+        use_alternate_email = data.get('use_alternate_email', False)
 
         if not policy_id:
             return jsonify({'success': False, 'message': 'Policy ID required'}), 400
@@ -79,8 +148,18 @@ def send_policy_email_api():
         policy = result.data
         customer = policy.get('clients')
 
-        if not customer or not customer.get('email'):
-            return jsonify({'success': False, 'message': 'No email address found for customer'}), 400
+        if not customer:
+            return jsonify({'success': False, 'message': 'No customer found for policy'}), 400
+        
+        # Build email list based on selection
+        emails_to_send = []
+        if use_primary_email and customer.get('email'):
+            emails_to_send.append(('primary', customer['email']))
+        if use_alternate_email and customer.get('alternate_email'):
+            emails_to_send.append(('alternate', customer['alternate_email']))
+        
+        if not emails_to_send:
+            return jsonify({'success': False, 'message': 'No email addresses selected or available'}), 400
 
         # Download file from Google Drive
         from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
@@ -98,10 +177,9 @@ def send_policy_email_api():
         # Get member name (use member name instead of client name)
         member = policy.get('members')
         member_name = member.get('member_name', '') if member else ''
-        # Fallback to client name if member name not available
         display_name = member_name if member_name else customer['name']
         
-        # Prepare policy data for the new template-based function
+        # Prepare policy data
         policy_data = {
             'member_name': display_name,
             'policy_type': policy.get('product_name', 'Insurance'),
@@ -111,17 +189,19 @@ def send_policy_email_api():
             'expiry_date': indian_date_filter(policy.get('policy_to'))
         }
         
-        # Send email
-        success, message = send_policy_email(
-            customer['email'], 
-            policy_data, 
-            temp_file_path
-        )
+        # Send email to selected addresses
+        messages = []
+        overall_success = False
+        for contact_type, email in emails_to_send:
+            success, message = send_policy_email(email, policy_data, temp_file_path)
+            messages.append(f"Email ({contact_type}): {message}")
+            if success:
+                overall_success = True
 
         # Clean up temp file
         delete_temp_file(temp_file_path)
 
-        return jsonify({'success': success, 'message': message})
+        return jsonify({'success': overall_success, 'message': ' | '.join(messages)})
 
     except Exception as e:
         print(f"Error sending policy via email: {e}")
@@ -131,11 +211,15 @@ def send_policy_email_api():
 @whatsapp_bp.route('/api/send_renewal_reminder_email', methods=['POST'])
 @login_required
 def send_renewal_reminder_email_api():
-    """Send renewal reminder via email only"""
+    """Send renewal reminder via email only with contact selection"""
     try:
         policy_id = request.form.get('policy_id')
         renewal_premium = request.form.get('renewal_premium', '')
         renewal_file = request.files.get('renewal_file')
+        
+        # Contact selection options (default to primary)
+        use_primary_email = request.form.get('use_primary_email', 'true').lower() == 'true'
+        use_alternate_email = request.form.get('use_alternate_email', 'false').lower() == 'true'
 
         if not policy_id:
             return jsonify({'success': False, 'message': 'Policy ID required'}), 400
@@ -152,8 +236,18 @@ def send_renewal_reminder_email_api():
         policy = result.data
         customer = policy.get('clients')
 
-        if not customer or not customer.get('email'):
-            return jsonify({'success': False, 'message': 'No email address found'}), 400
+        if not customer:
+            return jsonify({'success': False, 'message': 'No customer found'}), 400
+        
+        # Build email list based on selection
+        emails_to_send = []
+        if use_primary_email and customer.get('email'):
+            emails_to_send.append(('primary', customer['email']))
+        if use_alternate_email and customer.get('alternate_email'):
+            emails_to_send.append(('alternate', customer['alternate_email']))
+        
+        if not emails_to_send:
+            return jsonify({'success': False, 'message': 'No email addresses selected or available'}), 400
 
         # Handle renewal file if provided
         file_path = None
@@ -162,13 +256,12 @@ def send_renewal_reminder_email_api():
             file_path = os.path.join(temp_dir, renewal_file.filename)
             renewal_file.save(file_path)
 
-        # Get member name (use member name instead of client name)
+        # Get member name
         member = policy.get('members')
         member_name = member.get('member_name', '') if member else ''
-        # Fallback to client name if member name not available
         display_name = member_name if member_name else customer['name']
         
-        # Prepare renewal data for the new template-based function
+        # Prepare renewal data
         renewal_data = {
             'member_name': display_name,
             'policy_no': policy.get('policy_number', policy.get('policy_id', 'N/A')),
@@ -178,17 +271,20 @@ def send_renewal_reminder_email_api():
             'renewal_premium': renewal_premium if renewal_premium else None
         }
         
-        success, message = send_renewal_reminder_email(
-            customer['email'],
-            renewal_data,
-            file_path=file_path
-        )
+        # Send to selected emails
+        messages = []
+        overall_success = False
+        for contact_type, email in emails_to_send:
+            success, message = send_renewal_reminder_email(email, renewal_data, file_path=file_path)
+            messages.append(f"Email ({contact_type}): {message}")
+            if success:
+                overall_success = True
 
         # Clean up temp file
         if file_path and os.path.exists(file_path):
             os.remove(file_path)
 
-        return jsonify({'success': success, 'message': message})
+        return jsonify({'success': overall_success, 'message': ' | '.join(messages)})
 
     except Exception as e:
         print(f"Error sending renewal reminder via email: {e}")
@@ -198,11 +294,15 @@ def send_renewal_reminder_email_api():
 @whatsapp_bp.route('/api/send_renewal_reminder', methods=['POST'])
 @login_required
 def send_renewal_reminder_api():
-    """Send renewal reminder via WhatsApp"""
+    """Send renewal reminder via WhatsApp with contact selection"""
     try:
         policy_id = request.form.get('policy_id')
         renewal_premium = request.form.get('renewal_premium', '')
         renewal_file = request.files.get('renewal_file')
+        
+        # Contact selection options (default to primary)
+        use_primary_phone = request.form.get('use_primary_phone', 'true').lower() == 'true'
+        use_alternate_phone = request.form.get('use_alternate_phone', 'false').lower() == 'true'
 
         if not policy_id:
             return jsonify({'success': False, 'message': 'Policy ID required'}), 400
@@ -223,100 +323,97 @@ def send_renewal_reminder_api():
         policy = result.data
         customer = policy.get('clients')
 
-        if not customer or not customer.get('phone'):
-            return jsonify({'success': False, 'message': 'No phone number found'}), 400
+        if not customer:
+            return jsonify({'success': False, 'message': 'No customer found'}), 400
+        
+        # Build phone list based on selection
+        phones_to_send = []
+        if use_primary_phone and customer.get('phone'):
+            phones_to_send.append(('primary', normalize_phone(customer['phone'])))
+        if use_alternate_phone and customer.get('alternate_phone'):
+            phones_to_send.append(('alternate', normalize_phone(customer['alternate_phone'])))
+        
+        # Debug logging
+        print(f"[DEBUG] Contact selection - Primary: {use_primary_phone}, Alternate: {use_alternate_phone}")
+        print(f"[DEBUG] Customer data - Phone: {customer.get('phone')}, Alt Phone: {customer.get('alternate_phone')}")
+        print(f"[DEBUG] Phones to send: {phones_to_send}")
+        
+        if not phones_to_send:
+            return jsonify({'success': False, 'message': 'No phone numbers selected or available'}), 400
 
-        phone = normalize_phone(customer['phone'])
-
-        # Handle renewal file if provided - convert and save to static/renewals
+        # Handle renewal file - convert and save to static/renewals
         renewal_filename = None
         converted_path = None
-        if renewal_file:
-            try:
-                # Ensure static renewals directory exists
-                static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
-                os.makedirs(static_renewals_dir, exist_ok=True)
+        try:
+            # Ensure static renewals directory exists
+            static_renewals_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'renewals')
+            os.makedirs(static_renewals_dir, exist_ok=True)
+            
+            # Sanitize filename per Twilio guidelines
+            original_filename = renewal_file.filename
+            name_parts = original_filename.rsplit('.', 1)
+            base_name = name_parts[0] if len(name_parts) > 1 else original_filename
+            extension = name_parts[1] if len(name_parts) > 1 else 'pdf'
+            
+            safe_base = re.sub(r'[^a-zA-Z0-9\-_]', '_', base_name)
+            safe_base = re.sub(r'_+', '_', safe_base)
+            safe_base = safe_base.strip('_')
+            if len(safe_base) > 20:
+                safe_base = safe_base[:20]
+            
+            safe_filename = f"{safe_base}.{extension}"
+            renewal_filename = safe_filename
+            static_file_path = os.path.join(static_renewals_dir, safe_filename)
+            
+            # Convert PDF to Twilio-compatible format
+            file_content = None
+            if extension.lower() == 'pdf':
+                print(f"Converting renewal PDF: {safe_filename}")
+                success, converted_path, error = convert_pdf_for_twilio(renewal_file)
                 
-                # Sanitize filename per Twilio guidelines:
-                # - No spaces
-                # - 20 characters or less (excluding extension)
-                # - Avoid special characters: ~ ! @ # $ % ^ & * ( ) [ ] { }
-                original_filename = renewal_file.filename
-                
-                # Split filename and extension
-                name_parts = original_filename.rsplit('.', 1)
-                base_name = name_parts[0] if len(name_parts) > 1 else original_filename
-                extension = name_parts[1] if len(name_parts) > 1 else 'pdf'
-                
-                # Replace spaces and special characters with underscores
-                # Only allow alphanumeric, hyphens, and underscores
-                safe_base = re.sub(r'[^a-zA-Z0-9\-_]', '_', base_name)
-                
-                # Remove multiple consecutive underscores
-                safe_base = re.sub(r'_+', '_', safe_base)
-                
-                # Remove leading/trailing underscores
-                safe_base = safe_base.strip('_')
-                
-                # Limit base name to 20 characters
-                if len(safe_base) > 20:
-                    safe_base = safe_base[:20]
-                
-                # Reconstruct filename
-                safe_filename = f"{safe_base}.{extension}"
-                renewal_filename = safe_filename
-                static_file_path = os.path.join(static_renewals_dir, safe_filename)
-                
-                # Convert PDF to Twilio-compatible format before saving
-                file_content = None
-                if extension.lower() == 'pdf':
-                    print(f"Converting renewal reminder PDF to Twilio-compatible format: {safe_filename}")
-                    
-                    # Convert PDF using print-to-PDF approach
-                    success, converted_path, error = convert_pdf_for_twilio(renewal_file)
-                    
-                    if success and converted_path:
-                        # Read converted file
-                        with open(converted_path, 'rb') as f:
-                            file_content = f.read()
-                        print(f"✓ Renewal reminder PDF converted successfully: {safe_filename}")
-                    else:
-                        print(f"⚠ PDF conversion failed: {error}, using original file")
-                        renewal_file.seek(0)
-                        file_content = renewal_file.read()
+                if success and converted_path:
+                    with open(converted_path, 'rb') as f:
+                        file_content = f.read()
+                    print(f"✓ Renewal PDF converted: {safe_filename}")
                 else:
-                    # Not a PDF, use original content
+                    print(f"⚠ PDF conversion failed: {error}, using original")
+                    renewal_file.seek(0)
                     file_content = renewal_file.read()
-                
-                # Save the file (converted or original)
-                with open(static_file_path, 'wb') as f:
-                    f.write(file_content)
-                
-                print(f"Renewal file saved: {static_file_path}")
-                print(f"Original filename: '{original_filename}' -> Sanitized: '{safe_filename}'")
-                
-            except Exception as e:
-                print(f"Error processing renewal file: {e}")
-                # Fall back to saving original file
-                renewal_file.seek(0)
-                static_file_path = os.path.join(static_renewals_dir, safe_filename)
-                renewal_file.save(static_file_path)
-            finally:
-                # Clean up temporary converted file
-                if converted_path and os.path.exists(converted_path):
-                    try:
-                        os.remove(converted_path)
-                    except:
-                        pass
+            else:
+                file_content = renewal_file.read()
+            
+            with open(static_file_path, 'wb') as f:
+                f.write(file_content)
+            
+            print(f"Renewal file saved: {static_file_path}")
+            
+        except Exception as e:
+            print(f"Error processing renewal file: {e}")
+            renewal_file.seek(0)
+            static_file_path = os.path.join(static_renewals_dir, safe_filename)
+            renewal_file.save(static_file_path)
+        finally:
+            if converted_path and os.path.exists(converted_path):
+                try:
+                    os.remove(converted_path)
+                except:
+                    pass
 
-        success, message = send_renewal_reminder(
-            phone,
-            policy,
-            renewal_filename=renewal_filename,
-            renewal_premium=renewal_premium if renewal_premium else None
-        )
+        # Send to selected phones
+        messages = []
+        overall_success = False
+        for contact_type, phone in phones_to_send:
+            success, message = send_renewal_reminder(
+                phone,
+                policy,
+                renewal_filename=renewal_filename,
+                renewal_premium=renewal_premium if renewal_premium else None
+            )
+            messages.append(f"WhatsApp ({contact_type}): {message}")
+            if success:
+                overall_success = True
 
-        return jsonify({'success': success, 'message': message})
+        return jsonify({'success': overall_success, 'message': ' | '.join(messages)})
 
     except Exception as e:
         print(f"Error sending renewal reminder: {e}")

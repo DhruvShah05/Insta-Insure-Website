@@ -70,6 +70,8 @@ def list_pending():
                 policy["client_name"] = policy["clients"]["name"]
                 policy["customer_email"] = policy["clients"]["email"]
                 policy["customer_phone"] = policy["clients"].get("phone", "")
+                policy["customer_alternate_email"] = policy["clients"].get("alternate_email", "")
+                policy["customer_alternate_phone"] = policy["clients"].get("alternate_phone", "")
             if policy.get("members"):
                 policy["member_name"] = policy["members"].get("member_name", "")
                 # Use member name as the primary display name
@@ -79,6 +81,8 @@ def list_pending():
                 policy["customer_name"] = "Unknown"
                 policy["customer_email"] = ""
                 policy["customer_phone"] = ""
+                policy["customer_alternate_email"] = ""
+                policy["customer_alternate_phone"] = ""
 
         print(f"Found {len(pending)} pending policies")
         return render_template("pending_policies.html", pending_policies=pending, current_user=current_user)
@@ -163,6 +167,8 @@ def add_pending():
                 customer_name = request.form.get("customer_name")
                 customer_email = request.form.get("customer_email")
                 customer_phone = request.form.get("customer_phone")
+                customer_alternate_email = request.form.get("customer_alternate_email")
+                customer_alternate_phone = request.form.get("customer_alternate_phone")
                 client_prefix = request.form.get("client_prefix")
                 member_name = request.form.get("member_name") or customer_name
 
@@ -179,7 +185,9 @@ def add_pending():
                     "prefix": client_prefix.upper(),
                     "name": customer_name,
                     "email": customer_email,
-                    "phone": customer_phone
+                    "phone": customer_phone,
+                    "alternate_email": customer_alternate_email,
+                    "alternate_phone": customer_alternate_phone
                 }).execute()
                 client_id = client_result.data[0]["client_id"]
 
@@ -626,6 +634,8 @@ def complete_pending(pending_id):
             pending["client_name"] = pending["clients"]["name"]
             pending["customer_email"] = pending["clients"]["email"]
             pending["customer_phone"] = pending["clients"].get("phone", "")
+            pending["customer_alternate_email"] = pending["clients"].get("alternate_email", "")
+            pending["customer_alternate_phone"] = pending["clients"].get("alternate_phone", "")
         if pending.get("members"):
             pending["member_name"] = pending["members"].get("member_name", "")
             # Use member name as the primary display name

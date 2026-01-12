@@ -554,6 +554,8 @@
                                 data-product-name="{{ policy.product_name }}"
                                 data-customer-phone="{{ policy.customer_phone }}"
                                 data-customer-email="{{ policy.customer_email }}"
+                                data-customer-alternate-phone="{{ policy.customer_alternate_phone }}"
+                                data-customer-alternate-email="{{ policy.customer_alternate_email }}"
                                 title="Send renewal reminder via WhatsApp & Email">
                                 <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
                                     <path
@@ -624,7 +626,9 @@
                 <div class="mb-3">
                     <strong>Member:</strong> <span id="modalCustomerName"></span><br>
                     <strong>Phone:</strong> <span id="modalPhone"></span><br>
+                    <strong>Alt. Phone:</strong> <span id="modalAltPhone"></span><br>
                     <strong>Email:</strong> <span id="modalEmail"></span><br>
+                    <strong>Alt. Email:</strong> <span id="modalAltEmail"></span><br>
                     <strong>Policy:</strong> <span id="modalPolicyDetails"></span>
                 </div>
                 <form id="renewalForm" enctype="multipart/form-data">
@@ -639,9 +643,46 @@
                         <label for="renewalFile" class="form-label">Renewal Document (Optional)</label>
                         <input type="file" class="form-control" id="renewalFile" name="renewal_file" accept=".pdf">
                     </div>
+
+                    <!-- Contact Selection -->
+                    <div class="mb-3 p-3" style="background: #f8f9fa; border-radius: 8px;">
+                        <label class="form-label fw-bold mb-2">📱 WhatsApp Recipients</label>
+                        <div class="form-check" id="whatsappPrimaryContainer">
+                            <input class="form-check-input" type="checkbox" id="usePrimaryPhone"
+                                name="use_primary_phone" checked>
+                            <label class="form-check-label" for="usePrimaryPhone">
+                                Primary Phone: <span id="checkPrimaryPhone"></span>
+                            </label>
+                        </div>
+                        <div class="form-check" id="whatsappAltContainer">
+                            <input class="form-check-input" type="checkbox" id="useAlternatePhone"
+                                name="use_alternate_phone">
+                            <label class="form-check-label" for="useAlternatePhone">
+                                Alternate Phone: <span id="checkAltPhone"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 p-3" style="background: #f8f9fa; border-radius: 8px;">
+                        <label class="form-label fw-bold mb-2">📧 Email Recipients</label>
+                        <div class="form-check" id="emailPrimaryContainer">
+                            <input class="form-check-input" type="checkbox" id="usePrimaryEmail"
+                                name="use_primary_email" checked>
+                            <label class="form-check-label" for="usePrimaryEmail">
+                                Primary Email: <span id="checkPrimaryEmail"></span>
+                            </label>
+                        </div>
+                        <div class="form-check" id="emailAltContainer">
+                            <input class="form-check-input" type="checkbox" id="useAlternateEmail"
+                                name="use_alternate_email">
+                            <label class="form-check-label" for="useAlternateEmail">
+                                Alternate Email: <span id="checkAltEmail"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="alert alert-info">
-                        <small><strong></strong> Reminder will be sent via WhatsApp and Email (if contact info
-                            available)</small>
+                        <small><strong></strong> Select the contacts to receive the renewal reminder</small>
                     </div>
                 </form>
             </div>
@@ -760,15 +801,40 @@
     const renewalModal = new bootstrap.Modal(document.getElementById('renewalModal'));
     const policyPaidModal = new bootstrap.Modal(document.getElementById('policyPaidModal'));
 
-    function openRenewalModal(policyId, customerName, companyName, policyType, phone, email) {
+    function openRenewalModal(policyId, customerName, companyName, policyType, phone, email, altPhone, altEmail) {
         currentPolicyId = policyId;
         document.getElementById('modalPolicyId').value = policyId;
         document.getElementById('modalCustomerName').textContent = customerName;
         document.getElementById('modalPhone').textContent = phone || 'No phone';
+        document.getElementById('modalAltPhone').textContent = altPhone || 'Not set';
         document.getElementById('modalEmail').textContent = email || 'No email';
+        document.getElementById('modalAltEmail').textContent = altEmail || 'Not set';
         document.getElementById('modalPolicyDetails').textContent = `${companyName} - ${policyType}`;
         document.getElementById('renewalForm').reset();
         document.getElementById('modalPolicyId').value = policyId;
+
+        // Populate contact selection checkboxes
+        document.getElementById('checkPrimaryPhone').textContent = phone || 'Not available';
+        document.getElementById('checkAltPhone').textContent = altPhone || 'Not available';
+        document.getElementById('checkPrimaryEmail').textContent = email || 'Not available';
+        document.getElementById('checkAltEmail').textContent = altEmail || 'Not available';
+
+        // Enable/disable checkboxes based on availability
+        document.getElementById('usePrimaryPhone').disabled = !phone;
+        document.getElementById('usePrimaryPhone').checked = !!phone;
+        document.getElementById('useAlternatePhone').disabled = !altPhone;
+        document.getElementById('useAlternatePhone').checked = false;
+        document.getElementById('usePrimaryEmail').disabled = !email;
+        document.getElementById('usePrimaryEmail').checked = !!email;
+        document.getElementById('useAlternateEmail').disabled = !altEmail;
+        document.getElementById('useAlternateEmail').checked = false;
+
+        // Hide containers if no contact available
+        document.getElementById('whatsappPrimaryContainer').style.opacity = phone ? '1' : '0.5';
+        document.getElementById('whatsappAltContainer').style.opacity = altPhone ? '1' : '0.5';
+        document.getElementById('emailPrimaryContainer').style.opacity = email ? '1' : '0.5';
+        document.getElementById('emailAltContainer').style.opacity = altEmail ? '1' : '0.5';
+
         renewalModal.show();
     }
 
@@ -789,7 +855,16 @@
     document.addEventListener('click', function (e) {
         if (e.target.closest('.renewal-btn')) {
             const btn = e.target.closest('.renewal-btn');
-            openRenewalModal(btn.dataset.policyId, btn.dataset.customerName, btn.dataset.insuranceCompany, btn.dataset.productName, btn.dataset.customerPhone, btn.dataset.customerEmail);
+            openRenewalModal(
+                btn.dataset.policyId,
+                btn.dataset.customerName,
+                btn.dataset.insuranceCompany,
+                btn.dataset.productName,
+                btn.dataset.customerPhone,
+                btn.dataset.customerEmail,
+                btn.dataset.customerAlternatePhone,
+                btn.dataset.customerAlternateEmail
+            );
         }
         if (e.target.closest('.policy-paid-btn')) {
             const btn = e.target.closest('.policy-paid-btn');
@@ -857,21 +932,64 @@
 
     async function sendRenewalReminder() {
         const formData = new FormData(document.getElementById('renewalForm'));
+
+        // Explicitly add checkbox values since unchecked checkboxes don't submit
+        const usePrimaryPhone = document.getElementById('usePrimaryPhone')?.checked || false;
+        const useAlternatePhone = document.getElementById('useAlternatePhone')?.checked || false;
+        const usePrimaryEmail = document.getElementById('usePrimaryEmail')?.checked || false;
+        const useAlternateEmail = document.getElementById('useAlternateEmail')?.checked || false;
+
+        formData.set('use_primary_phone', usePrimaryPhone.toString());
+        formData.set('use_alternate_phone', useAlternatePhone.toString());
+        formData.set('use_primary_email', usePrimaryEmail.toString());
+        formData.set('use_alternate_email', useAlternateEmail.toString());
+
+        // Check if at least one contact is selected
+        if (!usePrimaryPhone && !useAlternatePhone && !usePrimaryEmail && !useAlternateEmail) {
+            alert('Please select at least one contact to send the reminder to.');
+            return;
+        }
+
         const button = event.target;
         const originalText = button.innerHTML;
         button.disabled = true;
         button.innerHTML = 'Sending...';
 
         try {
-            const response = await fetch('/api/send_renewal_reminder', { method: 'POST', body: formData });
-            const result = await response.json();
+            // Send WhatsApp if any phone selected
+            let whatsappResult = null;
+            let emailResult = null;
 
-            if (result.success) {
-                alert('Sent: ' + result.message);
+            if (usePrimaryPhone || useAlternatePhone) {
+                const whatsappResponse = await fetch('/api/send_renewal_reminder', { method: 'POST', body: formData });
+                whatsappResult = await whatsappResponse.json();
+            }
+
+            // Send Email if any email selected
+            if (usePrimaryEmail || useAlternateEmail) {
+                const emailResponse = await fetch('/api/send_renewal_reminder_email', { method: 'POST', body: formData });
+                emailResult = await emailResponse.json();
+            }
+
+            // Combine results
+            let messages = [];
+            let anySuccess = false;
+
+            if (whatsappResult) {
+                messages.push(whatsappResult.message);
+                if (whatsappResult.success) anySuccess = true;
+            }
+            if (emailResult) {
+                messages.push(emailResult.message);
+                if (emailResult.success) anySuccess = true;
+            }
+
+            if (anySuccess) {
+                alert('Sent: ' + messages.join(' | '));
                 renewalModal.hide();
                 location.reload();
             } else {
-                alert('Error: ' + result.message);
+                alert('Error: ' + messages.join(' | '));
             }
         } catch (error) {
             console.error('Error:', error);

@@ -308,6 +308,22 @@
                                 placeholder="+91 98765 43210">
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="customer_alternate_email" class="form-label">Alternate Email</label>
+                            <input type="email" name="customer_alternate_email" id="customer_alternate_email"
+                                class="form-control" placeholder="alternate@example.com">
+                            <div class="form-help">Secondary email for notifications</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="customer_alternate_phone" class="form-label">Alternate Phone</label>
+                            <input type="tel" name="customer_alternate_phone" id="customer_alternate_phone"
+                                class="form-control" placeholder="+91 98765 43211">
+                            <div class="form-help">Secondary phone for WhatsApp</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -696,9 +712,9 @@
             </div>
         </div>
 
-        <!-- WhatsApp Notification Section -->
+        <!-- WhatsApp & Email Notification Section -->
         <div class="whatsapp-section">
-            <div class="whatsapp-checkbox">
+            <div class="whatsapp-checkbox mb-3">
                 <input type="checkbox" name="send_via_whatsapp" id="send_via_whatsapp" value="yes">
                 <label for="send_via_whatsapp">
                     <svg class="whatsapp-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -709,10 +725,51 @@
                         <path
                             d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
                     </svg>
-                    Send policy document to customer via WhatsApp & Email
+                    Send policy document to customer
                 </label>
             </div>
-            <div class="form-help">Will send via WhatsApp (if phone available) and Email (if email available)</div>
+
+            <!-- Contact Selection (shown when send_via_whatsapp is checked) -->
+            <div id="contactSelectionSection"
+                style="display: none; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-top: 8px;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold mb-2">📱 WhatsApp Recipients</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_primary_phone"
+                                name="send_primary_phone" checked>
+                            <label class="form-check-label" for="send_primary_phone">
+                                Primary Phone
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_alternate_phone"
+                                name="send_alternate_phone">
+                            <label class="form-check-label" for="send_alternate_phone">
+                                Alternate Phone
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold mb-2">📧 Email Recipients</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_primary_email"
+                                name="send_primary_email" checked>
+                            <label class="form-check-label" for="send_primary_email">
+                                Primary Email
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_alternate_email"
+                                name="send_alternate_email">
+                            <label class="form-check-label" for="send_alternate_email">
+                                Alternate Email
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-help">Select which contacts should receive the policy document</div>
         </div>
 
         <!-- Error Display Area -->
@@ -1337,6 +1394,16 @@
                 firstDayOfWeek: 1
             }
         });
+
+        // Toggle contact selection section when send checkbox is clicked
+        const sendCheckbox = document.getElementById('send_via_whatsapp');
+        const contactSection = document.getElementById('contactSelectionSection');
+
+        if (sendCheckbox && contactSection) {
+            sendCheckbox.addEventListener('change', function () {
+                contactSection.style.display = this.checked ? 'block' : 'none';
+            });
+        }
     });
 </script>
 {% endblock %}

@@ -62,6 +62,8 @@ def list_pending_renewals():
                 renewal["client_name"] = renewal["clients"]["name"]
                 renewal["customer_email"] = renewal["clients"]["email"]
                 renewal["customer_phone"] = renewal["clients"].get("phone", "")
+                renewal["customer_alternate_email"] = renewal["clients"].get("alternate_email", "")
+                renewal["customer_alternate_phone"] = renewal["clients"].get("alternate_phone", "")
                 logger.info(f"  Client: {renewal['client_name']}")
             else:
                 logger.warning(f"  ⚠️ No client data for policy {renewal.get('policy_id')}")

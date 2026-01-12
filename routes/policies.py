@@ -510,7 +510,7 @@ def list_all_folders():
 def get_clients():
     """API endpoint to get all existing clients"""
     try:
-        result = supabase.table("clients").select("client_id, name, email, phone").execute()
+        result = supabase.table("clients").select("client_id, name, email, phone, alternate_email, alternate_phone").execute()
         return jsonify(result.data)
     except Exception as e:
         print(f"Error fetching clients: {e}")
@@ -640,6 +640,11 @@ def add_policy():
             remarks = request.form.get("remarks")
             file = request.files.get("policy_file")
             send_via_whatsapp = request.form.get("send_via_whatsapp") == "yes"  # NEW
+            # Contact selection options
+            send_primary_phone = request.form.get("send_primary_phone") == "on"
+            send_alternate_phone = request.form.get("send_alternate_phone") == "on"
+            send_primary_email = request.form.get("send_primary_email") == "on"
+            send_alternate_email = request.form.get("send_alternate_email") == "on"
             sum_insured = request.form.get("sum_insured")
             
             # Health insurance specific fields
@@ -673,11 +678,16 @@ def add_policy():
             client_id = None
             member_id = None
             customer_phone = None  # used for WhatsApp
+            customer_email = None  # used for Email
+            customer_alternate_phone = None
+            customer_alternate_email = None
 
             if customer_type == "new":
                 customer_name = request.form.get("customer_name")
                 customer_email = request.form.get("customer_email")
                 customer_phone = request.form.get("customer_phone")  # NEW
+                customer_alternate_email = request.form.get("customer_alternate_email")
+                customer_alternate_phone = request.form.get("customer_alternate_phone")
                 client_prefix = request.form.get("client_prefix")  # NEW
                 member_name = request.form.get("member_name") or customer_name
 
@@ -694,7 +704,9 @@ def add_policy():
                     "prefix": client_prefix.upper(),
                     "name": customer_name,
                     "email": customer_email,
-                    "phone": customer_phone
+                    "phone": customer_phone,
+                    "alternate_email": customer_alternate_email,
+                    "alternate_phone": customer_alternate_phone
                 }).execute()
 
                 client_id = client_result.data[0]["client_id"]
@@ -722,9 +734,12 @@ def add_policy():
                 # Ensure member exists; if not provided, create from new_member_name or default to client name
                 if not member_id:
                     try:
-                        client_row = supabase.table("clients").select("name, phone").eq("client_id", client_id).single().execute()
+                        client_row = supabase.table("clients").select("name, phone, email, alternate_phone, alternate_email").eq("client_id", client_id).single().execute()
                         chosen_member_name = new_member_name if new_member_name else (client_row.data.get("name") if client_row and client_row.data else "Member")
                         customer_phone = client_row.data.get("phone") if client_row and client_row.data else None
+                        customer_email = client_row.data.get("email") if client_row and client_row.data else None
+                        customer_alternate_phone = client_row.data.get("alternate_phone") if client_row and client_row.data else None
+                        customer_alternate_email = client_row.data.get("alternate_email") if client_row and client_row.data else None
                         member_result = supabase.table("members").insert({
                             "client_id": client_id,
                             "member_name": chosen_member_name
@@ -737,13 +752,16 @@ def add_policy():
                 else:
                     member_id = int(member_id)
 
-                    # Fetch client phone for WhatsApp  # NEW
+                    # Fetch client phone and alternate contacts for WhatsApp  # NEW
                     try:
-                        client_result = supabase.table("clients").select("phone").eq("client_id",
+                        client_result = supabase.table("clients").select("phone, email, alternate_phone, alternate_email").eq("client_id",
                                                                                      client_id).single().execute()
                         customer_phone = client_result.data.get("phone")
+                        customer_email = client_result.data.get("email")
+                        customer_alternate_phone = client_result.data.get("alternate_phone")
+                        customer_alternate_email = client_result.data.get("alternate_email")
                     except Exception as e:
-                        print(f"Error fetching client phone: {e}")
+                        print(f"Error fetching client contacts: {e}")
                         customer_phone = None
 
                 print(f"Using existing client {client_id} and member {member_id}")
@@ -908,20 +926,99 @@ def add_policy():
                         print(f"Error saving factory insurance details: {e}")
                         # Don't fail the whole operation, just log the error
 
-                # NEW: Handle WhatsApp sending
-                if send_via_whatsapp and customer_phone:
-                    try:
-                        phone = normalize_phone(customer_phone)
-                        success, message = send_policy_to_customer(phone, inserted_policy)
-                        if success:
-                            flash("Policy added and sent via WhatsApp successfully!", "success")
-                        else:
-                            flash(f"Policy added but WhatsApp send failed: {message}", "warning")
-                    except Exception as whatsapp_error:
-                        print(f"WhatsApp error: {whatsapp_error}")
-                        flash("Policy added but could not send via WhatsApp", "warning")
-                elif send_via_whatsapp and not customer_phone:
-                    flash("Policy added but customer has no phone number for WhatsApp", "warning")
+                # NEW: Handle WhatsApp and Email sending with contact selection
+                if send_via_whatsapp:
+                    messages = []
+                    any_success = False
+                    
+                    # Send WhatsApp to selected phones
+                    if send_primary_phone and customer_phone:
+                        try:
+                            phone = normalize_phone(customer_phone)
+                            success, message = send_policy_to_customer(phone, inserted_policy, send_email=False)
+                            if success:
+                                messages.append("WhatsApp (primary) sent")
+                                any_success = True
+                            else:
+                                messages.append(f"WhatsApp (primary) failed: {message}")
+                        except Exception as e:
+                            messages.append(f"WhatsApp (primary) error: {str(e)}")
+                    
+                    if send_alternate_phone and customer_alternate_phone:
+                        try:
+                            phone = normalize_phone(customer_alternate_phone)
+                            success, message = send_policy_to_customer(phone, inserted_policy, send_email=False)
+                            if success:
+                                messages.append("WhatsApp (alternate) sent")
+                                any_success = True
+                            else:
+                                messages.append(f"WhatsApp (alternate) failed: {message}")
+                        except Exception as e:
+                            messages.append(f"WhatsApp (alternate) error: {str(e)}")
+                    
+                    # Send Email to selected addresses
+                    if send_primary_email and customer_email:
+                        try:
+                            from email_service import send_policy_email
+                            from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
+                            
+                            file_id = extract_file_id_from_url(inserted_policy.get('drive_url'))
+                            if file_id:
+                                filename = f"{insurance_company}_{product_name}.pdf".replace(' ', '_')
+                                temp_path = download_file_from_drive(file_id, filename)
+                                if temp_path:
+                                    policy_data = {
+                                        'member_name': member_name or customer_name,
+                                        'policy_type': product_name,
+                                        'policy_no': policy_number,
+                                        'asset': remarks or 'N/A',
+                                        'start_date': policy_from,
+                                        'expiry_date': policy_to
+                                    }
+                                    success, message = send_policy_email(customer_email, policy_data, temp_path)
+                                    if success:
+                                        messages.append("Email (primary) sent")
+                                        any_success = True
+                                    else:
+                                        messages.append(f"Email (primary) failed: {message}")
+                                    delete_temp_file(temp_path)
+                        except Exception as e:
+                            messages.append(f"Email (primary) error: {str(e)}")
+                    
+                    if send_alternate_email and customer_alternate_email:
+                        try:
+                            from email_service import send_policy_email
+                            from whatsapp_bot import extract_file_id_from_url, download_file_from_drive, delete_temp_file
+                            
+                            file_id = extract_file_id_from_url(inserted_policy.get('drive_url'))
+                            if file_id:
+                                filename = f"{insurance_company}_{product_name}.pdf".replace(' ', '_')
+                                temp_path = download_file_from_drive(file_id, filename)
+                                if temp_path:
+                                    policy_data = {
+                                        'member_name': member_name or customer_name,
+                                        'policy_type': product_name,
+                                        'policy_no': policy_number,
+                                        'asset': remarks or 'N/A',
+                                        'start_date': policy_from,
+                                        'expiry_date': policy_to
+                                    }
+                                    success, message = send_policy_email(customer_alternate_email, policy_data, temp_path)
+                                    if success:
+                                        messages.append("Email (alternate) sent")
+                                        any_success = True
+                                    else:
+                                        messages.append(f"Email (alternate) failed: {message}")
+                                    delete_temp_file(temp_path)
+                        except Exception as e:
+                            messages.append(f"Email (alternate) error: {str(e)}")
+                    
+                    if any_success:
+                        flash(f"Policy added. Notifications: {', '.join(messages)}", "success")
+                    elif messages:
+                        flash(f"Policy added but notification issues: {', '.join(messages)}", "warning")
+                    else:
+                        flash("Policy added (no contacts selected for notification)", "success")
                 else:
                     flash("Policy added successfully!", "success")
 

@@ -46,6 +46,8 @@ def list_pending():
                         policy["client_name"] = policy["clients"]["name"]
                         policy["customer_email"] = policy["clients"]["email"]
                         policy["customer_phone"] = policy["clients"].get("phone", "")
+                        policy["customer_alternate_email"] = policy["clients"].get("alternate_email", "")
+                        policy["customer_alternate_phone"] = policy["clients"].get("alternate_phone", "")
                     if policy.get("members"):
                         policy["member_name"] = policy["members"].get("member_name", "")
                         policy["customer_name"] = policy["members"].get("member_name", "")
@@ -54,6 +56,8 @@ def list_pending():
                         policy["customer_name"] = "Unknown"
                         policy["customer_email"] = ""
                         policy["customer_phone"] = ""
+                        policy["customer_alternate_email"] = ""
+                        policy["customer_alternate_phone"] = ""
                 
                 logger.info(f"Found {len(pending_policies)} pending policies")
             except Exception as e:
@@ -80,6 +84,8 @@ def list_pending():
                         renewal["client_name"] = renewal["clients"]["name"]
                         renewal["customer_email"] = renewal["clients"]["email"]
                         renewal["customer_phone"] = renewal["clients"].get("phone", "")
+                        renewal["customer_alternate_email"] = renewal["clients"].get("alternate_email", "")
+                        renewal["customer_alternate_phone"] = renewal["clients"].get("alternate_phone", "")
                     else:
                         logger.warning(f"No client data for policy {renewal.get('policy_id')}")
                     

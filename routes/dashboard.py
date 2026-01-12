@@ -48,12 +48,16 @@ def index():
                 policy["customer_name"] = policy["clients"]["name"]
                 policy["customer_email"] = policy["clients"]["email"]
                 policy["customer_phone"] = policy["clients"].get("phone", "")
+                policy["customer_alternate_email"] = policy["clients"].get("alternate_email", "")
+                policy["customer_alternate_phone"] = policy["clients"].get("alternate_phone", "")
             if policy.get("members"):
                 policy["member_name"] = policy["members"].get("member_name", "")
             else:
                 policy["customer_name"] = "Unknown"
                 policy["customer_email"] = ""
                 policy["customer_phone"] = ""
+                policy["customer_alternate_email"] = ""
+                policy["customer_alternate_phone"] = ""
 
         print(f"Found {len(policies)} policies between {last_month} and {next_month}")
 
@@ -182,10 +186,14 @@ def view_all_policies():
                 policy["customer_name"] = policy["clients"]["name"]
                 policy["customer_email"] = policy["clients"]["email"]
                 policy["customer_phone"] = policy["clients"].get("phone", "")
+                policy["customer_alternate_email"] = policy["clients"].get("alternate_email", "")
+                policy["customer_alternate_phone"] = policy["clients"].get("alternate_phone", "")
             else:
                 policy["customer_name"] = "Unknown"
                 policy["customer_email"] = ""
                 policy["customer_phone"] = ""
+                policy["customer_alternate_email"] = ""
+                policy["customer_alternate_phone"] = ""
                 
             if policy.get("members"):
                 policy["member_name"] = policy["members"].get("member_name", "")
