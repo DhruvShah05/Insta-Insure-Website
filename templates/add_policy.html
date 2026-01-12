@@ -196,6 +196,168 @@
             flex-direction: column;
         }
     }
+
+    /* Smart Upload Styles */
+    .smart-upload-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-6);
+        margin-bottom: var(--spacing-6);
+        color: white;
+    }
+
+    .smart-upload-section h4 {
+        margin: 0 0 var(--spacing-2) 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+    }
+
+    .smart-upload-section p {
+        opacity: 0.9;
+        margin: 0 0 var(--spacing-4) 0;
+        font-size: var(--font-size-sm);
+    }
+
+    .smart-upload-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-2);
+        width: 100%;
+        padding: var(--spacing-4);
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px dashed rgba(255, 255, 255, 0.5);
+        border-radius: var(--radius-lg);
+        color: white;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .smart-upload-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: white;
+        transform: translateY(-2px);
+    }
+
+    .smart-upload-btn svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .smart-upload-input {
+        display: none;
+    }
+
+    /* Processing overlay */
+    .processing-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .processing-overlay.active {
+        display: flex;
+    }
+
+    .processing-content {
+        background: white;
+        padding: var(--spacing-8);
+        border-radius: var(--radius-lg);
+        text-align: center;
+        max-width: 400px;
+    }
+
+    .processing-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid var(--gray-200);
+        border-top-color: var(--primary-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto var(--spacing-4);
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Confidence indicators */
+    .field-confidence {
+        position: relative;
+    }
+
+    .field-confidence.needs-review input,
+    .field-confidence.needs-review select {
+        border-color: #f59e0b;
+        background-color: #fffbeb;
+    }
+
+    .field-confidence.low-confidence input,
+    .field-confidence.low-confidence select {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+    }
+
+    .confidence-badge {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    .confidence-badge.review {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .confidence-badge.low {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    .extraction-notes {
+        background: #f0f9ff;
+        border: 1px solid #bae6fd;
+        border-radius: var(--radius-md);
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-6);
+    }
+
+    .extraction-notes h6 {
+        color: #0369a1;
+        margin: 0 0 var(--spacing-2) 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+    }
+
+    .extraction-notes p {
+        margin: 0;
+        color: #0c4a6e;
+        font-size: var(--font-size-sm);
+    }
+
+    .extraction-notes ul {
+        margin: var(--spacing-2) 0 0 0;
+        padding-left: var(--spacing-4);
+        color: #0c4a6e;
+        font-size: var(--font-size-sm);
+    }
 </style>
 {% endblock %}
 
@@ -216,6 +378,39 @@
     <div class="form-header">
         <h1>Add New Policy</h1>
         <p>Register a new insurance policy for your customer</p>
+    </div>
+
+    <!-- Smart Upload Section -->
+    <div class="smart-upload-section">
+        <h4>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+            🤖 Smart Upload - Auto-fill with AI
+        </h4>
+        <p>Upload your policy document (PDF) and let Gemini AI automatically extract and fill all the fields for you.
+        </p>
+        <label class="smart-upload-btn" for="smartUploadInput">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+            </svg>
+            Click to upload policy document (PDF)
+        </label>
+        <input type="file" id="smartUploadInput" class="smart-upload-input" accept=".pdf">
+    </div>
+
+    <!-- Extraction Notes (hidden by default, shown after extraction) -->
+    <div id="extractionNotes" class="extraction-notes" style="display: none;">
+        <h6>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+            AI Extraction Notes
+        </h6>
+        <p id="extractionNotesText"></p>
+        <ul id="fieldsNeedingReview"></ul>
     </div>
 
     {% with messages = get_flashed_messages() %}
@@ -1337,6 +1532,346 @@
                 firstDayOfWeek: 1
             }
         });
+    });
+</script>
+
+<!-- Processing Overlay -->
+<div id="processingOverlay" class="processing-overlay">
+    <div class="processing-content">
+        <div class="processing-spinner"></div>
+        <h4>Processing Document...</h4>
+        <p id="processingStatus">Uploading and analyzing your policy document with AI...</p>
+    </div>
+</div>
+
+<script>
+    // Smart Upload functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const smartUploadInput = document.getElementById('smartUploadInput');
+        const processingOverlay = document.getElementById('processingOverlay');
+        const processingStatus = document.getElementById('processingStatus');
+        const extractionNotes = document.getElementById('extractionNotes');
+        const extractionNotesText = document.getElementById('extractionNotesText');
+        const fieldsNeedingReview = document.getElementById('fieldsNeedingReview');
+
+        smartUploadInput.addEventListener('change', async function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('Please upload a PDF file.');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File too large. Maximum size is 10MB.');
+                return;
+            }
+
+            // Show processing overlay
+            processingOverlay.classList.add('active');
+            processingStatus.textContent = 'Uploading document...';
+
+            try {
+                // Create form data
+                const formData = new FormData();
+                formData.append('policy_document', file);
+
+                processingStatus.textContent = 'Analyzing document with Gemini AI...';
+
+                // Send to extraction endpoint
+                const response = await fetch('/agentic/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Extraction failed');
+                }
+
+                processingStatus.textContent = 'Populating form fields...';
+
+                // Populate form with extracted data
+                populateFormFromExtraction(result);
+
+                // Also set the file in the main document upload field
+                const policyFileInput = document.getElementById('policy_file');
+                if (policyFileInput && file) {
+                    // Create a new DataTransfer to set the file
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    policyFileInput.files = dataTransfer.files;
+
+                    // Trigger change event to update any file display
+                    policyFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Show extraction notes
+                showExtractionNotes(result);
+
+                // Hide overlay
+                processingOverlay.classList.remove('active');
+
+                // Show success message
+                alert('Document processed successfully! Please review the extracted fields. The document has also been attached for submission.');
+
+            } catch (error) {
+                console.error('Extraction error:', error);
+                processingOverlay.classList.remove('active');
+                alert('Error processing document: ' + error.message);
+            }
+
+            // Reset input for re-upload
+            smartUploadInput.value = '';
+        });
+
+        function populateFormFromExtraction(result) {
+            const clientInfo = result.client_info || {};
+            const policyDetails = result.policy_details || {};
+            const healthDetails = result.health_details || null;
+            const factoryDetails = result.factory_details || null;
+            const fieldsNeedingReviewList = result.fields_needing_review || [];
+
+            // Handle client information
+            if (clientInfo.existing_client_id) {
+                // Existing client found
+                document.getElementById('customerTypeInput').value = 'existing';
+                document.getElementById('existing_client_id').value = clientInfo.existing_client_id;
+
+                // Try to select in dropdown
+                const clientSelect = document.getElementById('existing_client_select');
+                if (clientSelect) {
+                    // Trigger load if not loaded
+                    if (!clientsLoaded) loadClients();
+                    setTimeout(() => {
+                        clientSelect.value = clientInfo.existing_client_id;
+                        clientSelect.dispatchEvent(new Event('change'));
+
+                        // After client is selected, try to select member
+                        if (clientInfo.existing_member_id) {
+                            setTimeout(() => {
+                                const memberSelect = document.getElementById('existing_member_select');
+                                if (memberSelect) {
+                                    document.getElementById('existing_member_id').value = clientInfo.existing_member_id;
+                                    memberSelect.value = clientInfo.existing_member_id;
+                                    memberSelect.dispatchEvent(new Event('change'));
+                                }
+                            }, 800);
+                        }
+                    }, 500);
+                }
+            } else if (clientInfo.name) {
+                // New client
+                document.getElementById('addNewCustomerBtn').click();
+                setFieldValue('customer_name', clientInfo.name, fieldsNeedingReviewList);
+                setFieldValue('customer_phone', clientInfo.phone, fieldsNeedingReviewList);
+                setFieldValue('customer_email', clientInfo.email, fieldsNeedingReviewList);
+            }
+
+            // Policy details
+            setFieldValue('policy_number', policyDetails.policy_number, fieldsNeedingReviewList);
+            setFieldValue('policy_from', policyDetails.policy_from, fieldsNeedingReviewList);
+            setFieldValue('policy_to', policyDetails.policy_to, fieldsNeedingReviewList);
+            setFieldValue('payment_date', policyDetails.payment_date, fieldsNeedingReviewList);
+            setFieldValue('payment_details', policyDetails.payment_details, fieldsNeedingReviewList);
+            setFieldValue('net_premium', policyDetails.net_premium, fieldsNeedingReviewList);
+            setFieldValue('addon_premium', policyDetails.addon_premium, fieldsNeedingReviewList);
+            setFieldValue('tp_tr_premium', policyDetails.tp_tr_premium, fieldsNeedingReviewList);
+            setFieldValue('gross_premium', policyDetails.gross_premium, fieldsNeedingReviewList);
+            setFieldValue('sum_insured', policyDetails.sum_insured, fieldsNeedingReviewList);
+            setFieldValue('agent_name', policyDetails.agent_name, fieldsNeedingReviewList);
+            setFieldValue('remarks', policyDetails.remarks, fieldsNeedingReviewList);
+
+            // Try to set insurance company (may need fuzzy matching)
+            if (policyDetails.insurance_company) {
+                const companySelect = document.getElementById('insurance_company');
+                const matchingOption = findBestMatch(companySelect, policyDetails.insurance_company);
+                if (matchingOption) {
+                    companySelect.value = matchingOption.value;
+                    companySelect.dispatchEvent(new Event('change'));
+                } else {
+                    // Highlight as needing review
+                    markFieldForReview('insurance_company', policyDetails.insurance_company);
+                }
+            }
+
+            // Try to set product name
+            if (policyDetails.product_name) {
+                setTimeout(() => {
+                    const productSelect = document.getElementById('product_name');
+                    const matchingOption = findBestMatch(productSelect, policyDetails.product_name);
+                    if (matchingOption) {
+                        productSelect.value = matchingOption.value;
+                        productSelect.dispatchEvent(new Event('change'));
+                    } else {
+                        markFieldForReview('product_name', policyDetails.product_name);
+                    }
+                }, 300);
+            }
+
+            // Business type
+            if (policyDetails.business_type) {
+                const businessSelect = document.getElementById('business_type');
+                for (let option of businessSelect.options) {
+                    if (option.value.toUpperCase() === policyDetails.business_type.toUpperCase()) {
+                        businessSelect.value = option.value;
+                        break;
+                    }
+                }
+            }
+
+            // Health insurance details
+            if (healthDetails && healthDetails.plan_type) {
+                setTimeout(() => {
+                    // Select plan type
+                    const planTypeRadio = document.querySelector(`input[name="health_plan_type"][value="${healthDetails.plan_type}"]`);
+                    if (planTypeRadio) {
+                        planTypeRadio.checked = true;
+                        planTypeRadio.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    // Floater fields
+                    if (healthDetails.floater_sum_insured) {
+                        setFieldValue('floater_sum_insured', healthDetails.floater_sum_insured, fieldsNeedingReviewList);
+                    }
+                    if (healthDetails.floater_bonus) {
+                        setFieldValue('floater_bonus', healthDetails.floater_bonus, fieldsNeedingReviewList);
+                    }
+                    if (healthDetails.floater_deductible) {
+                        setFieldValue('floater_deductible', healthDetails.floater_deductible, fieldsNeedingReviewList);
+                    }
+
+                    // Add health members
+                    if (healthDetails.members && healthDetails.members.length > 0) {
+                        healthDetails.members.forEach((member, index) => {
+                            if (index > 0) {
+                                document.getElementById('addHealthMemberBtn').click();
+                            }
+                            setTimeout(() => {
+                                const memberNameInputs = document.querySelectorAll('input[name="health_member_name[]"]');
+                                const memberSumInputs = document.querySelectorAll('input[name="health_member_sum_insured[]"]');
+                                if (memberNameInputs[index]) {
+                                    memberNameInputs[index].value = member.name || '';
+                                }
+                                if (memberSumInputs[index] && member.sum_insured) {
+                                    memberSumInputs[index].value = member.sum_insured;
+                                }
+                            }, 100 * (index + 1));
+                        });
+                    }
+                }, 500);
+            }
+
+            // Factory insurance details
+            if (factoryDetails) {
+                setTimeout(() => {
+                    setFieldValue('factory_building', factoryDetails.building, fieldsNeedingReviewList);
+                    setFieldValue('factory_plant_machinery', factoryDetails.plant_machinery, fieldsNeedingReviewList);
+                    setFieldValue('factory_furniture_fittings', factoryDetails.furniture_fittings, fieldsNeedingReviewList);
+                    setFieldValue('factory_stocks', factoryDetails.stocks, fieldsNeedingReviewList);
+                    setFieldValue('factory_electrical_installations', factoryDetails.electrical_installations, fieldsNeedingReviewList);
+                }, 500);
+            }
+
+            // Recalculate premium and commission
+            setTimeout(() => {
+                calculateGrossPremium();
+                calculateCommission();
+            }, 600);
+        }
+
+        function setFieldValue(fieldId, value, fieldsNeedingReviewList) {
+            if (!value) return;
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+
+            field.value = value;
+
+            // Check if this field needs review
+            if (fieldsNeedingReviewList.includes(fieldId)) {
+                markFieldForReview(fieldId);
+            }
+        }
+
+        function markFieldForReview(fieldId, extractedValue = null) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+
+            const parent = field.closest('.mb-3') || field.parentElement;
+            parent.classList.add('field-confidence', 'needs-review');
+
+            if (extractedValue) {
+                // Add a note about the extracted value
+                const note = document.createElement('div');
+                note.className = 'form-help text-warning';
+                note.innerHTML = `<strong>AI extracted:</strong> "${extractedValue}" - Please select the correct value`;
+                parent.appendChild(note);
+            }
+        }
+
+        function findBestMatch(selectElement, searchValue) {
+            if (!searchValue) return null;
+
+            const search = searchValue.toLowerCase().trim();
+            let bestMatch = null;
+            let bestScore = 0;
+
+            for (let option of selectElement.options) {
+                const optionText = option.text.toLowerCase();
+                const optionValue = option.value.toLowerCase();
+
+                // Exact match
+                if (optionText === search || optionValue === search) {
+                    return option;
+                }
+
+                // Partial match
+                if (optionText.includes(search) || search.includes(optionText)) {
+                    const score = Math.max(
+                        optionText.includes(search) ? search.length / optionText.length : 0,
+                        search.includes(optionText) ? optionText.length / search.length : 0
+                    );
+                    if (score > bestScore && score > 0.3) {
+                        bestScore = score;
+                        bestMatch = option;
+                    }
+                }
+            }
+
+            return bestMatch;
+        }
+
+        function showExtractionNotes(result) {
+            const notesDiv = document.getElementById('extractionNotes');
+            const notesText = document.getElementById('extractionNotesText');
+            const reviewList = document.getElementById('fieldsNeedingReview');
+
+            if (result.extraction_notes || (result.fields_needing_review && result.fields_needing_review.length > 0)) {
+                notesDiv.style.display = 'block';
+
+                if (result.extraction_notes) {
+                    notesText.textContent = result.extraction_notes;
+                } else {
+                    notesText.textContent = 'The AI successfully extracted policy information from your document.';
+                }
+
+                reviewList.innerHTML = '';
+                if (result.fields_needing_review && result.fields_needing_review.length > 0) {
+                    const header = document.createElement('li');
+                    header.innerHTML = '<strong>Fields needing your review:</strong>';
+                    reviewList.appendChild(header);
+
+                    result.fields_needing_review.forEach(field => {
+                        const li = document.createElement('li');
+                        li.textContent = field.replace(/_/g, ' ');
+                        reviewList.appendChild(li);
+                    });
+                }
+            }
+        }
     });
 </script>
 {% endblock %}

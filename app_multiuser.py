@@ -20,6 +20,7 @@ from routes.client_export import client_export_bp
 from routes.claims import claims_bp
 from routes.settings_routes import settings_bp
 from routes.monitoring_routes import monitoring_bp
+from routes.agentic_policy import agentic_policy_bp
 import os
 import logging
 import time
@@ -96,6 +97,10 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# Suppress verbose httpx logs (Supabase HTTP requests)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 # Flask-Login setup with session management
 login_manager = LoginManager()
@@ -348,6 +353,7 @@ app.register_blueprint(client_export_bp)
 app.register_blueprint(claims_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(monitoring_bp)
+app.register_blueprint(agentic_policy_bp)  # Agentic AI policy extraction
 
 # Register health check blueprint
 health_bp = create_health_check_blueprint()

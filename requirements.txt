@@ -33,3 +33,6 @@ PyPDF2
 reportlab
 pikepdf
 
+# Gemini AI
+google-genai
+
