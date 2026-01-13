@@ -35,6 +35,37 @@ PRODUCT_TYPES = [
     "BHARAT GRIHA RAKSHA POLICY - LTD",
 ]
 
+# Insurance companies available in the system dropdown
+# These MUST match exactly with the values in static/dropdown_manager.js
+INSURANCE_COMPANIES = [
+    "Bajaj General Insurance Limited",
+    "Tata AIG General Insurance Co Ltd",
+    "ICICI Lombard General Insurance Co Ltd",
+    "Generali Central Insurance Co Ltd",
+    "The Oriental Insurance Co Ltd",
+    "United India Insurance Co Ltd",
+    "HDFC Ergo General Insurance Co Ltd",
+    "Go Digit",
+]
+
+# Agent names available in the system dropdown
+# These MUST match exactly with the values in static/dropdown_manager.js
+AGENT_NAMES = [
+    "Sameer Shah",
+    "Sweta Shah",
+    "Dhruv Shah",
+    "Vikas Mhatre",
+    "Fortune Five",
+    "Jaimini Thakkar",
+    "C.H.Ramchandani",
+]
+
+# Business types available in the system
+BUSINESS_TYPES = ["NEW", "RENEWAL", "ROLL OVER"]
+
+# Health insurance plan types
+HEALTH_PLAN_TYPES = ["FLOATER", "INDIVIDUAL", "TOPUP_FLOATER", "TOPUP_INDIVIDUAL"]
+
 
 class ConfidenceLevel(str, Enum):
     HIGH = "HIGH"
@@ -337,24 +368,66 @@ class GeminiPolicyExtractor:
             )
         
         try:
-            # Build the extraction prompt with product list
+            # Build the extraction prompt with all dropdown lists
             product_list = "\n".join([f"- {p}" for p in PRODUCT_TYPES])
+            company_list = "\n".join([f"- {c}" for c in INSURANCE_COMPANIES])
+            agent_list = "\n".join([f"- {a}" for a in AGENT_NAMES])
+            business_type_list = ", ".join(BUSINESS_TYPES)
+            health_plan_type_list = ", ".join(HEALTH_PLAN_TYPES)
             
             extraction_prompt = f"""You are an insurance document OCR and data extraction AI. 
 IMPORTANT: Use your VISION capabilities to read ALL text from this PDF document image. Do not skip any pages.
 
-Extract policy information and return as JSON. Here are the VALID PRODUCT TYPES in our system:
+Extract policy information and return as JSON.
+
+=== VALID DROPDOWN OPTIONS (you MUST choose from these lists) ===
+
+**VALID PRODUCT TYPES:**
 {product_list}
 
-You MUST match the product to one of these exact values, or use the closest match.
+**VALID INSURANCE COMPANIES:**
+{company_list}
 
-EXTRACTION RULES:
-1. **Agent Name**: Look for "Agent", "Advisor", "Producer", "Intermediary", "POSP", "Broker" fields. This is the sales person's name, not the customer.
+**VALID AGENT NAMES:**
+{agent_list}
+
+**VALID BUSINESS TYPES:** {business_type_list}
+
+**VALID HEALTH PLAN TYPES:** {health_plan_type_list}
+
+=== MATCHING RULES ===
+
+1. **insurance_company**: MUST match one of the valid insurance companies above. Use fuzzy matching:
+   - "TATA AIG General Insurance Company Limited" → "Tata AIG General Insurance Co Ltd"
+   - "ICICI Lombard" → "ICICI Lombard General Insurance Co Ltd"
+   - "HDFC ERGO" → "HDFC Ergo General Insurance Co Ltd"
+   - If no close match, use extracted name and add "insurance_company" to fields_needing_review.
+
+2. **product_name**: MUST match one of the valid product types above. Use closest match.
+
+3. **agent_name**: MUST match one of the valid agent names above. Use fuzzy matching:
+   - "S. Shah" or "Sameer" → "Sameer Shah"
+   - "Sweta" or "Shweta Shah" → "Sweta Shah"
+   - If no close match, use extracted name and add "agent_name" to fields_needing_review.
+
+4. **business_type**: MUST be one of: {business_type_list}
+
+5. **health_details.plan_type**: For health policies, MUST be one of: {health_plan_type_list}
+   - Family plans with shared sum insured → "FLOATER"
+   - Individual coverage per member → "INDIVIDUAL"
+   - Topup family plans with deductible → "TOPUP_FLOATER"
+   - Topup individual plans with deductible → "TOPUP_INDIVIDUAL"
+
+=== EXTRACTION RULES ===
+
+1. **Agent Name**: Look for "Agent", "Advisor", "Producer", "Intermediary", "POSP", "Broker" fields. This is the sales person's name, NOT the customer.
 2. **Payment Details**: Look for transaction ID, UTR, RTGS number, cheque number, UPI reference, payment reference.
-3. **Remarks**: Only include USER notes or special instructions. Do NOT include standard policy terms, disclaimers, or legal text like "Policy void if cheque dishonoured".
+3. **Remarks**: Only include USER notes or special instructions. Do NOT include standard policy terms, disclaimers, or legal text.
 4. **Dates**: Convert ALL dates to DD/MM/YYYY format.
 5. **Policyholder Name**: This is the customer/insured person, NOT the agent or company.
 6. **Phone/Email**: Extract the customer's contact details if visible.
+
+=== JSON OUTPUT STRUCTURE ===
 
 Return this exact JSON structure:
 {{
@@ -365,7 +438,7 @@ Return this exact JSON structure:
         "confidence": "HIGH/MEDIUM/LOW"
     }},
     "policy_details": {{
-        "insurance_company": "full company name like 'ICICI Lombard General Insurance', 'HDFC ERGO', etc.",
+        "insurance_company": "MUST be one of the valid insurance companies listed above",
         "product_name": "MUST be one of the valid product types listed above",
         "policy_number": "the policy/certificate number",
         "policy_from": "start date in DD/MM/YYYY",
@@ -377,16 +450,16 @@ Return this exact JSON structure:
         "tp_tr_premium": "third party/terrorism premium or null",
         "gross_premium": "total/gross premium as number",
         "sum_insured": "total sum insured amount",
-        "agent_name": "agent/advisor/broker name if mentioned, NOT the customer name",
-        "business_type": "NEW or RENEWAL based on document",
+        "agent_name": "MUST be one of the valid agent names listed above or null",
+        "business_type": "MUST be NEW, RENEWAL, or ROLL OVER",
         "remarks": "only actual user notes, NOT policy disclaimers or legal text"
     }},
     "health_details": {{
-        "plan_type": "FLOATER/INDIVIDUAL/TOPUP_FLOATER/TOPUP_INDIVIDUAL or null",
+        "plan_type": "MUST be FLOATER, INDIVIDUAL, TOPUP_FLOATER, or TOPUP_INDIVIDUAL (or null if not health)",
         "floater_sum_insured": "shared sum insured for floater plans",
         "floater_bonus": "no claim bonus amount or null",
         "floater_deductible": "deductible amount or null",
-        "members": [{{"name": "member name", "sum_insured": "individual SI or null"}}]
+        "members": [{{"name": "member name", "sum_insured": "individual SI or null", "bonus": "individual bonus or null", "deductible": "individual deductible or null"}}]
     }},
     "factory_details": {{
         "building": "building coverage amount or null",
@@ -395,15 +468,17 @@ Return this exact JSON structure:
         "stocks": "stock coverage or null",
         "electrical_installations": "electrical coverage or null"
     }},
-    "fields_needing_review": ["list field names you couldn't find or are uncertain about"],
+    "fields_needing_review": ["list field names that don't match dropdown options or are uncertain"],
     "extraction_notes": "brief notes about the extraction"
 }}
 
-IMPORTANT:
+=== IMPORTANT NOTES ===
+
 - health_details: Only include if this is HEALTH INSURANCE or MEDICLAIM
 - factory_details: Only include if this is FACTORY INSURANCE, FIRE, SFSP, or BHARAT UDYAM policies
 - Use null for any field you cannot find
-- Do NOT make up data - use null if not visible in document"""
+- Do NOT make up data - use null if not visible in document
+- Always add field names to fields_needing_review if extracted value doesn't match dropdown options"""
 
             # Configuration for JSON response with vision
             generate_config = types.GenerateContentConfig(
