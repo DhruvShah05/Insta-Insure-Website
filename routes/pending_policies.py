@@ -569,9 +569,12 @@ def complete_pending(pending_id):
                             temp_file_path = download_file_from_drive(file_id, filename)
 
                             if temp_file_path:
+                                # Use member name if available, fallback to client name
+                                display_name = member_name_str if member_name_str else customer["name"]
+                                
                                 # Prepare policy data for the new template-based function
                                 policy_data = {
-                                    'client_name': customer["name"],
+                                    'member_name': display_name,
                                     'policy_type': inserted_policy.get('product_name', 'Insurance'),
                                     'policy_no': inserted_policy.get('policy_number', 'N/A'),
                                     'asset': inserted_policy.get('remarks', 'N/A'),

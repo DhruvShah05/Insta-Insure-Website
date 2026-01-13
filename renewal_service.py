@@ -791,7 +791,7 @@ Insta Insurance Consultancy"""
         if temp_file_path:
             # Prepare policy data for the new template-based function
             policy_data = {
-                'client_name': customer_name,
+                'member_name': customer_name,
                 'policy_type': policy.get('product_name', 'Insurance'),
                 'policy_no': policy.get('policy_number', 'N/A'),
                 'asset': policy.get('remarks', 'N/A'),
@@ -913,7 +913,7 @@ Insta Insurance Consultancy"""
         if temp_file_path:
             # Prepare policy data for the new template-based function
             policy_data = {
-                'client_name': customer_name,
+                'member_name': customer_name,
                 'policy_type': policy.get('product_name', 'Insurance'),
                 'policy_no': policy.get('policy_number', 'N/A'),
                 'asset': policy.get('remarks', 'N/A'),

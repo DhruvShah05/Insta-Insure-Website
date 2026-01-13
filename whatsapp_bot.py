@@ -704,11 +704,16 @@ def send_policy_to_customer(phone, policy, send_email=True):
             customer_email = get_customer_email(phone)
             if customer_email:
                 client, _ = get_customer_policies(phone)
-                customer_name = client['name'] if client else "Customer"
+                client_name = client['name'] if client else "Customer"
+                
+                # Get member name from policy data if available, fallback to client name
+                member = policy.get('members')
+                member_name = member.get('member_name', '') if member else ''
+                display_name = member_name if member_name else client_name
 
                 # Prepare policy data for the new template-based function
                 policy_data = {
-                    'client_name': customer_name,
+                    'member_name': display_name,
                     'policy_type': policy.get('product_name', 'Insurance'),
                     'policy_no': policy.get('policy_number', 'N/A'),
                     'asset': policy.get('remarks', 'N/A'),
@@ -848,7 +853,7 @@ def send_renewal_reminder(phone, policy, renewal_filename=None, renewal_premium=
             
             # Prepare renewal data for the new template-based function
             renewal_data = {
-                'client_name': customer_name,
+                'member_name': customer_name,
                 'policy_no': policy.get('policy_number', policy.get('policy_id', 'N/A')),
                 'asset': policy.get('remarks', 'N/A'),
                 'company': policy.get('insurance_company', 'N/A'),

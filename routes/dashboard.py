@@ -245,150 +245,187 @@ def global_search():
     """
     Global search API endpoint for searching policies, clients, members, claims, and pending items.
     Returns JSON with categorized results.
+    Uses server-side filtering with ilike for efficient searching across all records.
     """
-    query = request.args.get("q", "").strip().lower()
+    query = request.args.get("q", "").strip()
+    query_lower = query.lower()
     
     if len(query) < 2:
         return jsonify({"policies": [], "clients": [], "members": [], "claims": [], "pending": []})
     
     results = {"policies": [], "clients": [], "members": [], "claims": [], "pending": []}
+    search_pattern = f"%{query}%"
     
     try:
-        # Search policies
-        policies_result = supabase.table("policies").select("*, clients(*), members(*)").execute()
+        # Search clients first (using ilike for server-side filtering)
+        clients_result = (supabase.table("clients")
+                         .select("*")
+                         .or_(f"name.ilike.{search_pattern},client_id.ilike.{search_pattern},phone.ilike.{search_pattern},email.ilike.{search_pattern}")
+                         .limit(5)
+                         .execute())
         
-        for policy in policies_result.data[:100]:  # Limit initial scan
-            member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
-            client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
-            insurance_company = policy.get("insurance_company", "")
-            product_name = policy.get("product_name", "")
-            policy_number = str(policy.get("policy_number", ""))
-            policy_id = str(policy.get("policy_id", ""))
-            
-            if (query in member_name.lower() or 
-                query in client_name.lower() or
-                query in insurance_company.lower() or 
-                query in product_name.lower() or 
-                query in policy_number.lower() or
-                query in policy_id.lower()):
+        for client in clients_result.data:
+            results["clients"].append({
+                "client_id": client.get("client_id", ""),
+                "name": client.get("name", ""),
+                "phone": client.get("phone", ""),
+                "email": client.get("email", ""),
+                "url": f"/existing_policies?search={client.get('name', '')}"
+            })
+        
+        # Search members (using ilike for server-side filtering)
+        members_result = (supabase.table("members")
+                         .select("*, clients(*)")
+                         .ilike("member_name", search_pattern)
+                         .limit(5)
+                         .execute())
+        
+        for member in members_result.data:
+            client_name = member.get("clients", {}).get("name", "") if member.get("clients") else ""
+            results["members"].append({
+                "member_id": member.get("member_id"),
+                "member_name": member.get("member_name", ""),
+                "client_name": client_name,
+                "client_id": member.get("client_id", ""),
+                "url": f"/existing_policies?search={member.get('member_name', '')}"
+            })
+        
+        # Get member_ids that match the search to find associated policies
+        matching_member_ids = [m["member_id"] for m in members_result.data]
+        
+        # Get client_ids that match the search to find associated policies
+        matching_client_ids = [c.get("client_id", "") for c in clients_result.data]
+        
+        # Search policies - use multiple strategies for comprehensive results
+        # Strategy 1: Search by policy fields directly
+        policies_by_fields = (supabase.table("policies")
+                             .select("*, clients(*), members(*)")
+                             .or_(f"insurance_company.ilike.{search_pattern},product_name.ilike.{search_pattern},policy_number.ilike.{search_pattern}")
+                             .limit(5)
+                             .execute())
+        
+        policy_ids_added = set()
+        
+        for policy in policies_by_fields.data:
+            policy_id = policy["policy_id"]
+            if policy_id not in policy_ids_added:
+                member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
+                client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
                 
                 results["policies"].append({
-                    "policy_id": policy["policy_id"],
+                    "policy_id": policy_id,
                     "member_name": member_name or client_name,
                     "client_id": policy.get("clients", {}).get("client_id", "") if policy.get("clients") else "",
-                    "insurance_company": insurance_company,
-                    "product_name": product_name,
-                    "policy_number": policy_number,
-                    "url": f"/view_policy/{policy['policy_id']}"
+                    "insurance_company": policy.get("insurance_company", ""),
+                    "product_name": policy.get("product_name", ""),
+                    "policy_number": str(policy.get("policy_number", "")),
+                    "url": f"/view_policy/{policy_id}"
                 })
-                
+                policy_ids_added.add(policy_id)
+        
+        # Strategy 2: Search policies by matching members
+        if matching_member_ids and len(results["policies"]) < 5:
+            for member_id in matching_member_ids[:5]:
                 if len(results["policies"]) >= 5:
                     break
-        
-        # Search clients
-        clients_result = supabase.table("clients").select("*").execute()
-        
-        for client in clients_result.data[:100]:
-            client_name = client.get("name", "")
-            client_id = client.get("client_id", "")
-            phone = client.get("phone", "")
-            email = client.get("email", "")
-            
-            if (query in client_name.lower() or 
-                query in client_id.lower() or
-                query in phone.lower() or
-                query in email.lower()):
+                policies_by_member = (supabase.table("policies")
+                                     .select("*, clients(*), members(*)")
+                                     .eq("member_id", member_id)
+                                     .limit(5 - len(results["policies"]))
+                                     .execute())
                 
-                results["clients"].append({
-                    "client_id": client_id,
-                    "name": client_name,
-                    "phone": phone,
-                    "email": email,
-                    "url": f"/existing_policies?search={client_name}"
-                })
-                
-                if len(results["clients"]) >= 5:
+                for policy in policies_by_member.data:
+                    policy_id = policy["policy_id"]
+                    if policy_id not in policy_ids_added:
+                        member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
+                        client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
+                        
+                        results["policies"].append({
+                            "policy_id": policy_id,
+                            "member_name": member_name or client_name,
+                            "client_id": policy.get("clients", {}).get("client_id", "") if policy.get("clients") else "",
+                            "insurance_company": policy.get("insurance_company", ""),
+                            "product_name": policy.get("product_name", ""),
+                            "policy_number": str(policy.get("policy_number", "")),
+                            "url": f"/view_policy/{policy_id}"
+                        })
+                        policy_ids_added.add(policy_id)
+        
+        # Strategy 3: Search policies by matching clients
+        if matching_client_ids and len(results["policies"]) < 5:
+            for client_id in matching_client_ids[:5]:
+                if len(results["policies"]) >= 5:
                     break
-        
-        # Search members
-        members_result = supabase.table("members").select("*, clients(*)").execute()
-        
-        for member in members_result.data[:100]:
-            member_name = member.get("member_name", "")
-            member_id = str(member.get("member_id", ""))
-            client_name = member.get("clients", {}).get("name", "") if member.get("clients") else ""
-            
-            if (query in member_name.lower() or 
-                query in member_id.lower() or
-                query in client_name.lower()):
+                policies_by_client = (supabase.table("policies")
+                                     .select("*, clients(*), members(*)")
+                                     .eq("client_id", client_id)
+                                     .limit(5 - len(results["policies"]))
+                                     .execute())
                 
-                results["members"].append({
-                    "member_id": member.get("member_id"),
-                    "member_name": member_name,
-                    "client_name": client_name,
-                    "client_id": member.get("client_id", ""),
-                    "url": f"/existing_policies?search={member_name}"
-                })
-                
-                if len(results["members"]) >= 5:
-                    break
+                for policy in policies_by_client.data:
+                    policy_id = policy["policy_id"]
+                    if policy_id not in policy_ids_added:
+                        member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
+                        client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
+                        
+                        results["policies"].append({
+                            "policy_id": policy_id,
+                            "member_name": member_name or client_name,
+                            "client_id": policy.get("clients", {}).get("client_id", "") if policy.get("clients") else "",
+                            "insurance_company": policy.get("insurance_company", ""),
+                            "product_name": policy.get("product_name", ""),
+                            "policy_number": str(policy.get("policy_number", "")),
+                            "url": f"/view_policy/{policy_id}"
+                        })
+                        policy_ids_added.add(policy_id)
         
-        # Search claims
-        claims_result = supabase.table("claims").select("*, policies(*, clients(*), members(*))").execute()
+        # Search claims (with server-side filtering where possible)
+        claims_result = (supabase.table("claims")
+                        .select("*, policies(*, clients(*), members(*))")
+                        .or_(f"claim_number.ilike.{search_pattern},member_name.ilike.{search_pattern}")
+                        .limit(10)
+                        .execute())
         
-        for claim in claims_result.data[:100]:
-            claim_id = str(claim.get("claim_id", ""))
-            claim_number = claim.get("claim_number", "")
-            status = claim.get("status", "")
+        for claim in claims_result.data:
+            if len(results["claims"]) >= 5:
+                break
             policy = claim.get("policies", {}) or {}
             client_name = policy.get("clients", {}).get("name", "") if policy.get("clients") else ""
             member_name = policy.get("members", {}).get("member_name", "") if policy.get("members") else ""
             
-            if (query in claim_id.lower() or 
-                query in str(claim_number).lower() or
-                query in client_name.lower() or
-                query in member_name.lower()):
-                
-                results["claims"].append({
-                    "claim_id": claim.get("claim_id"),
-                    "claim_number": claim_number,
-                    "status": status,
-                    "client_name": client_name or member_name,
-                    "policy_id": claim.get("policy_id"),
-                    "url": f"/claims/{claim.get('claim_id')}"
-                })
-                
-                if len(results["claims"]) >= 5:
-                    break
+            results["claims"].append({
+                "claim_id": claim.get("claim_id"),
+                "claim_number": claim.get("claim_number", ""),
+                "status": claim.get("status", ""),
+                "client_name": client_name or member_name,
+                "policy_id": claim.get("policy_id"),
+                "url": f"/claims/{claim.get('claim_id')}"
+            })
         
-        # Search pending items (pending policies)
-        pending_result = supabase.table("pending_policies").select("*, clients(*)").execute()
+        # Search pending items (pending policies) with server-side filtering
+        # Note: pending_policies doesn't have customer_name - it uses client_id/member_id foreign keys
+        pending_result = (supabase.table("pending_policies")
+                         .select("*, clients(*), members(*)")
+                         .or_(f"insurance_company.ilike.{search_pattern},product_name.ilike.{search_pattern}")
+                         .limit(10)
+                         .execute())
         
-        for pending in pending_result.data[:100]:
-            pending_id = str(pending.get("pending_id", ""))
-            customer_name = pending.get("customer_name", "")
-            insurance_company = pending.get("insurance_company", "")
-            product_name = pending.get("product_name", "")
+        for pending in pending_result.data:
             client_name = pending.get("clients", {}).get("name", "") if pending.get("clients") else ""
+            member_name = pending.get("members", {}).get("member_name", "") if pending.get("members") else ""
+            display_name = member_name or client_name
             
-            if (query in pending_id.lower() or 
-                query in customer_name.lower() or
-                query in insurance_company.lower() or
-                query in product_name.lower() or
-                query in client_name.lower()):
-                
-                results["pending"].append({
-                    "pending_id": pending.get("pending_id"),
-                    "customer_name": customer_name or client_name,
-                    "insurance_company": insurance_company,
-                    "product_name": product_name,
-                    "url": f"/pending/{pending.get('pending_id')}"
-                })
-                
-                if len(results["pending"]) >= 5:
-                    break
+            results["pending"].append({
+                "pending_id": pending.get("pending_id"),
+                "customer_name": display_name,
+                "insurance_company": pending.get("insurance_company", ""),
+                "product_name": pending.get("product_name", ""),
+                "url": f"/pending/{pending.get('pending_id')}"
+            })
         
     except Exception as e:
         print(f"Error in global search: {e}")
+        import traceback
+        traceback.print_exc()
     
     return jsonify(results)

@@ -767,10 +767,10 @@ def send_renewal_notification_api():
         if not send_whatsapp and not send_email:
             return jsonify({'success': False, 'message': 'At least one notification method must be selected'}), 400
         
-        # Fetch policy details with client information
+        # Fetch policy details with client and member information
         policy_result = (
             supabase.table("policies")
-            .select("*, clients!policies_client_id_fkey(client_id, name, email, phone)")
+            .select("*, clients!policies_client_id_fkey(client_id, name, email, phone), members!policies_member_id_fkey(member_name)")
             .eq("policy_id", policy_id)
             .single()
             .execute()
@@ -781,9 +781,14 @@ def send_renewal_notification_api():
         
         policy = policy_result.data
         client = policy.get('clients', {})
+        member = policy.get('members', {})
         
         if not client:
             return jsonify({'success': False, 'message': 'Client information not found'}), 404
+        
+        # Get member name, fallback to client name
+        member_name = member.get('member_name', '') if member else ''
+        display_name = member_name if member_name else client.get('name', 'Customer')
         
         messages = []
         whatsapp_success = False
@@ -798,7 +803,7 @@ def send_renewal_notification_api():
                     phone = phone.strip().replace(' ', '').replace('-', '')
                     
                     # Send policy document via WhatsApp
-                    send_res = send_policy_document_whatsapp(phone, policy, client.get('name', 'Customer'))
+                    send_res = send_policy_document_whatsapp(phone, policy, display_name)
                     whatsapp_success = not send_res.get('error')
                     
                     if whatsapp_success:
@@ -820,7 +825,7 @@ def send_renewal_notification_api():
                 try:
                     # Prepare policy data for email template
                     policy_data = {
-                        'client_name': client.get('name', 'Customer'),
+                        'member_name': display_name,
                         'policy_type': policy.get('product_name', 'Insurance'),
                         'policy_no': policy.get('policy_number', 'N/A'),
                         'asset': policy.get('remarks', 'N/A'),
@@ -1006,13 +1011,23 @@ def send_reminder(policy_id):
             return jsonify({'success': False, 'message': 'Client not found for this policy'}), 404
         client = client_response.data
         
+        # 2b. Fetch the member details if member_id exists
+        member_name = None
+        if policy.get('member_id'):
+            member_response = execute_query('members', 'select', filters={'member_id': policy['member_id']}, single=True)
+            if member_response.data:
+                member_name = member_response.data.get('member_name')
+        
+        # Use member name if available, fallback to client name
+        display_name = member_name if member_name else client.get('name', 'Valued Customer')
+        
         # 3. Check if the client has an email address
         if not client.get('email'):
              return jsonify({'success': False, 'message': 'Client does not have an email address on file.'}), 400
 
         # 4. Create the data dictionary with the exact keys the HTML template needs
         renewal_data = {
-            'client_name': client.get('name', 'Valued Customer'),
+            'member_name': display_name,
             'policy_no': policy.get('policy_number', 'N/A'), # The official policy number
             'asset': policy.get('remarks', 'N/A'),            # Using the 'remarks' field as requested
             'company': policy.get('insurance_company', 'N/A'),# The insurance company name
